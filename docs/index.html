@@ -708,7 +708,8 @@
 
 <!-- ── SYNC STATUS BALK ── -->
 <div id="sync-status-bar">
-  <div class="spinner" style="width:14px;height:14px;border-width:2px;flex-shrink:0;"></div>
+  <div id="sync-spinner" class="spinner" style="width:14px;height:14px;border-width:2px;flex-shrink:0;"></div>
+  <span id="sync-status-icon" style="display:none;font-size:14px;flex-shrink:0;"></span>
   <span id="sync-status-text">Synchroniseren...</span>
 </div>
 
@@ -1532,16 +1533,41 @@ function verwijderUitQueue(meldingId) {
 
 // ── SYNC CORE ─────────────────────────────────────────────────
 function toonSyncBalk(tekst) {
-  const bar = document.getElementById('sync-status-bar');
-  const txt = document.getElementById('sync-status-text');
+  const bar     = document.getElementById('sync-status-bar');
+  const txt     = document.getElementById('sync-status-text');
+  const spinner = document.getElementById('sync-spinner');
+  const icon    = document.getElementById('sync-status-icon');
   if (!bar) return;
-  if (txt) txt.textContent = tekst;
+  if (txt)     txt.textContent   = tekst;
+  if (spinner) spinner.style.display = 'block';
+  if (icon)    icon.style.display    = 'none';
+  bar.style.borderColor = 'var(--border-bright)';
   bar.classList.add('active');
 }
 
 function verbergSyncBalk() {
   setTimeout(() => {
     const bar = document.getElementById('sync-status-bar');
+    if (bar) bar.classList.remove('active');
+  }, 2000);
+}
+
+// Toont eindstatus (✓ of ✗) — stopt spinner, wacht dan 2s voor verbergen
+function sluitSyncBalk(geslaagd, tekst) {
+  const bar     = document.getElementById('sync-status-bar');
+  const txt     = document.getElementById('sync-status-text');
+  const spinner = document.getElementById('sync-spinner');
+  const icon    = document.getElementById('sync-status-icon');
+  if (!bar) return;
+  if (spinner) spinner.style.display = 'none';
+  if (icon) {
+    icon.textContent   = geslaagd ? '✓' : '✗';
+    icon.style.color   = geslaagd ? 'var(--accent)' : 'var(--danger)';
+    icon.style.display = 'inline';
+  }
+  if (txt) txt.textContent = tekst;
+  bar.style.borderColor = geslaagd ? 'var(--accent)' : 'var(--danger)';
+  setTimeout(() => {
     if (bar) bar.classList.remove('active');
   }, 2000);
 }
@@ -1781,7 +1807,14 @@ async function syncNu(toonStatus = true) {
 
   _syncRunning = false;
   updateSyncHeaderDot(mislukt > 0 ? 'fout' : 'ok');
-  verbergSyncBalk();
+
+  const eindTekst = teSync.length === 0
+    ? 'Niets te synchroniseren'
+    : mislukt > 0
+      ? `Sync: ${geslaagd} geslaagd, ${mislukt} mislukt`
+      : `✓ ${geslaagd} melding(en) gesynchroniseerd`;
+
+  sluitSyncBalk(mislukt === 0, eindTekst);
   updateSyncStats();
   renderTimeline();
   updateDashboard();
@@ -1864,17 +1897,19 @@ async function laadVanSupabase() {
     if (nieuw > 0) {
       lokaal.sort((a, b) => new Date(b.timestamp_local) - new Date(a.timestamp_local));
       saveMeldingen(lokaal);
+      sluitSyncBalk(true, `✓ ${nieuw} nieuwe melding(en) geladen`);
       toast(`✓ ${nieuw} nieuwe melding(en) geladen van cloud`, 'success');
       renderTimeline();
       updateDashboard();
     } else {
+      sluitSyncBalk(true, 'Alles al up-to-date');
       toast('Alles al up-to-date', 'success');
     }
   } catch (e) {
     console.error('[Supabase] Laden mislukt:', e.message);
+    sluitSyncBalk(false, 'Laden mislukt');
     toast('Laden mislukt: ' + e.message, 'error');
   } finally {
-    verbergSyncBalk();
     updateSyncStats();
   }
 }
