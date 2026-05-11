@@ -1649,22 +1649,38 @@ async function sbSyncBijlagen(meldingId, bestanden) {
       }
     }
 
-    // Upsert metadata — ook als storage upload mislukte
-    const { error: metaErr } = await sb.from('attachments').upsert({
-      entry_id:       meldingId,
-      user_id:        _sbUser.id,
-      filename:       bestand.name       || null,
-      mime_type:      bestand.type       || null,
-      file_size:      bestand.size       || null,
-      storage_bucket: 'spuitlog-bijlagen',
-      storage_path:   storagePath,
-      file_hash:      bestand.hash
-    }, { onConflict: 'entry_id,file_hash' });
-
-    if (metaErr) {
-      console.error('[Supabase] attachments upsert mislukt:', metaErr.message, '| code:', metaErr.code);
+    // Metadata insert of update — werkt zonder unieke DB constraint
+    // Als rij al bestaat (bestaand.id bekend): update storage_path indien gevuld
+    // Als rij nog niet bestaat: insert nieuw
+    if (bestaand?.id) {
+      // Rij bestaat al maar storage_path was null — update alleen als we nu wél een pad hebben
+      if (storagePath) {
+        const { error: updErr } = await sb.from('attachments')
+          .update({ storage_path: storagePath })
+          .eq('id', bestaand.id);
+        if (updErr) {
+          console.error('[Supabase] attachments update mislukt:', updErr.message);
+        } else {
+          console.log('[Supabase] attachments storage_path geüpdatet voor:', bestand.name);
+        }
+      }
     } else {
-      console.log('[Supabase] attachments upsert OK voor:', bestand.name);
+      // Nieuwe rij invoegen
+      const { error: insErr } = await sb.from('attachments').insert({
+        entry_id:       meldingId,
+        user_id:        _sbUser.id,
+        filename:       bestand.name       || null,
+        mime_type:      bestand.type       || null,
+        file_size:      bestand.size       || null,
+        storage_bucket: 'spuitlog-bijlagen',
+        storage_path:   storagePath,
+        file_hash:      bestand.hash
+      });
+      if (insErr) {
+        console.error('[Supabase] attachments insert mislukt:', insErr.message, '| code:', insErr.code);
+      } else {
+        console.log('[Supabase] attachments insert OK voor:', bestand.name);
+      }
     }
   }
 }
@@ -2551,7 +2567,7 @@ function handleTimelineFotoKlik(el) {
   openLightboxFromSaved(melding.bestanden, fileIdx, meldingId);
 }
 
-
+function showLightboxItem() {
   const lb = document.getElementById('lightbox');
   const img = document.getElementById('lightbox-img');
   const vid = document.getElementById('lightbox-video');
