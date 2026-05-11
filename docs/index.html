@@ -1657,14 +1657,17 @@ async function sbAuditLog(entryId, action, detail = {}) {
   const sb = sbClient();
   if (!sb || !_sbUser) return;
   try {
-    await sb.from('audit_log').insert({
-      user_id:    _sbUser.id,
-      entry_id:   entryId,
+    const { error } = await sb.from('audit_log').insert({
+      user_id:  _sbUser.id,
+      entry_id: entryId,
       action,
-      detail,
-      user_agent: navigator.userAgent.substring(0, 200)
+      detail
+      // user_agent bestaat niet in schema v3 — weggelaten
     });
-  } catch {}
+    if (error) console.warn('[Supabase] audit_log mislukt:', error.message);
+  } catch (e) {
+    console.warn('[Supabase] audit_log fout:', e.message);
+  }
 }
 
 // Hoofd sync functie: verwerk offline queue
