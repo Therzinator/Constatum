@@ -647,11 +647,9 @@
       font-family: var(--mono);
       font-size: 0.68rem;
       color: var(--text-secondary);
-      display: flex;
       align-items: center;
       gap: 8px;
       animation: fadeIn 0.2s ease;
-      pointer-events: none;
     }
     #sync-status-bar.active { display: flex; }
   </style>
@@ -803,8 +801,8 @@
           <div class="p-2 border-b" style="border-color:var(--border);">
             <div class="section-label" style="font-size:0.6rem;">Type Verdeling</div>
           </div>
-          <div class="p-2">
-            <canvas id="chart-types" height="80"></canvas>
+          <div class="p-2" style="position:relative;height:80px;">
+            <canvas id="chart-types"></canvas>
           </div>
         </div>
       </div>
@@ -2438,6 +2436,33 @@ function degToCompass(deg) {
   return dirs[Math.round(deg / 22.5) % 16];
 }
 
+// Beaufort schaal op basis van km/h (10m hoogte)
+function kmhToBft(kmh) {
+  const grenzen = [1,6,12,20,29,39,50,62,75,89,103,118];
+  let bft = 0;
+  for (const g of grenzen) { if (kmh >= g) bft++; else break; }
+  return bft;
+}
+
+// Toets windsnelheid aan Nederlandse spuitrichtlijnen (Wgb/Activiteitenbesluit)
+// Max Bft 3 (< 19 km/h) voor professioneel gebruik nabij gevoelige gebieden
+function spuitWindOordeel(windKmh, gustsKmh) {
+  const bft = kmhToBft(windKmh);
+  const gustBft = kmhToBft(gustsKmh || 0);
+  const MAX_BFT = 3;    // Bft 3 = max 19 km/h gemiddeld
+  const MAX_GUSTS = 19; // stoten > 19 km/h: niet spuiten
+
+  if (windKmh >= 19 || gustsKmh >= MAX_GUSTS) {
+    return { kleur: '#ef4444', icoon: '🚫', tekst: `Wind te hoog voor spuiten (Bft ${bft}, max Bft ${MAX_BFT})` };
+  } else if (windKmh >= 14) {
+    return { kleur: '#f59e0b', icoon: '⚠️', tekst: `Wind aan de grens (Bft ${bft}, richtlijn max Bft ${MAX_BFT})` };
+  } else {
+    return { kleur: '#00d4aa', icoon: '✓', tekst: `Wind binnen richtlijn (Bft ${bft}, max Bft ${MAX_BFT})` };
+  }
+}
+
+
+
 // ============================================================
 // [WIJZIGING 3] WINDROOS AUTO-KOPPELING – stel kompas in vanuit API
 // ============================================================
@@ -3004,7 +3029,7 @@ function updateDashboard() {
       const icon = L.divIcon({
         html: `<div style="position:relative;display:inline-block;">
           <div style="width:10px;height:10px;background:${color};border-radius:50%;border:2px solid white;opacity:0.85;"></div>
-          <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:8px;color:white;background:transparent;text-shadow:0 1px 2px rgba(0,0,0,0.9),0 0 4px rgba(0,0,0,0.7);padding:1px 2px;pointer-events:none;">${dateLabel}</div>
+          <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:5px;color:white;background:transparent;text-shadow:0 1px 2px rgba(0,0,0,0.9),0 0 4px rgba(0,0,0,0.7);padding:1px 2px;pointer-events:none;">${dateLabel}</div>
         </div>`,
         iconSize: [10, 10], iconAnchor: [5, 5], className: ''
       });
@@ -3087,8 +3112,9 @@ function renderCharts(meldingen) {
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
-          legend: { labels: { color: '#7a90b0', font: { family: 'JetBrains Mono', size: 10 } } }
+          legend: { labels: { color: '#7a90b0', font: { family: 'JetBrains Mono', size: 9 }, boxWidth: 10, padding: 6 } }
         }
       }
     });
@@ -3265,14 +3291,18 @@ function showMeldingDetail(id) {
       <div class="card p-3">
         <div class="section-label mb-2">Weerdata (${m.weather.source})</div>
         <div class="grid grid-cols-2 gap-1 mono text-xs" style="color:var(--text-secondary);">
-          <div>🌬️ ${m.weather.wind_speed} km/h</div>
+          <div>🌬️ ${m.weather.wind_speed} km/h (Bft ${kmhToBft(m.weather.wind_speed)})</div>
           <div>↗️ ${m.weather.wind_dir}° ${degToCompass(m.weather.wind_dir)}</div>
-          <div>💨 stoten: ${m.weather.wind_gusts} km/h</div>
+          <div>💨 stoten: ${m.weather.wind_gusts} km/h (Bft ${kmhToBft(m.weather.wind_gusts)})</div>
           <div>🌡️ ${m.weather.temperature}°C</div>
           <div>💧 ${m.weather.humidity}%</div>
           <div>🌂 ${m.weather.precipitation} mm</div>
           <div>📊 ${m.weather.pressure} hPa</div>
         </div>
+        ${m.weather.wind_speed != null ? (() => {
+          const o = spuitWindOordeel(m.weather.wind_speed, m.weather.wind_gusts);
+          return `<div style="margin-top:8px;padding:6px 10px;border-radius:6px;background:${o.kleur}18;border:1px solid ${o.kleur}44;font-family:var(--mono);font-size:0.65rem;color:${o.kleur};">${o.icoon} Spuitrichtlijn: ${o.tekst}</div>`;
+        })() : ''}
       </div>` : ''}
 
       <!-- Bestanden – klikbaar foto grid, laadt uit IndexedDB -->
@@ -3517,22 +3547,27 @@ async function exportPDF() {
         <div style="border-top:1px solid #e2e8f0;padding-top:8px;margin-top:8px;">
           <div class="label">Weerdata (${m.weather.source})</div>
           <div class="grid-2" style="margin-top:4px;">
-            <div><span class="label">Wind: </span><span class="value">${m.weather.wind_speed} km/h</span></div>
+            <div><span class="label">Wind: </span><span class="value">${m.weather.wind_speed} km/h (Bft ${kmhToBft(m.weather.wind_speed)})</span></div>
             <div><span class="label">Richting: </span><span class="value">${m.weather.wind_dir}° ${degToCompass(m.weather.wind_dir)}</span></div>
-            <div><span class="label">Stoten: </span><span class="value">${m.weather.wind_gusts} km/h</span></div>
+            <div><span class="label">Stoten: </span><span class="value">${m.weather.wind_gusts} km/h (Bft ${kmhToBft(m.weather.wind_gusts)})</span></div>
             <div><span class="label">Temp: </span><span class="value">${m.weather.temperature}°C</span></div>
             <div><span class="label">Vochtigheid: </span><span class="value">${m.weather.humidity}%</span></div>
             <div><span class="label">Neerslag: </span><span class="value">${m.weather.precipitation} mm</span></div>
           </div>
+          ${m.weather.wind_speed != null ? (() => {
+            const o = spuitWindOordeel(m.weather.wind_speed, m.weather.wind_gusts);
+            const bg = o.kleur === '#ef4444' ? '#fee2e2' : o.kleur === '#f59e0b' ? '#fef3c7' : '#d1fae5';
+            const border = o.kleur === '#ef4444' ? '#fca5a5' : o.kleur === '#f59e0b' ? '#fcd34d' : '#6ee7b7';
+            return `<div style="margin-top:8px;padding:5px 8px;border-radius:4px;background:${bg};border:1px solid ${border};font-family:JetBrains Mono;font-size:8pt;color:#1e293b;">${o.icoon} Spuitrichtlijn: ${o.tekst}</div>`;
+          })() : ''}
         </div>` : ''}
 
         ${m.bestanden?.filter(f => f.type?.startsWith('image/') && f.dataUrl).length ? `
         <div style="border-top:1px solid #e2e8f0;padding-top:8px;margin-top:8px;">
-          <div class="label" style="margin-bottom:10px;">Fotobewijs (${m.bestanden.filter(f => f.type?.startsWith('image/') && f.dataUrl).length} afbeelding(en))</div>
           ${m.bestanden.filter(f => f.type?.startsWith('image/') && f.dataUrl).map((f, fi, arr) => `
             <div style="page-break-inside:avoid;margin-bottom:16px;">
+              <div class="label" style="margin-bottom:8px;">Fotobewijs ${fi+1}/${arr.length} — ${f.name}</div>
               <img class="evidence" src="${f.dataUrl}" alt="${f.name}">
-              <div class="label" style="margin-top:5px;text-align:center;">${f.name} (${fi+1}/${arr.length})</div>
             </div>
           `).join('')}
         </div>` : ''}
