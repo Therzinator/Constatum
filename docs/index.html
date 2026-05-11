@@ -139,6 +139,18 @@
     .leaflet-container { background: #0d1520 !important; }
     .leaflet-tile { filter: brightness(0.7) saturate(0.8); }
 
+    /* BUG FIX + WIJZIGING 2: vergroot locatiekaart ×1.5 (was 180px → 270px) */
+    #form-map {
+      height: 270px;
+      min-height: 270px;
+    }
+    @media (max-width: 640px) {
+      #form-map {
+        height: 250px;
+        min-height: 250px;
+      }
+    }
+
     /* Compass */
     .compass-ring { cursor: pointer; transition: opacity 0.2s; }
     .compass-ring:hover { opacity: 0.85; }
@@ -635,7 +647,7 @@
             <span style="font-family:var(--mono);font-size:0.65rem;color:var(--text-muted);" id="weather-status-text">Laden...</span>
           </div>
         </div>
-        <div id="weather-display" class="grid grid-cols-2 gap-2 mt-2" style="display:none!important;">
+        <div id="weather-display" class="grid grid-cols-2 gap-2 mt-2" style="display:none;">
           <div><div class="section-label">Wind</div><div class="mono text-sm mt-1" id="wd-wind" style="color:var(--info);">—</div></div>
           <div><div class="section-label">Windrichting</div><div class="mono text-sm mt-1" id="wd-dir">—</div></div>
           <div><div class="section-label">Windstoten</div><div class="mono text-sm mt-1" id="wd-gust">—</div></div>
@@ -779,7 +791,7 @@
         <!-- Locatie kaart -->
         <div>
           <label class="section-label block mb-2">Locatie Melding</label>
-          <div id="form-map" style="height:180px;"></div>
+          <div id="form-map" style="height:270px;"></div>
           <div class="flex items-center gap-2 mt-2">
             <input type="text" id="f-lat" class="form-input px-2 py-2 text-xs mono flex-1" placeholder="Breedtegraad" readonly>
             <input type="text" id="f-lng" class="form-input px-2 py-2 text-xs mono flex-1" placeholder="Lengtegraad" readonly>
@@ -1119,7 +1131,7 @@ function refreshGPS() {
 }
 
 // ============================================================
-// WEATHER
+// WEATHER — robuust, blokkeert nooit het formulier
 // ============================================================
 async function fetchWeather() {
   const lat = currentGPS.lat || HOME_LAT;
@@ -1128,13 +1140,25 @@ async function fetchWeather() {
   const statusText = document.getElementById('weather-status-text');
   const display = document.getElementById('weather-display');
 
-  spinner.style.display = 'block';
-  statusText.textContent = 'Laden...';
+  if (spinner) spinner.style.display = 'block';
+  if (statusText) { statusText.textContent = 'Laden...'; statusText.style.color = ''; }
 
   try {
+    // Voeg AbortController toe zodat we niet langer dan 8s wachten
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,precipitation,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=kmh&timezone=auto`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
+
+    // Valideer dat de verwachte velden aanwezig zijn
+    if (!data.current || data.current.wind_direction_10m === undefined) {
+      throw new Error('Onverwacht API-formaat');
+    }
 
     weatherRaw = data;
     const c = data.current;
@@ -1152,27 +1176,41 @@ async function fetchWeather() {
       lat, lng
     };
 
-    document.getElementById('wd-wind').textContent = `${c.wind_speed_10m} km/h`;
-    document.getElementById('wd-dir').textContent = `${c.wind_direction_10m}° (${degToCompass(c.wind_direction_10m)})`;
-    document.getElementById('wd-gust').textContent = `${c.wind_gusts_10m} km/h`;
-    document.getElementById('wd-temp').textContent = `${c.temperature_2m}°C`;
-    document.getElementById('wd-hum').textContent = `${c.relative_humidity_2m}%`;
-    document.getElementById('wd-precip').textContent = `${c.precipitation} mm`;
-    document.getElementById('wd-pressure').textContent = `${c.surface_pressure} hPa`;
-    document.getElementById('wd-source').textContent = `Open-Meteo · ${new Date().toLocaleTimeString('nl-NL')}`;
+    const wd = document.getElementById('wd-wind');
+    const wdir = document.getElementById('wd-dir');
+    const wg = document.getElementById('wd-gust');
+    const wt = document.getElementById('wd-temp');
+    const wh = document.getElementById('wd-hum');
+    const wp = document.getElementById('wd-precip');
+    const wpr = document.getElementById('wd-pressure');
+    const wsrc = document.getElementById('wd-source');
+    if (wd) wd.textContent = `${c.wind_speed_10m} km/h`;
+    if (wdir) wdir.textContent = `${c.wind_direction_10m}° (${degToCompass(c.wind_direction_10m)})`;
+    if (wg) wg.textContent = `${c.wind_gusts_10m} km/h`;
+    if (wt) wt.textContent = `${c.temperature_2m}°C`;
+    if (wh) wh.textContent = `${c.relative_humidity_2m}%`;
+    if (wp) wp.textContent = `${c.precipitation} mm`;
+    if (wpr) wpr.textContent = `${c.surface_pressure} hPa`;
+    if (wsrc) wsrc.textContent = `Open-Meteo · ${new Date().toLocaleTimeString('nl-NL')}`;
 
-    // [WIJZIGING 3] Stel windroos automatisch in op gemeten windrichting
+    // Windroos automatisch instellen op gemeten windrichting
     setCompassDegrees(c.wind_direction_10m);
 
-    display.style.removeProperty('display');
-    spinner.style.display = 'none';
-    statusText.textContent = 'Actueel';
-    statusText.style.color = 'var(--accent)';
+    // BUG FIX: was display:none!important — nu gewoon display:none zodat JS het kan overschrijven
+    if (display) display.style.display = 'grid';
+    if (spinner) spinner.style.display = 'none';
+    if (statusText) { statusText.textContent = 'Actueel'; statusText.style.color = 'var(--accent)'; }
+
+    console.log(`[SpuitLog] Weerdata geladen: wind ${c.wind_speed_10m} km/h uit ${c.wind_direction_10m}°`);
 
   } catch (e) {
-    spinner.style.display = 'none';
-    statusText.textContent = 'Fout bij ophalen';
-    statusText.style.color = 'var(--danger)';
+    console.warn('[SpuitLog] Weerdata niet beschikbaar:', e.message);
+    if (spinner) spinner.style.display = 'none';
+    if (statusText) {
+      statusText.textContent = navigator.onLine ? 'Fout bij ophalen' : 'Offline — geen weerdata';
+      statusText.style.color = 'var(--warning)';
+    }
+    // currentWeather blijft null — submitMelding handelt dit af
   }
 }
 
@@ -1405,7 +1443,7 @@ function initLightboxEvents() {
 }
 
 // ============================================================
-// SUBMIT MELDING
+// SUBMIT MELDING — volledig herschreven met robuuste foutafhandeling
 // ============================================================
 async function submitMelding() {
   const type = document.getElementById('f-type').value;
@@ -1415,89 +1453,117 @@ async function submitMelding() {
   if (!desc) { toast('Voer een omschrijving in', 'error'); return; }
 
   const btn = document.getElementById('submit-btn');
+  const btnOriginalHTML = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = '<div class="spinner"></div> Opslaan...';
+  btn.innerHTML = '<div class="spinner" style="display:inline-block;margin-right:8px;"></div> Opslaan...';
 
-  const now = new Date();
-  const healthChecks = Array.from(document.querySelectorAll('.health-check:checked')).map(el => el.value);
-  const activityChecks = Array.from(document.querySelectorAll('.activity-check:checked')).map(el => el.value);
+  try {
+    const now = new Date();
+    const healthChecks = Array.from(document.querySelectorAll('.health-check:checked')).map(el => el.value);
+    const activityChecks = Array.from(document.querySelectorAll('.activity-check:checked')).map(el => el.value);
 
-  const melding = {
-    id: generateId(),
-    timestamp_local: now.toISOString(),
-    timestamp_utc: new Date(now.toUTCString()).toISOString(),
-    date: now.toLocaleDateString('nl-NL'),
-    time: now.toLocaleTimeString('nl-NL'),
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    device: navigator.userAgent.substring(0, 120),
-    platform: navigator.platform,
+    // BUG FIX 1: pendingFiles kan null-items bevatten na verwijderen — filter ze eruit
+    const geldigeBestanden = pendingFiles.filter(f => f !== null && f !== undefined);
 
-    // GPS
-    gps: {
-      lat: parseFloat(document.getElementById('f-lat').value) || HOME_LAT,
-      lng: parseFloat(document.getElementById('f-lng').value) || HOME_LNG,
-      accuracy: currentGPS.accuracy
-    },
+    // GPS — gebruik fallback als niet beschikbaar
+    const gpsLat = parseFloat(document.getElementById('f-lat').value) || HOME_LAT;
+    const gpsLng = parseFloat(document.getElementById('f-lng').value) || HOME_LNG;
 
-    // Form data
-    type: type,
-    description: desc,
-    geur_intensiteit: parseInt(document.getElementById('f-geur').value),
-    wind_subjectief: document.getElementById('f-wind-subj').value,
-    richting_deg: parseInt(document.getElementById('f-direction').value),
-    richting_compass: degToCompass(parseInt(document.getElementById('f-direction').value)),
-    gezondheidsklachten: healthChecks,
-    activiteiten: activityChecks,
-    notities: document.getElementById('f-notes').value.trim(),
+    // Weerdata — gebruik huidige waarde of markeer als niet beschikbaar
+    const weatherData = currentWeather
+      ? { ...currentWeather }
+      : { status: 'niet beschikbaar', wind_speed: null, wind_dir: null, wind_gusts: null, temperature: null, humidity: null, precipitation: null, pressure: null, source: 'niet beschikbaar', timestamp: now.toISOString() };
 
-    // Weather
-    weather: currentWeather,
-    weather_raw: weatherRaw,
+    const melding = {
+      id: generateId(),
+      timestamp_local: now.toISOString(),
+      timestamp_utc: new Date(now.toUTCString()).toISOString(),
+      date: now.toLocaleDateString('nl-NL'),
+      time: now.toLocaleTimeString('nl-NL'),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      device: navigator.userAgent.substring(0, 120),
+      platform: navigator.platform,
 
-    // Files
-    bestanden: pendingFiles.map(f => ({
-      name: f.name,
-      type: f.type,
-      size: f.size,
-      lastModified: f.lastModified,
-      hash: f.hash,
-      dataUrl: f.dataUrl
-    })),
+      // GPS
+      gps: {
+        lat: gpsLat,
+        lng: gpsLng,
+        accuracy: currentGPS.accuracy || null,
+        status: currentGPS.accuracy ? 'beschikbaar' : 'standaard locatie'
+      },
 
-    // Metadata
-    version: '1.0.0',
-    hash: null // computed below
-  };
+      // Formulier velden
+      type: type,
+      description: desc,
+      geur_intensiteit: parseInt(document.getElementById('f-geur').value) || 1,
+      wind_subjectief: document.getElementById('f-wind-subj').value,
+      richting_deg: parseInt(document.getElementById('f-direction').value) || 0,
+      richting_compass: degToCompass(parseInt(document.getElementById('f-direction').value) || 0),
+      gezondheidsklachten: healthChecks,
+      activiteiten: activityChecks,
+      notities: document.getElementById('f-notes').value.trim(),
 
-  // Generate hash (excluding hash field itself)
-  const hashInput = JSON.stringify({ ...melding, hash: null, weather_raw: null, bestanden: melding.bestanden.map(f => ({ ...f, dataUrl: null })) });
-  melding.hash = await sha256(hashInput);
+      // Weerdata
+      weather: weatherData,
+      weather_raw: weatherRaw || null,
 
-  // Save
-  const meldingen = getMeldingen();
-  meldingen.unshift(melding);
-  saveMeldingen(meldingen);
+      // BUG FIX 1: gebruik gefilterde bestanden (geen null-items)
+      bestanden: geldigeBestanden.map(f => ({
+        name: f.name,
+        type: f.type,
+        size: f.size,
+        lastModified: f.lastModified,
+        hash: f.hash,
+        dataUrl: f.dataUrl
+      })),
 
-  toast(`✓ Melding opgeslagen — ${melding.id}`, 'success');
+      // Metadata
+      version: '1.0.0',
+      hash: null
+    };
 
-  // Reset form
-  document.getElementById('f-type').value = '';
-  document.getElementById('f-desc').value = '';
-  document.getElementById('f-geur').value = 1;
-  document.getElementById('geur-val').textContent = '1';
-  document.getElementById('f-notes').value = '';
-  document.querySelectorAll('.health-check, .activity-check').forEach(el => el.checked = false);
-  document.getElementById('file-previews').innerHTML = '';
-  pendingFiles = [];
-  // [WIJZIGING 3] Reset kompas naar 0 na opslaan
-  setCompassDegrees(0);
+    // Genereer SHA256 hash
+    const hashInput = JSON.stringify({
+      ...melding,
+      hash: null,
+      weather_raw: null,
+      bestanden: melding.bestanden.map(f => ({ ...f, dataUrl: null }))
+    });
+    melding.hash = await sha256(hashInput);
 
-  btn.disabled = false;
-  btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm1 5a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z"/></svg> Melding Opslaan';
+    // Sla op in localStorage
+    const meldingen = getMeldingen();
+    meldingen.unshift(melding);
+    saveMeldingen(meldingen);
 
-  updateDashboard();
-  renderTimeline();
-  showPage('tijdlijn');
+    console.log(`[SpuitLog] Melding opgeslagen: ${melding.id}, hash: ${melding.hash}`);
+    toast(`✓ Melding opgeslagen — ${melding.id}`, 'success');
+
+    // Reset formulier
+    document.getElementById('f-type').value = '';
+    document.getElementById('f-desc').value = '';
+    document.getElementById('f-geur').value = 1;
+    document.getElementById('geur-val').textContent = '1';
+    document.getElementById('f-notes').value = '';
+    document.querySelectorAll('.health-check, .activity-check').forEach(el => el.checked = false);
+    document.getElementById('file-previews').innerHTML = '';
+    pendingFiles = [];
+    setCompassDegrees(0);
+
+    // Navigeer naar tijdlijn
+    updateDashboard();
+    renderTimeline();
+    showPage('tijdlijn');
+
+  } catch (error) {
+    // BUG FIX: bij elke fout — toon melding, log naar console, knop herstellen
+    console.error('[SpuitLog] Opslaan mislukt:', error);
+    toast(`Opslaan mislukt: ${error.message || 'Onbekende fout'}. Zie console.`, 'error');
+  } finally {
+    // BUG FIX: knop ALTIJD herstellen, ook bij fouten
+    btn.disabled = false;
+    btn.innerHTML = btnOriginalHTML;
+  }
 }
 
 // ============================================================
@@ -1512,6 +1578,9 @@ function showPage(name) {
   if (name === 'melding') {
     initFormDateTime();
     initFormMap();
+    // BUG FIX: Leaflet geeft grijze tiles als kaart geladen werd terwijl div niet zichtbaar was
+    // invalidateSize() forceert een herberekening van de kaartafmetingen
+    setTimeout(() => { if (formMap) formMap.invalidateSize(); }, 120);
   }
   if (name === 'dashboard') {
     updateDashboard();
@@ -1527,6 +1596,8 @@ function showPage(name) {
 // ============================================================
 // FORM INIT
 // ============================================================
+let _clockInterval = null; // BUG FIX: voorkom gestapelde setIntervals
+
 function initFormDateTime() {
   const now = new Date();
   document.getElementById('auto-date').textContent = now.toLocaleDateString('nl-NL', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
@@ -1534,10 +1605,14 @@ function initFormDateTime() {
   document.getElementById('auto-utc').textContent = now.toISOString();
   document.getElementById('auto-tz').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone;
   document.getElementById('auto-device').textContent = navigator.userAgent.substring(0, 80) + '...';
-  setInterval(() => {
+  // BUG FIX: verwijder bestaand interval voor nieuwe aanmaken
+  if (_clockInterval) clearInterval(_clockInterval);
+  _clockInterval = setInterval(() => {
     const n = new Date();
-    document.getElementById('auto-time').textContent = n.toLocaleTimeString('nl-NL');
-    document.getElementById('auto-utc').textContent = n.toISOString();
+    const timeEl = document.getElementById('auto-time');
+    const utcEl = document.getElementById('auto-utc');
+    if (timeEl) timeEl.textContent = n.toLocaleTimeString('nl-NL');
+    if (utcEl) utcEl.textContent = n.toISOString();
   }, 1000);
 }
 
