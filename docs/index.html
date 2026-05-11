@@ -516,7 +516,7 @@
       </svg>
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em;">SpuitLog</div>
-        <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;">PESTICIDE DRIFT DOSSIER v1.1</div>
+        <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;">PESTICIDE DRIFT DOSSIER v1.0</div>
       </div>
     </div>
     <div class="flex items-center gap-2">
@@ -925,15 +925,27 @@
           </div>
         </div>
 
-        <!-- Dossier info -->
+        <!-- Dossier info + Opslag Debug -->
         <div class="card p-4">
           <div class="section-label mb-3">Dossier Informatie</div>
           <div class="space-y-2 mono text-xs" style="color:var(--text-secondary);">
             <div class="flex justify-between"><span>Totaal meldingen:</span><span id="exp-total" style="color:var(--accent);">0</span></div>
             <div class="flex justify-between"><span>Eerste melding:</span><span id="exp-first">—</span></div>
             <div class="flex justify-between"><span>Laatste melding:</span><span id="exp-last">—</span></div>
-            <div class="flex justify-between"><span>Opslag gebruikt:</span><span id="exp-storage">—</span></div>
+            <div class="flex justify-between"><span>Opslag (LS):</span><span id="exp-storage">—</span></div>
+            <div class="flex justify-between"><span>Bijlagen (totaal):</span><span id="exp-bijlagen" style="color:var(--info);">—</span></div>
+            <div class="flex justify-between"><span>Bijlagen in IndexedDB:</span><span id="exp-idb-count" style="color:var(--accent);">—</span></div>
+            <div class="flex justify-between"><span>Opslagmethode:</span><span id="exp-method" style="color:var(--text-muted);font-size:0.58rem;">—</span></div>
           </div>
+        </div>
+
+        <!-- Opschonen -->
+        <div class="card p-4" style="border-color:rgba(59,130,246,0.3);">
+          <div class="section-label mb-2" style="color:var(--info);">🧹 Opslag Opschonen</div>
+          <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:12px;">Verwijdert tijdelijke cache en oude previews uit IndexedDB. <strong>Meldingen blijven behouden.</strong></div>
+          <button onclick="opslagOpschonen()" style="background:transparent;border:1px solid var(--info);color:var(--info);border-radius:8px;padding:8px 16px;font-size:0.8rem;font-family:var(--mono);">
+            🧹 Verwijder bijlagen zonder melding
+          </button>
         </div>
 
         <!-- Danger zone -->
@@ -1042,31 +1054,219 @@ let chartMonthly = null;
 let chartTypes = null;
 
 // ============================================================
-// STORAGE
+// STORAGE — ARCHITECTUUR
 // ============================================================
+// localStorage  → lichte melding metadata (geen base64/dataUrls)
+// IndexedDB     → bijlagen (foto's, video's, volledige dataUrls)
+// Export        → combineert beide bronnen pas op het moment van export
+// ============================================================
+
+// ── Grootte hulpfuncties ──────────────────────────────────────
+function byteSize(str) {
+  return new Blob([str]).size;
+}
+
+function safeSetLocalStorage(key, value) {
+  const json = JSON.stringify(value);
+  const size = byteSize(json);
+  if (size > 4_000_000) {
+    throw new Error(`Opslagobject te groot voor localStorage: ${Math.round(size / 1024)} KB`);
+  }
+  localStorage.setItem(key, json);
+}
+
+function getStorageSize() {
+  let total = 0;
+  try {
+    for (const key of Object.keys(localStorage)) {
+      total += (localStorage[key] || '').length + key.length;
+    }
+  } catch {}
+  return (total / 1024).toFixed(1) + ' KB';
+}
+
+// ── localStorage: alleen metadata zonder dataUrls ─────────────
 function getMeldingen() {
   try {
-    // [COMPATIBILITEIT] Lees ook oude 'driftlog_meldingen' sleutel bij migratie
+    // Migratie van oude sleutel
     const old = localStorage.getItem('driftlog_meldingen');
     if (old && !localStorage.getItem('spuitlog_meldingen')) {
-      localStorage.setItem('spuitlog_meldingen', old);
+      // Migreer maar strip dataUrls direct
+      try {
+        const parsed = JSON.parse(old);
+        const stripped = parsed.map(m => stripDataUrls(m));
+        localStorage.setItem('spuitlog_meldingen', JSON.stringify(stripped));
+      } catch {}
     }
     return JSON.parse(localStorage.getItem('spuitlog_meldingen') || '[]');
   } catch { return []; }
 }
 
-function saveMeldingen(data) {
-  localStorage.setItem('spuitlog_meldingen', JSON.stringify(data));
+// Strip dataUrls uit een melding voor localStorage-opslag
+function stripDataUrls(melding) {
+  return {
+    ...melding,
+    weather_raw: null,  // groot — niet opslaan in LS
+    bestanden: (melding.bestanden || []).map(f => ({
+      name: f.name,
+      type: f.type,
+      size: f.size,
+      lastModified: f.lastModified,
+      hash: f.hash,
+      thumbnail: f.thumbnail || null,  // klein gecomprimeerd thumbnail (< 200 KB)
+      dataUrl: null                     // NOOIT opslaan in localStorage
+    }))
+  };
 }
 
-function getStorageSize() {
-  let total = 0;
-  for (let key in localStorage) {
-    if (localStorage.hasOwnProperty(key)) {
-      total += localStorage[key].length + key.length;
+function saveMeldingen(data) {
+  // Altijd strippen voor opslaan
+  const stripped = data.map(m => stripDataUrls(m));
+  try {
+    safeSetLocalStorage('spuitlog_meldingen', stripped);
+  } catch (err) {
+    console.error('[SpuitLog] localStorage opslag mislukt:', err);
+    // Noodplan: sla op zonder bijlagen-thumbnails
+    const ultraLight = stripped.map(m => ({ ...m, bestanden: (m.bestanden || []).map(f => ({
+      name: f.name, type: f.type, size: f.size, hash: f.hash, thumbnail: null, dataUrl: null
+    })) }));
+    try {
+      safeSetLocalStorage('spuitlog_meldingen', ultraLight);
+      console.warn('[SpuitLog] Opgeslagen zonder thumbnails vanwege opslaglimiet');
+    } catch (err2) {
+      console.error('[SpuitLog] Kon niet opslaan, ook niet zonder thumbnails:', err2);
+      throw err2;
     }
   }
-  return (total / 1024).toFixed(1) + ' KB';
+}
+
+// ── IndexedDB: bijlagen (dataUrls) ───────────────────────────
+const IDB_NAME    = 'spuitlog_idb';
+const IDB_VERSION = 1;
+const IDB_STORE   = 'bijlagen';
+let _idb = null;
+
+async function openIDB() {
+  if (_idb) return _idb;
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) {
+        db.createObjectStore(IDB_STORE, { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = e => { _idb = e.target.result; resolve(_idb); };
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+// Sla bijlage op in IndexedDB: { id: 'MELDINGID_bestandnaam', dataUrl, type, name, meldingId }
+async function idbSaveBijlage(record) {
+  try {
+    const db = await openIDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).put(record);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror    = e => reject(e.target.error);
+    });
+  } catch (err) {
+    console.warn('[SpuitLog] IndexedDB opslaan mislukt:', err);
+    return false;
+  }
+}
+
+// Haal bijlagen op voor een melding-id
+async function idbGetBijlagen(meldingId) {
+  try {
+    const db = await openIDB();
+    return new Promise((resolve, reject) => {
+      const tx    = db.transaction(IDB_STORE, 'readonly');
+      const store = tx.objectStore(IDB_STORE);
+      const results = [];
+      store.openCursor().onsuccess = e => {
+        const cursor = e.target.result;
+        if (cursor) {
+          if (cursor.value.meldingId === meldingId) results.push(cursor.value);
+          cursor.continue();
+        } else {
+          resolve(results);
+        }
+      };
+      tx.onerror = e => reject(e.target.error);
+    });
+  } catch (err) {
+    console.warn('[SpuitLog] IndexedDB ophalen mislukt:', err);
+    return [];
+  }
+}
+
+// Verwijder bijlagen van een melding uit IndexedDB
+async function idbDeleteBijlagen(meldingId) {
+  try {
+    const db    = await openIDB();
+    const bestaand = await idbGetBijlagen(meldingId);
+    const tx    = db.transaction(IDB_STORE, 'readwrite');
+    const store = tx.objectStore(IDB_STORE);
+    bestaand.forEach(b => store.delete(b.id));
+  } catch (err) {
+    console.warn('[SpuitLog] IndexedDB verwijderen mislukt:', err);
+  }
+}
+
+// Tel alle bijlagen in IndexedDB
+async function idbCountBijlagen() {
+  try {
+    const db = await openIDB();
+    return new Promise((resolve, reject) => {
+      const tx  = db.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).count();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror   = () => resolve(0);
+    });
+  } catch { return 0; }
+}
+
+// Verwijder ALLE bijlagen uit IndexedDB (opschonen)
+async function idbClearAll() {
+  try {
+    const db = await openIDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).clear();
+      tx.oncomplete = () => resolve(true);
+      tx.onerror    = () => resolve(false);
+    });
+  } catch { return false; }
+}
+
+// ── Thumbnail compressie ─────────────────────────────────────
+const THUMB_MAX_PX   = 800;
+const THUMB_QUALITY  = 0.65;
+const THUMB_MAX_BYTES = 200 * 1024; // 200 KB
+
+async function compressToThumbnail(dataUrl, mimeType) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > THUMB_MAX_PX || height > THUMB_MAX_PX) {
+        const ratio = Math.min(THUMB_MAX_PX / width, THUMB_MAX_PX / height);
+        width  = Math.round(width  * ratio);
+        height = Math.round(height * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width  = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      const thumb = canvas.toDataURL('image/jpeg', THUMB_QUALITY);
+      // Gooi thumbnail weg als nog te groot (bv. bij getransparante PNG)
+      resolve(byteSize(thumb) <= THUMB_MAX_BYTES ? thumb : null);
+    };
+    img.onerror = () => resolve(null);
+    img.src = dataUrl;
+  });
 }
 
 // ============================================================
@@ -1278,54 +1478,64 @@ function compassClick(e) {
 }
 
 // ============================================================
-// FILE HANDLING – [WIJZIGING 1] groter grid + lightbox
+// FILE HANDLING — thumbnail compressie + IndexedDB voorbereiding
 // ============================================================
 async function handleFiles(event) {
   const files = Array.from(event.target.files);
   const previewEl = document.getElementById('file-previews');
 
   for (const file of files) {
+    // Hash berekenen op originele binary
     const hash = await hashFile(file);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const isVideo = file.type.startsWith('video/');
-      const obj = {
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        lastModified: file.lastModified,
-        hash: hash,
-        dataUrl: e.target.result
-      };
-      pendingFiles.push(obj);
-      const fileIndex = pendingFiles.length - 1;
 
-      // Bouw grid item
-      const item = document.createElement('div');
-      item.className = 'photo-grid-item';
-      item.dataset.fileIndex = fileIndex;
+    // Lees volledige dataUrl (voor IndexedDB opslag + lightbox)
+    const dataUrl = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload  = e => resolve(e.target.result);
+      r.onerror = () => reject(new Error('Bestand lezen mislukt'));
+      r.readAsDataURL(file);
+    });
 
-      if (isVideo) {
-        item.innerHTML = `
-          <div class="photo-grid-video">🎥</div>
-          <div class="photo-hash-badge">SHA256</div>
-          <button class="photo-remove-btn" onclick="removePendingFile(${fileIndex}, event)" title="Verwijder">✕</button>`;
-      } else {
-        item.innerHTML = `
-          <img src="${e.target.result}" class="photo-grid-thumb" alt="${file.name}">
-          <div class="photo-hash-badge">SHA256</div>
-          <button class="photo-remove-btn" onclick="removePendingFile(${fileIndex}, event)" title="Verwijder">✕</button>`;
-      }
+    // Maak thumbnail (alleen afbeeldingen; video's krijgen null)
+    const isVideo = file.type.startsWith('video/');
+    const thumbnail = isVideo ? null : await compressToThumbnail(dataUrl, file.type);
 
-      // Klik opent lightbox
-      item.addEventListener('click', (ev) => {
-        if (ev.target.classList.contains('photo-remove-btn')) return;
-        openLightboxFromPending(fileIndex);
-      });
-
-      previewEl.appendChild(item);
+    const obj = {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      lastModified: file.lastModified,
+      hash,
+      thumbnail,      // ≤ 200 KB JPEG — gaat mee in localStorage als het klein genoeg is
+      dataUrl         // volledig — gaat naar IndexedDB, NIET naar localStorage
     };
-    reader.readAsDataURL(file);
+    pendingFiles.push(obj);
+    const fileIndex = pendingFiles.length - 1;
+
+    // Bouw grid item — gebruik thumbnail voor preview indien beschikbaar
+    const previewSrc = thumbnail || dataUrl;
+    const item = document.createElement('div');
+    item.className = 'photo-grid-item';
+    item.dataset.fileIndex = fileIndex;
+
+    if (isVideo) {
+      item.innerHTML = `
+        <div class="photo-grid-video">🎥</div>
+        <div class="photo-hash-badge">SHA256</div>
+        <button class="photo-remove-btn" onclick="removePendingFile(${fileIndex}, event)" title="Verwijder">✕</button>`;
+    } else {
+      item.innerHTML = `
+        <img src="${previewSrc}" class="photo-grid-thumb" alt="${file.name}">
+        <div class="photo-hash-badge">SHA256</div>
+        <button class="photo-remove-btn" onclick="removePendingFile(${fileIndex}, event)" title="Verwijder">✕</button>`;
+    }
+
+    item.addEventListener('click', (ev) => {
+      if (ev.target.classList.contains('photo-remove-btn')) return;
+      openLightboxFromPending(fileIndex);
+    });
+
+    previewEl.appendChild(item);
   }
 }
 
@@ -1354,8 +1564,20 @@ function openLightboxFromPending(index) {
   showLightboxItem();
 }
 
-function openLightboxFromSaved(files, startIndex) {
-  lightboxFiles = files.map(f => ({ ...f }));
+async function openLightboxFromSaved(files, startIndex, meldingId) {
+  // Probeer dataUrls te laden uit IndexedDB als ze ontbreken
+  let resolved = files.map(f => ({ ...f }));
+  if (meldingId) {
+    const idbBijlagen = await idbGetBijlagen(meldingId);
+    resolved = resolved.map(f => {
+      const idb = idbBijlagen.find(b => b.hash === f.hash || b.name === f.name);
+      return idb ? { ...f, dataUrl: idb.dataUrl } : f;
+    });
+  }
+  // Vul ontbrekende dataUrls op met thumbnail als fallback
+  resolved = resolved.map(f => ({ ...f, dataUrl: f.dataUrl || f.thumbnail || null }));
+
+  lightboxFiles = resolved;
   lightboxIndex = startIndex || 0;
   showLightboxItem();
 }
@@ -1443,7 +1665,7 @@ function initLightboxEvents() {
 }
 
 // ============================================================
-// SUBMIT MELDING — volledig herschreven met robuuste foutafhandeling
+// SUBMIT MELDING — twee-fase opslag: metadata LS + bijlagen IDB
 // ============================================================
 async function submitMelding() {
   const type = document.getElementById('f-type').value;
@@ -1455,27 +1677,33 @@ async function submitMelding() {
   const btn = document.getElementById('submit-btn');
   const btnOriginalHTML = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = '<div class="spinner" style="display:inline-block;margin-right:8px;"></div> Opslaan...';
+  btn.innerHTML = '<div class="spinner" style="display:inline-block;margin-right:8px;vertical-align:middle;"></div> Opslaan...';
 
   try {
     const now = new Date();
-    const healthChecks = Array.from(document.querySelectorAll('.health-check:checked')).map(el => el.value);
-    const activityChecks = Array.from(document.querySelectorAll('.activity-check:checked')).map(el => el.value);
+    const meldingId = generateId();
+    const healthChecks    = Array.from(document.querySelectorAll('.health-check:checked')).map(el => el.value);
+    const activityChecks  = Array.from(document.querySelectorAll('.activity-check:checked')).map(el => el.value);
 
-    // BUG FIX 1: pendingFiles kan null-items bevatten na verwijderen — filter ze eruit
+    // Filter null-items (verwijderde bestanden)
     const geldigeBestanden = pendingFiles.filter(f => f !== null && f !== undefined);
 
-    // GPS — gebruik fallback als niet beschikbaar
+    // GPS fallback
     const gpsLat = parseFloat(document.getElementById('f-lat').value) || HOME_LAT;
     const gpsLng = parseFloat(document.getElementById('f-lng').value) || HOME_LNG;
 
-    // Weerdata — gebruik huidige waarde of markeer als niet beschikbaar
+    // Weerdata fallback
     const weatherData = currentWeather
       ? { ...currentWeather }
-      : { status: 'niet beschikbaar', wind_speed: null, wind_dir: null, wind_gusts: null, temperature: null, humidity: null, precipitation: null, pressure: null, source: 'niet beschikbaar', timestamp: now.toISOString() };
+      : { status: 'niet beschikbaar', wind_speed: null, wind_dir: null, wind_gusts: null,
+          temperature: null, humidity: null, precipitation: null, pressure: null,
+          source: 'niet beschikbaar', timestamp: now.toISOString() };
+
+    // ── FASE 1: Bouw licht melding-object (zonder dataUrls) ───
+    const warnings = [];
 
     const melding = {
-      id: generateId(),
+      id: meldingId,
       timestamp_local: now.toISOString(),
       timestamp_utc: new Date(now.toUTCString()).toISOString(),
       date: now.toLocaleDateString('nl-NL'),
@@ -1483,17 +1711,13 @@ async function submitMelding() {
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       device: navigator.userAgent.substring(0, 120),
       platform: navigator.platform,
-
-      // GPS
       gps: {
         lat: gpsLat,
         lng: gpsLng,
         accuracy: currentGPS.accuracy || null,
         status: currentGPS.accuracy ? 'beschikbaar' : 'standaard locatie'
       },
-
-      // Formulier velden
-      type: type,
+      type,
       description: desc,
       geur_intensiteit: parseInt(document.getElementById('f-geur').value) || 1,
       wind_subjectief: document.getElementById('f-wind-subj').value,
@@ -1502,44 +1726,70 @@ async function submitMelding() {
       gezondheidsklachten: healthChecks,
       activiteiten: activityChecks,
       notities: document.getElementById('f-notes').value.trim(),
-
-      // Weerdata
       weather: weatherData,
-      weather_raw: weatherRaw || null,
-
-      // BUG FIX 1: gebruik gefilterde bestanden (geen null-items)
+      weather_raw: null,    // te groot voor LS — weggooien
+      // Bestanden: alleen metadata + thumbnail, GEEN dataUrl
       bestanden: geldigeBestanden.map(f => ({
         name: f.name,
         type: f.type,
         size: f.size,
         lastModified: f.lastModified,
         hash: f.hash,
-        dataUrl: f.dataUrl
+        thumbnail: f.thumbnail || null,
+        dataUrl: null   // bewust leeg in LS
       })),
-
-      // Metadata
+      warnings,
       version: '1.0.0',
       hash: null
     };
 
-    // Genereer SHA256 hash
-    const hashInput = JSON.stringify({
-      ...melding,
-      hash: null,
-      weather_raw: null,
-      bestanden: melding.bestanden.map(f => ({ ...f, dataUrl: null }))
-    });
+    // SHA256 van licht object (zonder dataUrls — dit is de juridische hash)
+    const hashInput = JSON.stringify({ ...melding, hash: null });
     melding.hash = await sha256(hashInput);
 
-    // Sla op in localStorage
+    // ── FASE 2: Sla metadata op in localStorage ───────────────
+    btn.innerHTML = '<div class="spinner" style="display:inline-block;margin-right:8px;vertical-align:middle;"></div> Metadat opslaan...';
     const meldingen = getMeldingen();
     meldingen.unshift(melding);
-    saveMeldingen(meldingen);
+    saveMeldingen(meldingen);  // gooit error als te groot
+    console.log(`[SpuitLog] Metadata opgeslagen: ${meldingId}, hash: ${melding.hash}`);
 
-    console.log(`[SpuitLog] Melding opgeslagen: ${melding.id}, hash: ${melding.hash}`);
-    toast(`✓ Melding opgeslagen — ${melding.id}`, 'success');
+    // ── FASE 3: Sla bijlagen op in IndexedDB ─────────────────
+    if (geldigeBestanden.length > 0) {
+      btn.innerHTML = '<div class="spinner" style="display:inline-block;margin-right:8px;vertical-align:middle;"></div> Foto\'s opslaan...';
+      let idbFailed = false;
+      for (const f of geldigeBestanden) {
+        const record = {
+          id: `${meldingId}_${f.name}_${f.lastModified}`,
+          meldingId,
+          name: f.name,
+          type: f.type,
+          size: f.size,
+          hash: f.hash,
+          dataUrl: f.dataUrl   // volledig — veilig in IDB
+        };
+        const ok = await idbSaveBijlage(record);
+        if (!ok) idbFailed = true;
+      }
 
-    // Reset formulier
+      if (idbFailed) {
+        // Update melding-record met waarschuwing
+        const opgeslagen = getMeldingen();
+        const idx = opgeslagen.findIndex(m => m.id === meldingId);
+        if (idx >= 0) {
+          opgeslagen[idx].warnings = opgeslagen[idx].warnings || [];
+          opgeslagen[idx].warnings.push('Bijlagen konden niet lokaal worden opgeslagen (IndexedDB onbeschikbaar).');
+          saveMeldingen(opgeslagen);
+        }
+        toast('⚠️ Melding opgeslagen — bijlagen niet bewaard', 'error');
+      } else {
+        console.log(`[SpuitLog] ${geldigeBestanden.length} bijlage(n) opgeslagen in IndexedDB`);
+      }
+    }
+
+    toast(`✓ Melding opgeslagen — ${meldingId}`, 'success');
+
+    // ── Reset formulier ────────────────────────────────────────
     document.getElementById('f-type').value = '';
     document.getElementById('f-desc').value = '';
     document.getElementById('f-geur').value = 1;
@@ -1550,17 +1800,14 @@ async function submitMelding() {
     pendingFiles = [];
     setCompassDegrees(0);
 
-    // Navigeer naar tijdlijn
     updateDashboard();
     renderTimeline();
     showPage('tijdlijn');
 
   } catch (error) {
-    // BUG FIX: bij elke fout — toon melding, log naar console, knop herstellen
     console.error('[SpuitLog] Opslaan mislukt:', error);
-    toast(`Opslaan mislukt: ${error.message || 'Onbekende fout'}. Zie console.`, 'error');
+    toast(`Opslaan mislukt: ${error.message || 'Onbekende fout'}`, 'error');
   } finally {
-    // BUG FIX: knop ALTIJD herstellen, ook bij fouten
     btn.disabled = false;
     btn.innerHTML = btnOriginalHTML;
   }
@@ -1589,7 +1836,7 @@ function showPage(name) {
     renderTimeline();
   }
   if (name === 'export') {
-    updateExportInfo();
+    updateExportInfo(); // async, geen await nodig voor UI-update
   }
 }
 
@@ -1926,20 +2173,25 @@ function showMeldingDetail(id) {
         </div>
       </div>` : ''}
 
-      <!-- Bestanden – [WIJZIGING 1] klikbare foto grid -->
+      <!-- Bestanden – klikbaar foto grid, laadt uit IndexedDB -->
       ${m.bestanden?.length ? `
       <div class="card p-3">
         <div class="section-label mb-2">Bestanden (${m.bestanden.length})</div>
         <div class="photo-grid">
-          ${m.bestanden.map((f, idx) => `
-            <div class="photo-grid-item" onclick="openLightboxFromSaved(${JSON.stringify(m.bestanden).replace(/"/g,'&quot;')}, ${idx})">
-              ${f.type && f.type.startsWith('image/') 
-                ? `<img src="${f.dataUrl}" class="photo-grid-thumb" alt="${f.name}">`
+          ${m.bestanden.map((f, idx) => {
+            const previewSrc = f.thumbnail || f.dataUrl;
+            return `
+            <div class="photo-grid-item" onclick="openLightboxFromSaved(${JSON.stringify(m.bestanden).replace(/"/g,'&quot;')}, ${idx}, '${m.id}')">
+              ${f.type && f.type.startsWith('image/')
+                ? (previewSrc
+                    ? `<img src="${previewSrc}" class="photo-grid-thumb" alt="${f.name}">`
+                    : `<div class="photo-grid-video" style="font-size:0.7rem;color:var(--text-muted);">Laden...</div>`)
                 : `<div class="photo-grid-video">🎥</div>`}
               <div class="photo-hash-badge">SHA256</div>
-            </div>
-          `).join('')}
+            </div>`;
+          }).join('')}
         </div>
+        ${m.warnings?.length ? `<div style="font-size:0.65rem;color:var(--warning);margin-top:8px;">⚠️ ${m.warnings.join(' ')}</div>` : ''}
       </div>` : ''}
 
       <!-- Hash -->
@@ -1965,7 +2217,7 @@ function closeModal(e) {
 // ============================================================
 // EXPORT
 // ============================================================
-function updateExportInfo() {
+async function updateExportInfo() {
   const meldingen = getMeldingen();
   document.getElementById('exp-total').textContent = meldingen.length;
   if (meldingen.length) {
@@ -1976,7 +2228,20 @@ function updateExportInfo() {
     document.getElementById('exp-first').textContent = '—';
     document.getElementById('exp-last').textContent = '—';
   }
-  document.getElementById('exp-storage').textContent = getStorageSize();
+  document.getElementById('exp-storage').textContent = getStorageSize() + ' (localStorage)';
+
+  // IDB bijlagen tellen
+  const idbCount = await idbCountBijlagen();
+  const idbEl = document.getElementById('exp-idb-count');
+  if (idbEl) idbEl.textContent = idbCount;
+
+  // Totaal bijlagen in metadata
+  const totalBijlagen = meldingen.reduce((s, m) => s + (m.bestanden?.length || 0), 0);
+  const bijEl = document.getElementById('exp-bijlagen');
+  if (bijEl) bijEl.textContent = totalBijlagen;
+
+  const methodEl = document.getElementById('exp-method');
+  if (methodEl) methodEl.textContent = 'localStorage (metadata) + IndexedDB (foto\'s)';
 }
 
 function exportCSV() {
@@ -2002,29 +2267,49 @@ function exportCSV() {
   toast('✓ CSV gedownload', 'success');
 }
 
-function exportJSON() {
+async function exportJSON() {
   const meldingen = getMeldingen();
   if (!meldingen.length) { toast('Geen meldingen om te exporteren', 'error'); return; }
+
+  toast('JSON backup voorbereiden...', 'success');
+
+  // Verrijk meldingen met volledige dataUrls uit IndexedDB
+  const verrijkt = await Promise.all(meldingen.map(async m => {
+    const idbBijlagen = await idbGetBijlagen(m.id);
+    const bestanden = (m.bestanden || []).map(f => {
+      const idb = idbBijlagen.find(b => b.hash === f.hash || b.name === f.name);
+      return { ...f, dataUrl: idb ? idb.dataUrl : null };
+    });
+    return { ...m, bestanden };
+  }));
 
   const backup = {
     export_timestamp: new Date().toISOString(),
     version: '1.0.0',
     source: 'SpuitLog PWA',
     location: HOME_NAME,
-    total_meldingen: meldingen.length,
-    meldingen
+    total_meldingen: verrijkt.length,
+    meldingen: verrijkt
   };
   downloadFile(JSON.stringify(backup, null, 2), `spuitlog_backup_${new Date().toISOString().split('T')[0]}.json`, 'application/json');
-  toast('✓ JSON backup gedownload', 'success');
+  toast('✓ JSON backup gedownload (incl. foto\'s)', 'success');
 }
 
-function exportPDF() {
+async function exportPDF() {
   const meldingen = getMeldingen();
   if (!meldingen.length) { toast('Geen meldingen om te exporteren', 'error'); return; }
 
-  toast('PDF wordt gegenereerd...', 'success');
+  toast('PDF wordt voorbereid...', 'success');
 
-  const typeColors = { spuitactiviteit:'#f59e0b', drift:'#3b82f6', geur:'#8b5cf6', gezondheid:'#ef4444', geluid:'#f97316', overig:'#6b7280' };
+  // Verrijk met bijlagen uit IndexedDB
+  const verrijkt = await Promise.all(meldingen.map(async m => {
+    const idbBijlagen = await idbGetBijlagen(m.id);
+    const bestanden = (m.bestanden || []).map(f => {
+      const idb = idbBijlagen.find(b => b.hash === f.hash || b.name === f.name);
+      return { ...f, dataUrl: idb ? idb.dataUrl : (f.thumbnail || null) };
+    });
+    return { ...m, bestanden };
+  }));
 
   const html = `
 <!DOCTYPE html>
@@ -2091,16 +2376,16 @@ function exportPDF() {
       <div class="grid-2">
         <div><div class="label">Locatie</div><div class="value">${HOME_NAME}</div></div>
         <div><div class="label">Export datum</div><div class="value">${new Date().toLocaleDateString('nl-NL')}</div></div>
-        <div><div class="label">Totaal meldingen</div><div class="value">${meldingen.length}</div></div>
-        <div><div class="label">Periode</div><div class="value">${meldingen.length ? new Date(meldingen[meldingen.length-1].timestamp_local).toLocaleDateString('nl-NL') + ' — ' + new Date(meldingen[0].timestamp_local).toLocaleDateString('nl-NL') : '—'}</div></div>
+        <div><div class="label">Totaal meldingen</div><div class="value">${verrijkt.length}</div></div>
+        <div><div class="label">Periode</div><div class="value">${verrijkt.length ? new Date(verrijkt[verrijkt.length-1].timestamp_local).toLocaleDateString('nl-NL') + ' — ' + new Date(verrijkt[0].timestamp_local).toLocaleDateString('nl-NL') : '—'}</div></div>
         <div><div class="label">Dossier versie</div><div class="value">SpuitLog v1.0.0</div></div>
       </div>
     </div>
 
     <!-- Meldingen -->
-    <h2 style="margin-top:24px;">Alle Meldingen (${meldingen.length})</h2>
+    <h2 style="margin-top:24px;">Alle Meldingen (${verrijkt.length})</h2>
 
-    ${meldingen.map((m, i) => {
+    ${verrijkt.map((m, i) => {
       const typeBadge = { spuitactiviteit:'badge-warning', drift:'badge-info', geur:'badge-muted', gezondheid:'badge-danger', geluid:'badge-muted', overig:'badge-muted' }[m.type] || 'badge-muted';
       return `
       <div class="card ${i > 0 && i % 3 === 0 ? 'page-break' : ''}">
@@ -2189,16 +2474,54 @@ function importJSON(event) {
   reader.readAsText(file);
 }
 
-function clearAllData() {
+async function clearAllData() {
   if (confirm('⚠️ WAARSCHUWING: Alle meldingen worden permanent verwijderd. Maak eerst een backup!\n\nDoorgaan?')) {
     if (confirm('Weet u het zeker? Dit kan NIET ongedaan worden gemaakt.')) {
       localStorage.removeItem('spuitlog_meldingen');
-      localStorage.removeItem('driftlog_meldingen'); // ook oude sleutel opruimen
-      toast('Alle data verwijderd', 'error');
+      localStorage.removeItem('driftlog_meldingen');
+      await idbClearAll();
+      toast('Alle data verwijderd (localStorage + IndexedDB)', 'error');
       updateDashboard();
       renderTimeline();
       updateExportInfo();
     }
+  }
+}
+
+// Verwijder alleen IDB-bijlagen die NIET horen bij een bestaande melding
+async function opslagOpschonen() {
+  try {
+    const meldingen = getMeldingen();
+    const geldigeIds = new Set(meldingen.map(m => m.id));
+
+    const db = await openIDB();
+    const alle = await new Promise((resolve, reject) => {
+      const tx    = db.transaction(IDB_STORE, 'readonly');
+      const items = [];
+      tx.objectStore(IDB_STORE).openCursor().onsuccess = e => {
+        const c = e.target.result;
+        if (c) { items.push(c.value); c.continue(); }
+        else resolve(items);
+      };
+      tx.onerror = e => reject(e.target.error);
+    });
+
+    const verouderd = alle.filter(b => !geldigeIds.has(b.meldingId));
+    if (!verouderd.length) {
+      toast('Geen verouderde bijlagen gevonden', 'success');
+      return;
+    }
+
+    const tx2 = db.transaction(IDB_STORE, 'readwrite');
+    const store = tx2.objectStore(IDB_STORE);
+    verouderd.forEach(b => store.delete(b.id));
+    await new Promise(r => { tx2.oncomplete = r; });
+
+    toast(`✓ ${verouderd.length} verouderde bijlagen verwijderd`, 'success');
+    updateExportInfo();
+  } catch (err) {
+    console.error('[SpuitLog] Opschonen mislukt:', err);
+    toast('Opschonen mislukt: ' + err.message, 'error');
   }
 }
 
