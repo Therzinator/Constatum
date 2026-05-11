@@ -1087,8 +1087,25 @@
               <option value="gezondheid">Gezondheid</option>
               <option value="overig">Overig</option>
             </select>
-            <input type="month" id="tl-filter-month" class="form-input px-2 py-2 text-sm" style="color-scheme:dark;" onchange="renderTimeline()">
+            <select id="tl-filter-month" class="form-select px-2 py-2 text-sm" onchange="renderTimeline()">
+              <option value="">Alle maanden</option>
+              <option value="01">Januari</option>
+              <option value="02">Februari</option>
+              <option value="03">Maart</option>
+              <option value="04">April</option>
+              <option value="05">Mei</option>
+              <option value="06">Juni</option>
+              <option value="07">Juli</option>
+              <option value="08">Augustus</option>
+              <option value="09">September</option>
+              <option value="10">Oktober</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
           </div>
+          <select id="tl-filter-year" class="form-select px-2 py-2 text-sm w-full" onchange="renderTimeline()">
+            <option value="">Alle jaren</option>
+          </select>
         </div>
       </div>
 
@@ -1615,6 +1632,7 @@ async function sbSyncMelding(melding) {
     gezondheidsklachten:  melding.gezondheidsklachten || [],
     activiteiten:         melding.activiteiten     || [],
     client_hash:          melding.hash             || null,
+    melder_email:         melding.melder_email     || _sbUser.email || null,
     sync_status:          'synced',
     warnings:             melding.warnings         || [],
     deleted:              false
@@ -1848,7 +1866,6 @@ async function laadVanSupabase() {
     const { data: entries, error } = await sb
       .from('entries')
       .select('*')
-      .eq('user_id', _sbUser.id)
       .eq('deleted', false)
       .order('timestamp_local', { ascending: false });
 
@@ -1882,6 +1899,7 @@ async function laadVanSupabase() {
         },
         type:                entry.type        || 'overig',
         description:         entry.description || '',
+        melder_email:        entry.melder_email || null,
         geur_intensiteit:    null,
         wind_subjectief:     null,
         richting_deg:        null,
@@ -2775,6 +2793,7 @@ async function submitMelding() {
       },
       type,
       description: desc,
+      melder_email: _sbUser?.email || null,
       geur_intensiteit: parseInt(document.getElementById('f-geur').value) || 1,
       wind_subjectief: document.getElementById('f-wind-subj').value,
       richting_deg: parseInt(document.getElementById('f-direction').value) || 0,
@@ -3113,9 +3132,29 @@ function renderCharts(meldingen) {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        layout: { padding: 0 },
         plugins: {
-          legend: { labels: { color: '#7a90b0', font: { family: 'JetBrains Mono', size: 9 }, boxWidth: 10, padding: 6 } }
-        }
+          legend: {
+            position: 'right',
+            labels: {
+              color: '#7a90b0',
+              font: { family: 'JetBrains Mono', size: 7 },
+              boxWidth: 7,
+              padding: 4,
+              generateLabels: chart => {
+                const data = chart.data;
+                return data.labels.map((label, i) => ({
+                  text: `${label} (${data.datasets[0].data[i]})`,
+                  fillStyle: data.datasets[0].backgroundColor[i],
+                  strokeStyle: data.datasets[0].borderColor[i],
+                  lineWidth: 1,
+                  index: i
+                }));
+              }
+            }
+          }
+        },
+        cutout: '55%'
       }
     });
   }
@@ -3130,19 +3169,26 @@ function renderTimeline() {
   // Bouw een ID→melding map zodat onclick handlers geen JSON in HTML-attributen nodig hebben
   window._meldingMap = Object.fromEntries(meldingen.map(m => [m.id, m]));
 
-  const search = document.getElementById('tl-search')?.value?.toLowerCase() || '';
-  const filterType = document.getElementById('tl-filter-type')?.value || '';
+  // Vul jarenlijst dynamisch
+  const jaarSelect = document.getElementById('tl-filter-year');
+  if (jaarSelect) {
+    const jaren = [...new Set(meldingen.map(m => new Date(m.timestamp_local).getFullYear()))].sort((a,b) => b-a);
+    const huidigJaar = jaarSelect.value;
+    jaarSelect.innerHTML = '<option value="">Alle jaren</option>' + jaren.map(j => `<option value="${j}" ${j == huidigJaar ? 'selected' : ''}>${j}</option>`).join('');
+  }
+
+  const search      = document.getElementById('tl-search')?.value?.toLowerCase() || '';
+  const filterType  = document.getElementById('tl-filter-type')?.value || '';
   const filterMonth = document.getElementById('tl-filter-month')?.value || '';
+  const filterYear  = document.getElementById('tl-filter-year')?.value || '';
 
   let filtered = meldingen.filter(m => {
     if (filterType && m.type !== filterType) return false;
-    if (filterMonth) {
-      const d = new Date(m.timestamp_local);
-      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-      if (key !== filterMonth) return false;
-    }
+    const d = new Date(m.timestamp_local);
+    if (filterYear  && String(d.getFullYear()) !== filterYear) return false;
+    if (filterMonth && String(d.getMonth()+1).padStart(2,'0') !== filterMonth) return false;
     if (search) {
-      const text = (m.description + ' ' + m.type + ' ' + m.id).toLowerCase();
+      const text = (m.description + ' ' + m.type + ' ' + m.id + ' ' + (m.melder_email || '')).toLowerCase();
       if (!text.includes(search)) return false;
     }
     return true;
@@ -3200,6 +3246,7 @@ function renderMeldingCard(m, compact = false) {
         ${m.weather?.wind_speed != null ? `<span style="font-family:var(--mono);font-size:0.65rem;color:var(--info);">💨 ${m.weather.wind_speed} km/h ${degToCompass(m.weather.wind_dir)}</span>` : ''}
         ${m.gezondheidsklachten?.length ? `<span style="font-family:var(--mono);font-size:0.65rem;color:var(--danger);">🏥 ${m.gezondheidsklachten.length} klacht(en)</span>` : ''}
         ${m.bestanden?.length ? `<span style="font-family:var(--mono);font-size:0.65rem;color:var(--text-muted);">📎 ${m.bestanden.length} bestand(en)</span>` : ''}
+        ${m.melder_email ? `<span style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);">✉️ ${m.melder_email}</span>` : ''}
         <span style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-left:auto;">${m.id}</span>
       </div>
       ${!compact ? `<div class="hash-display mt-2">${m.hash}</div>` : ''}
