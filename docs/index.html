@@ -8,6 +8,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SpuitLog">
   <meta name="description" content="Juridisch dossieropbouw systeem voor pesticiden drift en spuitactiviteiten registratie">
+  <!-- Cache-control: voorkom dat browsers deze HTML oneindig cachen -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>SpuitLog — Pesticide Drift Dossier</title>
 
   <link rel="manifest" href="manifest.json">
@@ -497,10 +501,75 @@
     .bottom-nav {
       padding-bottom: env(safe-area-inset-bottom, 0px);
     }
+
+    /* ── UPDATE BANNER ── */
+    #update-banner {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 20000;
+      background: linear-gradient(135deg, #00a882, #007a60);
+      color: #fff;
+      padding: 12px 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      animation: slideDown 0.3s ease;
+    }
+    #update-banner.visible { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: none; opacity: 1; } }
+    .update-banner-text { font-family: var(--mono); font-size: 0.75rem; line-height: 1.4; }
+    .update-banner-text strong { display: block; font-size: 0.8rem; margin-bottom: 1px; }
+    .update-reload-btn {
+      flex-shrink: 0;
+      background: white;
+      color: #007a60;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: transform 0.15s;
+    }
+    .update-reload-btn:active { transform: scale(0.96); }
+    .update-dismiss-btn {
+      flex-shrink: 0;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.4);
+      color: rgba(255,255,255,0.8);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      cursor: pointer;
+    }
+
+    /* ── SW DEBUG KAART ── */
+    .sw-debug-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border); }
+    .sw-debug-row:last-child { border-bottom: none; }
+    .sw-debug-key { font-family: var(--mono); font-size: 0.65rem; color: var(--text-muted); }
+    .sw-debug-val { font-family: var(--mono); font-size: 0.65rem; color: var(--text-secondary); text-align: right; max-width: 60%; word-break: break-all; }
+    .sw-debug-val.ok  { color: var(--accent); }
+    .sw-debug-val.warn { color: var(--warning); }
+    .sw-debug-val.err  { color: var(--danger); }
   </style>
 </head>
 
 <body>
+
+<!-- ── UPDATE BANNER (verborgen tot nieuwe SW actief wordt) ── -->
+<div id="update-banner" role="alert" aria-live="polite">
+  <div class="update-banner-text">
+    <strong>🔄 Nieuwe versie beschikbaar</strong>
+    <span id="update-version-label">SpuitLog is bijgewerkt.</span>
+  </div>
+  <div style="display:flex;gap:8px;flex-shrink:0;">
+    <button class="update-dismiss-btn" onclick="dismissUpdateBanner()" aria-label="Sluiten">Later</button>
+    <button class="update-reload-btn" onclick="reloadApp()" aria-label="Herladen">↻ Herladen</button>
+  </div>
+</div>
+
 <div id="app">
 
   <!-- Header -->
@@ -516,7 +585,7 @@
       </svg>
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em;">SpuitLog</div>
-        <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;">PESTICIDE DRIFT DOSSIER v1.0</div>
+        <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">PESTICIDE DRIFT DOSSIER v4</div>
       </div>
     </div>
     <div class="flex items-center gap-2">
@@ -946,6 +1015,30 @@
           <button onclick="opslagOpschonen()" style="background:transparent;border:1px solid var(--info);color:var(--info);border-radius:8px;padding:8px 16px;font-size:0.8rem;font-family:var(--mono);">
             🧹 Verwijder bijlagen zonder melding
           </button>
+        </div>
+
+        <!-- SW Debug paneel -->
+        <div class="card p-4">
+          <div class="section-label mb-3">🔧 Service Worker Debug</div>
+          <div id="sw-debug-panel">
+            <div class="sw-debug-row"><span class="sw-debug-key">App versie</span><span class="sw-debug-val ok" id="dbg-app-version">v4</span></div>
+            <div class="sw-debug-row"><span class="sw-debug-key">SW status</span><span class="sw-debug-val" id="dbg-sw-status">Controleren...</span></div>
+            <div class="sw-debug-row"><span class="sw-debug-key">Actieve cache</span><span class="sw-debug-val" id="dbg-cache-name">—</span></div>
+            <div class="sw-debug-row"><span class="sw-debug-key">Laatste update check</span><span class="sw-debug-val" id="dbg-last-check">—</span></div>
+            <div class="sw-debug-row"><span class="sw-debug-key">Online status</span><span class="sw-debug-val" id="dbg-online">—</span></div>
+            <div class="sw-debug-row"><span class="sw-debug-key">Cache namen (actief)</span><span class="sw-debug-val" id="dbg-all-caches">—</span></div>
+          </div>
+          <div class="flex gap-2 mt-3 flex-wrap">
+            <button onclick="swDebugRefresh()" style="background:transparent;border:1px solid var(--border-bright);color:var(--text-secondary);border-radius:8px;padding:6px 12px;font-size:0.7rem;font-family:var(--mono);">
+              ↻ Vernieuwen
+            </button>
+            <button onclick="forceerSWUpdate()" style="background:transparent;border:1px solid var(--warning);color:var(--warning);border-radius:8px;padding:6px 12px;font-size:0.7rem;font-family:var(--mono);">
+              ⚡ Update forceren
+            </button>
+            <button onclick="swCacheLeegmaken()" style="background:transparent;border:1px solid rgba(239,68,68,0.4);color:var(--danger);border-radius:8px;padding:6px 12px;font-size:0.7rem;font-family:var(--mono);">
+              🗑 Cache leegmaken
+            </button>
+          </div>
         </div>
 
         <!-- Danger zone -->
@@ -2565,24 +2658,209 @@ window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 
 // ============================================================
-// PWA SERVICE WORKER
+// SERVICE WORKER — REGISTRATIE & UPDATE MANAGEMENT
 // ============================================================
+const APP_VERSION_CLIENT = '4'; // moet overeenkomen met sw.js APP_VERSION
+
+let _swRegistration  = null;   // actieve SW registratie
+let _updateCheckTimer = null;  // interval ID voor periodieke check
+let _pendingWorker    = null;  // wachtende nieuwe SW
+
+// ── Hoofd-registratie ─────────────────────────────────────────
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('SW registered:', reg.scope))
-      .catch(err => console.warn('SW failed:', err));
+  window.addEventListener('load', async () => {
+    try {
+      _swRegistration = await navigator.serviceWorker.register('./sw.js', {
+        // updateViaCache: 'none' zorgt dat browser sw.js ALTIJD opnieuw
+        // downloadt bij elke load — sleutel voor snelle update-detectie
+        updateViaCache: 'none'
+      });
+      console.log('[SW] Geregistreerd:', _swRegistration.scope);
+
+      // Luister naar nieuwe waiting worker (update beschikbaar)
+      _swRegistration.addEventListener('updatefound', () => {
+        const newWorker = _swRegistration.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // Nieuwe SW klaar maar wacht — toon update-banner
+            console.log('[SW] Nieuwe versie geïnstalleerd, wacht op activering');
+            _pendingWorker = newWorker;
+            toonUpdateBanner();
+          }
+        });
+      });
+
+      // Luister op berichten vanuit SW (SW_UPDATED na activate)
+      navigator.serviceWorker.addEventListener('message', event => {
+        if (event.data?.type === 'SW_UPDATED') {
+          console.log('[SW] Geactiveerde versie:', event.data.version, '| Cache:', event.data.cache);
+          updateVersionLabel(event.data.version);
+          swDebugRefresh();
+        }
+      });
+
+      // Luister op controller change (SW heeft overgenomen → herlaad pagina stille)
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        console.log('[SW] Controller gewisseld — pagina herladen voor verse assets');
+        // Alleen herladen als het een update was (niet de eerste keer)
+        if (sessionStorage.getItem('sw_reloading')) return;
+        sessionStorage.setItem('sw_reloading', '1');
+        window.location.reload();
+      });
+
+      // Directe update check bij registratie
+      try { await _swRegistration.update(); } catch {}
+
+      // Periodieke update check elke 60 seconden
+      _updateCheckTimer = setInterval(async () => {
+        try {
+          await _swRegistration.update();
+          const now = new Date().toLocaleTimeString('nl-NL');
+          const el  = document.getElementById('dbg-last-check');
+          if (el) el.textContent = now;
+        } catch {}
+      }, 60_000);
+
+    } catch (err) {
+      console.warn('[SW] Registratie mislukt (app werkt zonder SW):', err);
+      // Veilige fallback: app werkt normaal, alleen geen offline support
+    }
   });
+
+  // Update check bij terugkeer naar tabblad (visibility / focus)
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible' && _swRegistration) {
+      try { await _swRegistration.update(); } catch {}
+    }
+  });
+  window.addEventListener('focus', async () => {
+    if (_swRegistration) {
+      try { await _swRegistration.update(); } catch {}
+    }
+  });
+}
+
+// ── Update banner functies ────────────────────────────────────
+function toonUpdateBanner(versie) {
+  const banner = document.getElementById('update-banner');
+  const label  = document.getElementById('update-version-label');
+  if (!banner) return;
+  if (label) label.textContent = `SpuitLog v${versie || APP_VERSION_CLIENT} is klaar om te installeren.`;
+  banner.classList.add('visible');
+  // Push content omlaag zodat banner niet over header valt
+  const header = document.querySelector('header');
+  if (header) header.style.marginTop = banner.offsetHeight + 'px';
+}
+
+function dismissUpdateBanner() {
+  const banner = document.getElementById('update-banner');
+  if (banner) banner.classList.remove('visible');
+  const header = document.querySelector('header');
+  if (header) header.style.marginTop = '';
+}
+
+function reloadApp() {
+  // Zet pending worker aan het werk (skipWaiting) als aanwezig
+  if (_pendingWorker) {
+    _pendingWorker.postMessage({ type: 'SKIP_WAITING' });
+  }
+  sessionStorage.removeItem('sw_reloading');
+  window.location.reload(true); // true = forceer netwerk, geen browser-cache
+}
+
+function updateVersionLabel(version) {
+  const el = document.getElementById('app-version-label');
+  if (el) el.textContent = `PESTICIDE DRIFT DOSSIER v${version}`;
+}
+
+// ── SW Debug functies ─────────────────────────────────────────
+async function swDebugRefresh() {
+  const set = (id, text, cls) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text;
+    el.className = 'sw-debug-val' + (cls ? ' ' + cls : '');
+  };
+
+  set('dbg-app-version', `v${APP_VERSION_CLIENT}`, 'ok');
+  set('dbg-online', navigator.onLine ? 'Online' : 'Offline', navigator.onLine ? 'ok' : 'warn');
+
+  if (!('serviceWorker' in navigator)) {
+    set('dbg-sw-status', 'Niet ondersteund', 'err');
+    return;
+  }
+
+  const reg = await navigator.serviceWorker.getRegistration('./sw.js').catch(() => null);
+  if (!reg) {
+    set('dbg-sw-status', 'Niet geregistreerd', 'warn');
+    return;
+  }
+
+  const states = [];
+  if (reg.active)    states.push('actief');
+  if (reg.waiting)   states.push('wachtend');
+  if (reg.installing) states.push('installeren');
+  set('dbg-sw-status', states.join(' + ') || 'Onbekend', reg.active ? 'ok' : 'warn');
+
+  // Actieve cache naam uitlezen via SW message
+  if (reg.active) {
+    const mc = new MessageChannel();
+    mc.port1.onmessage = e => {
+      if (e.data?.cache) set('dbg-cache-name', e.data.cache, 'ok');
+    };
+    reg.active.postMessage({ type: 'GET_CACHE_NAME' }, [mc.port2]);
+  }
+
+  // Alle actieve caches
+  const keys = await caches.keys().catch(() => []);
+  set('dbg-all-caches', keys.length ? keys.join(', ') : 'Geen', keys.length ? 'ok' : 'warn');
+
+  // Laatste check
+  set('dbg-last-check', new Date().toLocaleTimeString('nl-NL'));
+}
+
+async function forceerSWUpdate() {
+  if (!_swRegistration) {
+    toast('Geen actieve service worker', 'error');
+    return;
+  }
+  try {
+    await _swRegistration.update();
+    toast('Update check uitgevoerd', 'success');
+    swDebugRefresh();
+    if (_swRegistration.waiting) {
+      _pendingWorker = _swRegistration.waiting;
+      toonUpdateBanner();
+    }
+  } catch (err) {
+    toast('Update check mislukt: ' + err.message, 'error');
+  }
+}
+
+async function swCacheLeegmaken() {
+  if (!confirm('Alle SW-caches leegmaken? App herlaadt daarna automatisch.')) return;
+  try {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => caches.delete(k)));
+    toast(`✓ ${keys.length} cache(s) verwijderd — herladen...`, 'success');
+    setTimeout(() => window.location.reload(true), 1200);
+  } catch (err) {
+    toast('Cache leegmaken mislukt: ' + err.message, 'error');
+  }
 }
 
 // ============================================================
 // INIT
 // ============================================================
 window.addEventListener('DOMContentLoaded', () => {
+  // Verwijder reload-guard na succesvolle herstart
+  sessionStorage.removeItem('sw_reloading');
+
   updateOnlineStatus();
   initDashMap();
   updateDashboard();
-  initLightboxEvents(); // [WIJZIGING 1] Lightbox events
+  initLightboxEvents();
 
   // Init GPS silently
   if (navigator.geolocation) {
@@ -2590,12 +2868,14 @@ window.addEventListener('DOMContentLoaded', () => {
       (pos) => {
         currentGPS = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
       },
-      () => {} // silent fail
+      () => {}
     );
   }
 
-  // Fetch weather on load for form
   fetchWeather();
+
+  // Initieel SW debug paneel vullen (kleine vertraging zodat SW tijd heeft)
+  setTimeout(swDebugRefresh, 1500);
 });
 </script>
 
