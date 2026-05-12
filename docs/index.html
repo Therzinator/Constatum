@@ -1140,6 +1140,7 @@
               <div class="flex justify-between"><span>Lokaal:</span><span id="acc-local-count" style="color:var(--accent);">—</span></div>
               <div class="flex justify-between"><span>Gesynchroniseerd:</span><span id="acc-synced-count" style="color:var(--accent);">—</span></div>
               <div class="flex justify-between"><span>In wachtrij:</span><span id="acc-pending-count" style="color:var(--warning);">—</span></div>
+              <div class="flex justify-between"><span>Te verwijderen:</span><span id="acc-delete-count" style="color:var(--danger);">—</span></div>
               <div class="flex justify-between"><span>Sync mislukt:</span><span id="acc-error-count" style="color:var(--danger);">—</span></div>
               <div class="flex justify-between"><span>Laatste sync:</span><span id="acc-last-sync">—</span></div>
             </div>
@@ -1855,6 +1856,7 @@ async function syncNu(toonStatus = true) {
   laadOfflineQueue();
 
   // ── Verwerk delete queue eerst ────────────────────────────
+  const teVerwijderenAantal = _deleteQueue.length;
   if (_deleteQueue.length > 0) {
     const sb = sbClient();
     if (sb) {
@@ -1923,11 +1925,12 @@ async function syncNu(toonStatus = true) {
   _syncRunning = false;
   updateSyncHeaderDot(mislukt > 0 ? 'fout' : 'ok');
 
-  const eindTekst = teSync.length === 0
+  const totalVerwerkt = geslaagd + (_deleteQueue.length === 0 ? teVerwijderenAantal : 0);
+  const eindTekst = (teSync.length === 0 && teVerwijderenAantal === 0)
     ? 'Niets te synchroniseren'
     : mislukt > 0
       ? `Sync: ${geslaagd} geslaagd, ${mislukt} mislukt`
-      : `✓ ${geslaagd} melding(en) gesynchroniseerd`;
+      : `✓ ${geslaagd} melding(en) + ${teVerwijderenAantal} verwijdering(en) gesynchroniseerd`;
 
   sluitSyncBalk(mislukt === 0, eindTekst);
   updateSyncStats();
@@ -2124,10 +2127,12 @@ async function laadBijlagenVanSupabase(meldingId) {
 
 // Update sync statistieken in de UI
 function updateSyncStats() {
+  laadOfflineQueue(); // zorg dat _deleteQueue actueel is
   const meldingen = getMeldingen();
   const lokaal   = meldingen.filter(m => !m.sync_status || m.sync_status === 'lokaal').length;
   const synced   = meldingen.filter(m => m.sync_status === 'synced').length;
   const pending  = _offlineQueue.length;
+  const delCount = _deleteQueue.length;
   const errors   = meldingen.filter(m => m.sync_status === 'sync_mislukt').length;
   const lastSync = meldingen.find(m => m.sync_at)?.sync_at;
 
@@ -2135,8 +2140,14 @@ function updateSyncStats() {
   set('acc-local-count',   lokaal);
   set('acc-synced-count',  synced);
   set('acc-pending-count', pending);
+  set('acc-delete-count',  delCount > 0 ? `${delCount} (sync om door te voeren)` : '0');
   set('acc-error-count',   errors);
   set('acc-last-sync',     lastSync ? new Date(lastSync).toLocaleString('nl-NL', { timeZone: 'Europe/Amsterdam' }) : 'Nog niet');
+
+  // Sync header dot rood als er nog verwijderingen uitstaan
+  if (delCount > 0 && !_syncRunning) {
+    updateSyncHeaderDot('fout');
+  }
 }
 
 // ============================================================
