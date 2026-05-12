@@ -1863,25 +1863,33 @@ async function syncNu(toonStatus = true) {
       if (toonStatus) toonSyncBalk(`Verwijderingen doorzetten (${_deleteQueue.length})…`);
       const teVerwijderen = [..._deleteQueue];
       for (const delId of teVerwijderen) {
-        const { error } = await sb.from('entries')
-          .update({ deleted: true })
+        const { error, count } = await sb.from('entries')
+          .update({ deleted: true }, { count: 'exact' })
           .eq('id', delId)
           .eq('user_id', _sbUser.id);
 
         if (!error) {
-          // Verificatie: controleer of deleted: true daadwerkelijk is opgeslagen
-          const { data: check } = await sb
-            .from('entries')
-            .select('id, deleted')
-            .eq('id', delId)
-            .maybeSingle();
-
-          if (check?.deleted === true) {
+          if (count === 0) {
+            // Entry bestaat niet in Supabase (nooit gesynchroniseerd) — lokaal verwijderen volstaat
             _deleteQueue = _deleteQueue.filter(id => id !== delId);
             slaOfflineQueueOp();
-            console.log('[Supabase] Delete geverifieerd:', delId);
+            console.log('[Supabase] Entry bestond niet in cloud (nooit gesynchroniseerd), uit queue:', delId);
           } else {
-            console.warn('[Supabase] Delete verificatie mislukt voor:', delId, '— blijft in queue');
+            // Verificatie: controleer of deleted: true daadwerkelijk is opgeslagen
+            const { data: check } = await sb
+              .from('entries')
+              .select('id, deleted')
+              .eq('id', delId)
+              .eq('deleted', true)
+              .maybeSingle();
+
+            if (check?.id) {
+              _deleteQueue = _deleteQueue.filter(id => id !== delId);
+              slaOfflineQueueOp();
+              console.log('[Supabase] Delete geverifieerd:', delId);
+            } else {
+              console.warn('[Supabase] Delete verificatie mislukt voor:', delId, '— blijft in queue');
+            }
           }
         } else {
           console.warn('[Supabase] Delete queue mislukt voor:', delId, error.message);
@@ -2091,6 +2099,30 @@ async function laadBijlagenVanSupabase(meldingId) {
 
           if (signErr) {
             console.warn('[Supabase] Signed URL mislukt:', signErr.message, 'pad:', row.storage_path);
+            // Fallback: probeer public URL als bucket publiek is
+            const { data: pub } = sb.storage.from('spuitlog-bijlagen').getPublicUrl(row.storage_path);
+            if (pub?.publicUrl) {
+              const res = await fetch(pub.publicUrl);
+              if (res.ok) {
+                const blob = await res.blob();
+                const dataUrl = await new Promise(resolve => {
+                  const reader = new FileReader();
+                  reader.onload = e => resolve(e.target.result);
+                  reader.readAsDataURL(blob);
+                });
+                bestand.dataUrl = dataUrl;
+                if (bestand.type.startsWith('image/')) {
+                  bestand.thumbnail = await compressToThumbnail(dataUrl, bestand.type);
+                }
+                const idbRecord = {
+                  id: `${meldingId}_${row.filename}_${row.file_hash}`,
+                  meldingId, name: bestand.name, type: bestand.type,
+                  size: bestand.size, hash: bestand.hash,
+                  thumbnail: bestand.thumbnail, dataUrl
+                };
+                await idbSaveBijlage(idbRecord);
+              }
+            }
           } else if (signed?.signedUrl) {
             const res = await fetch(signed.signedUrl);
             if (res.ok) {
@@ -3400,22 +3432,28 @@ function verwijderMelding(id, event) {
       const sb = sbClient();
       if (sb) {
         sb.from('entries')
-          .update({ deleted: true })
+          .update({ deleted: true }, { count: 'exact' })
           .eq('id', id)
           .eq('user_id', _sbUser.id)
-          .then(async ({ error }) => {
+          .then(async ({ error, count }) => {
             if (error) {
               console.warn('[Supabase] Soft delete mislukt, blijft in queue:', error.message);
               toast('\u26A0\uFE0F Verwijdering in wachtrij \u2014 sync om door te voeren', '');
+            } else if (count === 0) {
+              // Nooit gesynchroniseerd — lokale verwijdering volstaat
+              verwijderUitQueue(id);
+              updateSyncStats();
+              console.log('[Supabase] Entry bestond niet in cloud, lokale verwijdering voldoende:', id);
             } else {
               // Verificatie: controleer of deleted: true daadwerkelijk staat
               const { data: check } = await sb
                 .from('entries')
                 .select('id, deleted')
                 .eq('id', id)
+                .eq('deleted', true)
                 .maybeSingle();
 
-              if (check?.deleted === true) {
+              if (check?.id) {
                 verwijderUitQueue(id);
                 updateSyncStats();
                 console.log('[Supabase] Verwijdering geverifieerd in cloud:', id);
