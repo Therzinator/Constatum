@@ -782,9 +782,27 @@
       <!-- Map overview -->
       <div class="card mb-4">
         <div class="p-3 border-b" style="border-color:var(--border);">
-          <div class="section-label">Kaart Overzicht</div>
+          <div class="flex items-center justify-between gap-2 flex-wrap">
+            <div class="section-label">Kaart Overzicht</div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <select id="map-filter-maand" class="form-select px-2 py-1 text-xs" onchange="updateDashboard()" style="font-size:0.65rem;">
+                <option value="huidig">Deze maand</option>
+                <option value="">Alle maanden</option>
+                <option value="01">Januari</option><option value="02">Februari</option>
+                <option value="03">Maart</option><option value="04">April</option>
+                <option value="05">Mei</option><option value="06">Juni</option>
+                <option value="07">Juli</option><option value="08">Augustus</option>
+                <option value="09">September</option><option value="10">Oktober</option>
+                <option value="11">November</option><option value="12">December</option>
+              </select>
+              <select id="map-filter-jaar" class="form-select px-2 py-1 text-xs" onchange="updateDashboard()" style="font-size:0.65rem;">
+                <option value="">Alle jaren</option>
+              </select>
+            </div>
+          </div>
         </div>
         <div id="leaflet-map" style="height:440px;border-radius:0 0 12px 12px;"></div>
+        <div id="map-legenda" class="p-2" style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid var(--border);"></div>
       </div>
 
       <!-- Charts naast elkaar -->
@@ -1014,6 +1032,7 @@
           <div class="grid grid-cols-2 gap-2">
             <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" class="activity-check" value="tractor"> 🚜 Tractor</label>
             <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" class="activity-check" value="spuitmachine"> 💦 Spuitmachine</label>
+            <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" class="activity-check" value="zwenksproeier"> 💧 Zwenksproeier: Mest spuiten onder hoge druk</label>
             <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" class="activity-check" value="nachtelijk"> 🌙 Nachtelijke activ.</label>
             <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" class="activity-check" value="tankvullen"> 🛢️ Tank vullen</label>
             <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" class="activity-check" value="voertuigperceel"> 📍 Voertuig op perceel</label>
@@ -1456,6 +1475,8 @@ async function authInit() {
     _sbUser = session.user;
     authUpdateUI(session.user);
     document.getElementById('auth-overlay').classList.remove('visible');
+    // Auto-laden van cloud bij opstarten met bestaande sessie
+    setTimeout(() => laadVanSupabase(), 1200);
     return;
   }
 
@@ -1471,6 +1492,7 @@ async function authInit() {
       }
       _sessieHersteld = false;
       syncNu();
+      setTimeout(() => laadVanSupabase(), 1500);
     }
     if (event === 'SIGNED_OUT') {
       toast('Uitgelogd', '');
@@ -1875,21 +1897,10 @@ async function syncNu(toonStatus = true) {
             slaOfflineQueueOp();
             console.log('[Supabase] Entry bestond niet in cloud (nooit gesynchroniseerd), uit queue:', delId);
           } else {
-            // Verificatie: controleer of deleted: true daadwerkelijk is opgeslagen
-            const { data: check } = await sb
-              .from('entries')
-              .select('id, deleted')
-              .eq('id', delId)
-              .eq('deleted', true)
-              .maybeSingle();
-
-            if (check?.id) {
-              _deleteQueue = _deleteQueue.filter(id => id !== delId);
-              slaOfflineQueueOp();
-              console.log('[Supabase] Delete geverifieerd:', delId);
-            } else {
-              console.warn('[Supabase] Delete verificatie mislukt voor:', delId, '— blijft in queue');
-            }
+            // count > 0 bevestigt update geslaagd — SELECT filtert deleted rijen weg via RLS, vertrouw op count
+            _deleteQueue = _deleteQueue.filter(id => id !== delId);
+            slaOfflineQueueOp();
+            console.log('[Supabase] Delete geverifieerd via count:', delId);
           }
         } else {
           console.warn('[Supabase] Delete queue mislukt voor:', delId, error.message);
@@ -2604,20 +2615,24 @@ function kmhToBft(kmh) {
   return bft;
 }
 
-// Toets windsnelheid aan Nederlandse spuitrichtlijnen (Wgb/Activiteitenbesluit)
-// Max Bft 3 (< 19 km/h) voor professioneel gebruik nabij gevoelige gebieden
+// Toets windsnelheid aan Nederlandse wet (Activiteitenbesluit art. 3.79):
+// Maximum windsnelheid voor spuiten van pesticiden = 5 m/s = 18 km/h
 function spuitWindOordeel(windKmh, gustsKmh) {
-  const bft = kmhToBft(windKmh);
-  const gustBft = kmhToBft(gustsKmh || 0);
-  const MAX_BFT = 3;    // Bft 3 = max 19 km/h gemiddeld
-  const MAX_GUSTS = 19; // stoten > 19 km/h: niet spuiten
+  const bft      = kmhToBft(windKmh);
+  const gustBft  = kmhToBft(gustsKmh || 0);
+  const MAX_MS   = 5;      // wettelijk maximum in m/s
+  const MAX_KMH  = 18;     // 5 m/s omgerekend (5 × 3.6)
+  const WARN_KMH = 14;     // waarschuwingszone vanaf ~3.9 m/s
 
-  if (windKmh >= 19 || gustsKmh >= MAX_GUSTS) {
-    return { kleur: '#ef4444', icoon: '🚫', tekst: `Wind te hoog voor spuiten (Bft ${bft}, max Bft ${MAX_BFT})` };
-  } else if (windKmh >= 14) {
-    return { kleur: '#f59e0b', icoon: '⚠️', tekst: `Wind aan de grens (Bft ${bft}, richtlijn max Bft ${MAX_BFT})` };
+  const windMs   = (windKmh  / 3.6).toFixed(1);
+  const gustsMs  = ((gustsKmh || 0) / 3.6).toFixed(1);
+
+  if (windKmh > MAX_KMH || (gustsKmh || 0) > MAX_KMH) {
+    return { kleur: '#ef4444', icoon: '🚫', tekst: `Te veel wind voor spuiten: ${windMs} m/s (max ${MAX_MS} m/s wettelijk, Bft ${bft})` };
+  } else if (windKmh >= WARN_KMH) {
+    return { kleur: '#f59e0b', icoon: '⚠️', tekst: `Wind nadert wettelijke grens: ${windMs} m/s (max ${MAX_MS} m/s, Bft ${bft})` };
   } else {
-    return { kleur: '#00d4aa', icoon: '✓', tekst: `Wind binnen richtlijn (Bft ${bft}, max Bft ${MAX_BFT})` };
+    return { kleur: '#00d4aa', icoon: '✓', tekst: `Wind binnen wettelijke norm: ${windMs} m/s (max ${MAX_MS} m/s, Bft ${bft})` };
   }
 }
 
@@ -3065,6 +3080,10 @@ function showPage(name) {
     const spuit   = document.querySelector('.activity-check[value="spuitmachine"]');
     if (tractor) tractor.checked = true;
     if (spuit)   spuit.checked   = true;
+    // Automatisch GPS opvragen als nog niet beschikbaar
+    if (navigator.geolocation && (!currentGPS?.lat || currentGPS.lat === DEFAULT_LOCATION.lat)) {
+      refreshGPS();
+    }
   }
   if (name === 'dashboard') {
     updateDashboard();
@@ -3130,10 +3149,12 @@ function initFormMap() {
       iconSize: [14,14], className: ''
     });
 
-    // [WIJZIGING 2] Marker begint op DEFAULT_LOCATION, niet GPS
-    formMarker = L.marker([DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng], { icon: meldIcon, draggable: true }).addTo(formMap);
-    document.getElementById('f-lat').value = DEFAULT_LOCATION.lat.toFixed(6);
-    document.getElementById('f-lng').value = DEFAULT_LOCATION.lng.toFixed(6);
+    // Marker begint op GPS positie als beschikbaar, anders DEFAULT_LOCATION
+    const startLat = currentGPS?.lat || DEFAULT_LOCATION.lat;
+    const startLng = currentGPS?.lng || DEFAULT_LOCATION.lng;
+    formMarker = L.marker([startLat, startLng], { icon: meldIcon, draggable: true }).addTo(formMap);
+    document.getElementById('f-lat').value = startLat.toFixed(6);
+    document.getElementById('f-lng').value = startLng.toFixed(6);
 
     formMarker.on('dragend', (e) => {
       const p = e.target.getLatLng();
@@ -3164,12 +3185,24 @@ function initDashMap() {
   L.marker([HOME_LAT, HOME_LNG], { icon: homeIcon }).addTo(dashMap).bindPopup('🏠 ' + HOME_NAME);
 }
 
+// Vaste kleurenpalet per gebruiker (email → kleur)
+const _gebruikerKleuren = {};
+const _kleurPalet = ['#f59e0b','#3b82f6','#ec4899','#10b981','#8b5cf6','#f97316','#06b6d4','#84cc16','#ef4444','#a855f7'];
+function gebruikerKleur(email) {
+  if (!email) return '#ffffff';
+  if (!_gebruikerKleuren[email]) {
+    const idx = Object.keys(_gebruikerKleuren).length % _kleurPalet.length;
+    _gebruikerKleuren[email] = _kleurPalet[idx];
+  }
+  return _gebruikerKleuren[email];
+}
+
 function updateDashboard() {
   const meldingen = getMeldingen();
   const now = new Date();
   const thisMonth = now.getMonth();
-  const thisYear = now.getFullYear();
-  const weekAgo = new Date(now - 7*24*60*60*1000);
+  const thisYear  = now.getFullYear();
+  const weekAgo   = new Date(now - 7*24*60*60*1000);
 
   document.getElementById('stat-total').textContent = meldingen.length;
   document.getElementById('stat-month').textContent = meldingen.filter(m => {
@@ -3178,7 +3211,6 @@ function updateDashboard() {
   }).length;
   document.getElementById('stat-week').textContent = meldingen.filter(m => new Date(m.timestamp_local) > weekAgo).length;
 
-  // Wind stats
   const windDirs = meldingen.filter(m => m.weather?.wind_dir !== undefined).map(m => degToCompass(m.weather.wind_dir));
   if (windDirs.length) {
     const freq = {};
@@ -3187,27 +3219,79 @@ function updateDashboard() {
     document.getElementById('stat-wind').textContent = top[0];
   }
 
-  // Add markers to dash map
+  // Vul jaar-dropdown dynamisch
+  const jaarSel = document.getElementById('map-filter-jaar');
+  if (jaarSel) {
+    const jaren = [...new Set(meldingen.map(m => new Date(m.timestamp_local).getFullYear()))].sort((a,b) => b-a);
+    const huidigJaar = jaarSel.value;
+    jaarSel.innerHTML = '<option value="">Alle jaren</option>' +
+      jaren.map(j => `<option value="${j}" ${String(j) === huidigJaar ? 'selected':''}>${j}</option>`).join('');
+  }
+
+  // Kaartfilter bepalen
+  const maandFilter = document.getElementById('map-filter-maand')?.value ?? 'huidig';
+  const jaarFilter  = document.getElementById('map-filter-jaar')?.value  || '';
+
+  const gefiltered = meldingen.filter(m => {
+    const d = new Date(m.timestamp_local);
+    if (maandFilter === 'huidig') {
+      return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+    }
+    if (maandFilter && maandFilter !== '') {
+      if (String(d.getMonth()+1).padStart(2,'0') !== maandFilter) return false;
+    }
+    if (jaarFilter && String(d.getFullYear()) !== jaarFilter) return false;
+    return true;
+  });
+
+  // Kaartmarkers hertekenen
   if (dashMap) {
-    meldingen.slice(0, 50).forEach(m => {
-      if (!m.gps) return;
-      const typeColors = { spuitactiviteit: '#f59e0b', drift: '#3b82f6', geur: '#8b5cf6', gezondheid: '#ef4444', geluid: '#f97316', overig: '#6b7280' };
-      const color = typeColors[m.type] || '#6b7280';
+    // Verwijder bestaande markers (behalve het huis)
+    dashMap.eachLayer(layer => {
+      if (layer instanceof L.Marker && layer._isUserMarker) dashMap.removeLayer(layer);
+    });
+
+    const typeColors = { spuitactiviteit: '#f59e0b', drift: '#3b82f6', geur: '#8b5cf6', gezondheid: '#ef4444', geluid: '#f97316', overig: '#6b7280' };
+
+    gefiltered.slice(0, 100).forEach(m => {
+      if (!m.gps?.lat || !m.gps?.lng) return;
+      const typeColor = typeColors[m.type] || '#6b7280';
+      const randKleur = gebruikerKleur(m.melder_email);
       const d = new Date(m.timestamp_local);
       const dateLabel = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
       const icon = L.divIcon({
         html: `<div style="position:relative;display:inline-block;">
-          <div style="width:10px;height:10px;background:${color};border-radius:50%;border:2px solid white;opacity:0.85;"></div>
+          <div style="width:10px;height:10px;background:${typeColor};border-radius:50%;border:2px solid ${randKleur};opacity:0.9;box-shadow:0 0 3px ${randKleur}88;"></div>
           <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:5px;color:white;background:transparent;text-shadow:0 1px 2px rgba(0,0,0,0.9),0 0 4px rgba(0,0,0,0.7);padding:1px 2px;pointer-events:none;">${dateLabel}</div>
         </div>`,
         iconSize: [10, 10], iconAnchor: [5, 5], className: ''
       });
-      const marker = L.marker([m.gps.lat, m.gps.lng], { icon }).addTo(dashMap);
+      const marker = L.marker([m.gps.lat, m.gps.lng], { icon });
+      marker._isUserMarker = true;
+      marker.addTo(dashMap);
       marker.on('click', () => {
         showPage('tijdlijn');
         setTimeout(() => showMeldingDetail(m.id), 150);
       });
     });
+
+    // Legenda
+    const legendaEl = document.getElementById('map-legenda');
+    if (legendaEl) {
+      const gebruikers = [...new Set(gefiltered.map(m => m.melder_email).filter(Boolean))];
+      if (gebruikers.length) {
+        legendaEl.innerHTML = gebruikers.map(email =>
+          `<span style="display:inline-flex;align-items:center;gap:4px;">
+            <span style="width:10px;height:10px;border-radius:50%;background:#6b7280;border:2px solid ${gebruikerKleur(email)};flex-shrink:0;display:inline-block;"></span>
+            ${email}
+          </span>`
+        ).join('');
+        legendaEl.style.display = 'flex';
+      } else {
+        legendaEl.innerHTML = '';
+        legendaEl.style.display = 'none';
+      }
+    }
   }
 
   // Charts
@@ -3446,21 +3530,10 @@ function verwijderMelding(id, event) {
               console.log('[Supabase] Entry bestond niet in cloud, lokale verwijdering voldoende:', id);
             } else {
               // Verificatie: controleer of deleted: true daadwerkelijk staat
-              const { data: check } = await sb
-                .from('entries')
-                .select('id, deleted')
-                .eq('id', id)
-                .eq('deleted', true)
-                .maybeSingle();
-
-              if (check?.id) {
-                verwijderUitQueue(id);
-                updateSyncStats();
-                console.log('[Supabase] Verwijdering geverifieerd in cloud:', id);
-              } else {
-                console.warn('[Supabase] Verificatie mislukt \u2014 entry niet als deleted gevonden:', id);
-                toast('\u26A0\uFE0F Verwijdering niet bevestigd \u2014 synchroniseer opnieuw', '');
-              }
+              // count > 0 bevestigt dat de update is doorgevoerd — SELECT zou deleted=true filteren via RLS
+              verwijderUitQueue(id);
+              updateSyncStats();
+              console.log('[Supabase] Verwijdering bevestigd via count in cloud:', id);
             }
           });
       }
