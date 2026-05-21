@@ -2619,20 +2619,21 @@ function kmhToBft(kmh) {
 // Maximum windsnelheid voor spuiten van pesticiden = 5 m/s = 18 km/h
 function spuitWindOordeel(windKmh, gustsKmh) {
   const bft      = kmhToBft(windKmh);
-  const gustBft  = kmhToBft(gustsKmh || 0);
-  const MAX_MS   = 5;      // wettelijk maximum in m/s
-  const MAX_KMH  = 18;     // 5 m/s omgerekend (5 × 3.6)
-  const WARN_KMH = 14;     // waarschuwingszone vanaf ~3.9 m/s
+  const MAX_MS   = 5;      // wettelijk maximum gemiddelde wind in m/s
+  const MAX_KMH  = 18;     // 5 m/s × 3.6
+  const WARN_KMH = 14;     // waarschuwingszone (~3.9 m/s)
 
-  const windMs   = (windKmh  / 3.6).toFixed(1);
-  const gustsMs  = ((gustsKmh || 0) / 3.6).toFixed(1);
+  const windMs  = (windKmh / 3.6).toFixed(1);
+  const gustsMs = ((gustsKmh || 0) / 3.6).toFixed(1);
 
-  if (windKmh > MAX_KMH || (gustsKmh || 0) > MAX_KMH) {
-    return { kleur: '#ef4444', icoon: '🚫', tekst: `Te veel wind voor spuiten: ${windMs} m/s (max ${MAX_MS} m/s wettelijk, Bft ${bft})` };
+  // Wettelijke grens geldt voor gemiddelde windsnelheid, niet stoten
+  if (windKmh > MAX_KMH) {
+    return { kleur: '#ef4444', icoon: '🚫', tekst: `Te veel wind voor spuiten: ${windMs} m/s gemiddeld (max ${MAX_MS} m/s wettelijk, Bft ${bft})` };
   } else if (windKmh >= WARN_KMH) {
-    return { kleur: '#f59e0b', icoon: '⚠️', tekst: `Wind nadert wettelijke grens: ${windMs} m/s (max ${MAX_MS} m/s, Bft ${bft})` };
+    return { kleur: '#f59e0b', icoon: '⚠️', tekst: `Wind nadert wettelijke grens: ${windMs} m/s (max ${MAX_MS} m/s, Bft ${bft})${gustsKmh > MAX_KMH ? ` — stoten ${gustsMs} m/s` : ''}` };
   } else {
-    return { kleur: '#00d4aa', icoon: '✓', tekst: `Wind binnen wettelijke norm: ${windMs} m/s (max ${MAX_MS} m/s, Bft ${bft})` };
+    const gustsWaarschuwing = gustsKmh > MAX_KMH ? ` — let op stoten: ${gustsMs} m/s` : '';
+    return { kleur: '#00d4aa', icoon: '✓', tekst: `Wind binnen wettelijke norm: ${windMs} m/s (max ${MAX_MS} m/s, Bft ${bft})${gustsWaarschuwing}` };
   }
 }
 
