@@ -746,7 +746,7 @@
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em; display:flex; align-items:baseline; gap:6px;">
           SpuitLogger
-          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v7.8</span>
+          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v7.9</span>
         </div>
         <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">SPUIT PESTICIDE DOSSIER</div>
       </div>
@@ -1018,11 +1018,12 @@
             <span style="font-size:0.75rem;color:var(--text-muted);">▼</span>
           </button>
           <div id="drift-dropdown-panel" style="display:none;position:absolute;left:0;right:0;z-index:200;background:var(--bg-card);border:1px solid var(--border-bright);border-radius:10px;margin-top:4px;padding:8px 0;box-shadow:0 8px 24px rgba(0,0,0,0.4);">
-            <label class="flex items-center gap-3 px-4 py-2 text-sm cursor-pointer" style="transition:background 0.1s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''"><input type="checkbox" class="drift-check" value="nevel_zichtbaar" onchange="updateDriftLabel()"> 🌫️ Nevel/drift zichtbaar in de lucht</label>
-            <label class="flex items-center gap-3 px-4 py-2 text-sm cursor-pointer" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''"><input type="checkbox" class="drift-check" value="druppels_voelbaar" onchange="updateDriftLabel()"> 💦 Druppels/nevel voelbaar op huid</label>
-            <label class="flex items-center gap-3 px-4 py-2 text-sm cursor-pointer" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''"><input type="checkbox" class="drift-check" value="drift_ver" onchange="updateDriftLabel()"> 📏 Drift zichtbaar op meer dan 10 meter</label>
-            <label class="flex items-center gap-3 px-4 py-2 text-sm cursor-pointer" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''"><input type="checkbox" class="drift-check" value="geur_direct" onchange="updateDriftLabel()"> 👃 Geur direct waargenomen tijdens spuiten</label>
-            <label class="flex items-center gap-3 px-4 py-2 text-sm cursor-pointer" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''"><input type="checkbox" class="drift-check" value="ogen_keel" onchange="updateDriftLabel()"> 👁️ Ogen/keel irritatie bij buitenverblijf</label>
+            <label class="flex items-center gap-3 px-4 py-2 text-sm cursor-pointer" style="transition:background 0.1s;border-bottom:1px solid var(--border);margin-bottom:4px;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''"><input type="checkbox" class="drift-check" value="nvt" onchange="updateDriftLabel(this)"> 🚫 Niet van toepassing</label>
+            <label class="flex items-center gap-3 px-4 py-2 text-sm cursor-pointer" style="transition:background 0.1s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''"><input type="checkbox" class="drift-check" value="nevel_zichtbaar" onchange="updateDriftLabel(this)"> 🌫️ Nevel/drift zichtbaar in de lucht</label>
+            <label class="flex items-center gap-3 px-4 py-2 text-sm cursor-pointer" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''"><input type="checkbox" class="drift-check" value="druppels_voelbaar" onchange="updateDriftLabel(this)"> 💦 Druppels/nevel voelbaar op huid</label>
+            <label class="flex items-center gap-3 px-4 py-2 text-sm cursor-pointer" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''"><input type="checkbox" class="drift-check" value="drift_ver" onchange="updateDriftLabel(this)"> 📏 Drift zichtbaar op meer dan 10 meter</label>
+            <label class="flex items-center gap-3 px-4 py-2 text-sm cursor-pointer" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''"><input type="checkbox" class="drift-check" value="geur_direct" onchange="updateDriftLabel(this)"> 👃 Geur direct waargenomen tijdens spuiten</label>
+            <label class="flex items-center gap-3 px-4 py-2 text-sm cursor-pointer" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''"><input type="checkbox" class="drift-check" value="ogen_keel" onchange="updateDriftLabel(this)"> 👁️ Ogen/keel irritatie bij buitenverblijf</label>
           </div>
         </div>
 
@@ -2799,11 +2800,19 @@ function toggleDriftDropdown() {
   if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
 }
 
-function updateDriftLabel() {
+function updateDriftLabel(changedEl) {
+  // "Niet van toepassing" is wederzijds exclusief met de andere opties
+  if (changedEl?.value === 'nvt' && changedEl.checked) {
+    document.querySelectorAll('.drift-check:not([value="nvt"])').forEach(el => el.checked = false);
+  } else if (changedEl?.value !== 'nvt' && changedEl?.checked) {
+    const nvt = document.querySelector('.drift-check[value="nvt"]');
+    if (nvt) nvt.checked = false;
+  }
+
   const checked  = Array.from(document.querySelectorAll('.drift-check:checked'));
   const label    = document.getElementById('drift-dropdown-label');
   if (!label) return;
-  const emojiMap = { nevel_zichtbaar: '🌫️', druppels_voelbaar: '💦', drift_ver: '📏', geur_direct: '👃', ogen_keel: '👁️' };
+  const emojiMap = { nvt: '🚫', nevel_zichtbaar: '🌫️', druppels_voelbaar: '💦', drift_ver: '📏', geur_direct: '👃', ogen_keel: '👁️' };
   label.style.color = checked.length ? 'var(--text-primary)' : 'var(--text-muted)';
   label.textContent = checked.length
     ? checked.map(el => emojiMap[el.value] || el.value).join('  ')
@@ -4503,7 +4512,7 @@ window.addEventListener('offline', updateOnlineStatus);
 // ============================================================
 // SERVICE WORKER — REGISTRATIE & UPDATE MANAGEMENT
 // ============================================================
-const APP_VERSION_CLIENT = '7.8';
+const APP_VERSION_CLIENT = '7.9';
 
 let _swRegistration  = null;   // actieve SW registratie
 let _updateCheckTimer = null;  // interval ID voor periodieke check
