@@ -748,7 +748,7 @@
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em; display:flex; align-items:baseline; gap:6px;">
           SpuitLogger
-          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v7.31</span>
+          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v7.32</span>
         </div>
         <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">SPUITACTIVITEITEN DOSSIER</div>
       </div>
@@ -5278,7 +5278,7 @@ window.addEventListener('offline', updateOnlineStatus);
 // ============================================================
 // SERVICE WORKER — REGISTRATIE & UPDATE MANAGEMENT
 // ============================================================
-const APP_VERSION_CLIENT = '7.31';
+const APP_VERSION_CLIENT = '7.32';
 
 let _swRegistration  = null;   // actieve SW registratie
 let _updateCheckTimer = null;  // interval ID voor periodieke check
@@ -5474,16 +5474,20 @@ async function swCacheLeegmaken() {
 // INIT
 // ============================================================
 
-  // Verberg splash screen zodra app geladen is
-  window.addEventListener('load', () => {
-    setTimeout(() => {
-      const splash = document.getElementById('splash-screen');
-      if (splash) {
-        splash.style.opacity = '0';
-        setTimeout(() => splash.remove(), 400);
-      }
-    }, 800);
-  });
+  // Verberg splash screen — meerdere fallbacks zodat het altijd verdwijnt
+  function verbergSplash() {
+    const splash = document.getElementById('splash-screen');
+    if (!splash) return;
+    splash.style.opacity = '0';
+    setTimeout(() => { if (splash.parentNode) splash.parentNode.removeChild(splash); }, 400);
+  }
+
+  // Primair: na window load
+  window.addEventListener('load', () => setTimeout(verbergSplash, 800));
+  // Fallback 1: DOMContentLoaded + 1.5s (als load niet snel genoeg vuurt)
+  document.addEventListener('DOMContentLoaded', () => setTimeout(verbergSplash, 1500));
+  // Fallback 2: absolute timeout van 3s — splash verdwijnt altijd
+  setTimeout(verbergSplash, 3000);
 
 window.addEventListener('DOMContentLoaded', () => {
   // Verwijder reload-guard na succesvolle herstart
