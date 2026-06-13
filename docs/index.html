@@ -748,9 +748,9 @@
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em; display:flex; align-items:baseline; gap:6px;">
           SpuitLogger
-          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v7.20</span>
+          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v7.25</span>
         </div>
-        <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">SPUIT PESTICIDE DOSSIER</div>
+        <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">SPUITACTIVITEITEN DOSSIER</div>
       </div>
     </div>
     <div class="flex items-center gap-2">
@@ -779,7 +779,7 @@
     <div id="page-dashboard" class="page active p-4">
       <div class="mb-4">
         <div style="font-size:1.4rem;font-weight:800;letter-spacing:-0.02em;" class="mb-1">Dossier Overzicht</div>
-        <div style="font-family:var(--mono);font-size:0.65rem;color:var(--text-muted);">Hijkerweg 5 — Hooghalen — Nederland</div>
+        <div style="font-family:var(--mono);font-size:0.65rem;color:var(--text-muted);" id="dashboard-gemeente">Nederland</div>
       </div>
 
       <!-- Stats grid -->
@@ -1092,6 +1092,41 @@
           </div>
         </div>
 
+        <!-- Teler & Perceel -->
+        <div>
+          <label class="section-label block mb-2">Teler & Perceel <span style="color:var(--text-muted);font-size:0.6rem;">(optioneel)</span></label>
+
+          <!-- Bedrijfsnaam met autocomplete -->
+          <div style="position:relative;margin-bottom:10px;">
+            <label class="block mb-1" style="font-family:var(--mono);font-size:0.65rem;color:var(--text-muted);">BEDRIJFSNAAM TELER</label>
+            <input type="text" id="f-bedrijfsnaam"
+              class="form-input px-3 py-3 text-sm"
+              placeholder="bijv. Loonbedrijf Jansen"
+              autocomplete="off"
+              oninput="toonBedrijfSuggesties(this.value)"
+              onblur="setTimeout(()=>verbergBedrijfSuggesties(),200)">
+            <div id="bedrijf-suggesties" style="display:none;position:absolute;left:0;right:0;z-index:300;background:var(--bg-card);border:1px solid var(--border-bright);border-radius:8px;margin-top:2px;box-shadow:0 8px 24px rgba(0,0,0,0.4);max-height:160px;overflow-y:auto;"></div>
+          </div>
+
+          <!-- Perceelnummer + auto-detect knop -->
+          <div>
+            <label class="block mb-1" style="font-family:var(--mono);font-size:0.65rem;color:var(--text-muted);">KADASTRAAL PERCEELNUMMER</label>
+            <div class="flex gap-2">
+              <input type="text" id="f-perceelnummer"
+                class="form-input px-3 py-3 text-sm flex-1"
+                placeholder="Wordt automatisch gevuld via kaart"
+                readonly
+                style="background:var(--bg-secondary);color:var(--text-muted);">
+              <button type="button" onclick="detecteerPerceel()" id="perceel-btn"
+                class="btn-outline px-3 py-3 text-sm flex-shrink-0"
+                title="Opnieuw ophalen">
+                🔄
+              </button>
+            </div>
+            <div id="perceel-status" style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-top:4px;"></div>
+          </div>
+        </div>
+
         <!-- Locatie kaart -->
         <div>
           <label class="section-label block mb-2">Locatie Melding</label>
@@ -1191,7 +1226,7 @@
     </div>
 
     <!-- PAGE: Export -->
-    <div id="page-export" class="page p-4">
+        <div id="page-export" class="page p-4">
       <div class="mb-4">
         <div style="font-size:1.4rem;font-weight:800;letter-spacing:-0.02em;" class="mb-1">Export & Backup</div>
         <div style="font-family:var(--mono);font-size:0.65rem;color:var(--text-muted);">Juridisch dossier exporteren</div>
@@ -1199,33 +1234,144 @@
 
       <div class="space-y-3">
 
-        <!-- Account & Sync kaart -->
+        <!-- Sync statistieken -->
+        <div class="card p-4">
+          <div class="section-label mb-3">📊 Synchronisatiestatus</div>
+          <div class="space-y-2 mono text-xs" style="color:var(--text-secondary);">
+            <div class="flex justify-between"><span>Lokaal:</span><span id="acc-local-count" style="color:var(--accent);">—</span></div>
+            <div class="flex justify-between"><span>Gesynchroniseerd:</span><span id="acc-synced-count" style="color:var(--accent);">—</span></div>
+            <div class="flex justify-between"><span>In wachtrij:</span><span id="acc-pending-count" style="color:var(--warning);">—</span></div>
+            <div class="flex justify-between"><span>Te verwijderen:</span><span id="acc-delete-count" style="color:var(--danger);">—</span></div>
+            <div class="flex justify-between"><span>Sync mislukt:</span><span id="acc-error-count" style="color:var(--danger);">—</span></div>
+            <div class="flex justify-between"><span>Laatste sync:</span><span id="acc-last-sync">—</span></div>
+          </div>
+        </div>
+
+        <!-- PDF Rapport -->
+        <div class="card p-4">
+          <div class="flex items-start gap-3">
+            <div style="font-size:1.5rem;">📄</div>
+            <div class="flex-1">
+              <div style="font-weight:700;font-size:0.95rem;">PDF Rapport</div>
+              <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px;">Volledig juridisch dossier met alle meldingen, weerdata, hashes en tijdlijn</div>
+              <div class="space-y-2 mt-3">
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <div style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-bottom:4px;">VAN maand</div>
+                    <select id="pdf-van-maand" class="form-select px-2 py-1 text-sm w-full">
+                      <option value="">Begin</option>
+                      <option value="01">Januari</option><option value="02">Februari</option><option value="03">Maart</option>
+                      <option value="04">April</option><option value="05">Mei</option><option value="06">Juni</option>
+                      <option value="07">Juli</option><option value="08">Augustus</option><option value="09">September</option>
+                      <option value="10">Oktober</option><option value="11">November</option><option value="12">December</option>
+                    </select>
+                  </div>
+                  <div>
+                    <div style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-bottom:4px;">VAN jaar</div>
+                    <select id="pdf-van-jaar" class="form-select px-2 py-1 text-sm w-full"><option value="">—</option></select>
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <div style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-bottom:4px;">TOT maand</div>
+                    <select id="pdf-tot-maand" class="form-select px-2 py-1 text-sm w-full">
+                      <option value="">Einde</option>
+                      <option value="01">Januari</option><option value="02">Februari</option><option value="03">Maart</option>
+                      <option value="04">April</option><option value="05">Mei</option><option value="06">Juni</option>
+                      <option value="07">Juli</option><option value="08">Augustus</option><option value="09">September</option>
+                      <option value="10">Oktober</option><option value="11">November</option><option value="12">December</option>
+                    </select>
+                  </div>
+                  <div>
+                    <div style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-bottom:4px;">TOT jaar</div>
+                    <select id="pdf-tot-jaar" class="form-select px-2 py-1 text-sm w-full"><option value="">—</option></select>
+                  </div>
+                </div>
+              </div>
+              <button onclick="exportPDF()" class="btn-primary px-4 py-2 text-sm mt-3 inline-flex items-center gap-2">
+                📥 Exporteer PDF
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- JSON Export -->
+        <div class="card p-4">
+          <div class="flex items-start gap-3">
+            <div style="font-size:1.5rem;">💾</div>
+            <div class="flex-1">
+              <div style="font-weight:700;font-size:0.95rem;">JSON Backup</div>
+              <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px;">Volledige ruwe data backup incl. weerdata JSON</div>
+              <button onclick="exportJSON()" class="btn-outline px-4 py-2 text-sm mt-3 inline-flex items-center gap-2">
+                💾 Exporteer JSON
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- JSON Import -->
+        <div class="card p-4">
+          <div class="flex items-start gap-3">
+            <div style="font-size:1.5rem;">📥</div>
+            <div class="flex-1">
+              <div style="font-weight:700;font-size:0.95rem;">JSON Importeren</div>
+              <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px;">Herstel eerder gemaakte backup</div>
+              <input type="file" id="import-file" accept=".json" class="hidden" onchange="importJSON(event)">
+              <button onclick="document.getElementById('import-file').click()" class="btn-outline px-4 py-2 text-sm mt-3 inline-flex items-center gap-2">
+                📂 Importeer JSON
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dossier info -->
+        <div class="card p-4">
+          <div class="section-label mb-3">Dossier Informatie</div>
+          <div class="space-y-2 mono text-xs" style="color:var(--text-secondary);">
+            <div class="flex justify-between"><span>Totaal meldingen:</span><span id="exp-total" style="color:var(--accent);">0</span></div>
+            <div class="flex justify-between"><span>Eerste melding:</span><span id="exp-first">—</span></div>
+            <div class="flex justify-between"><span>Laatste melding:</span><span id="exp-last">—</span></div>
+            <div class="flex justify-between"><span>Opslag (LS):</span><span id="exp-storage">—</span></div>
+            <div class="flex justify-between"><span>Bijlagen (totaal):</span><span id="exp-bijlagen" style="color:var(--info);">—</span></div>
+            <div class="flex justify-between"><span>Bijlagen in IndexedDB:</span><span id="exp-idb-count" style="color:var(--accent);">—</span></div>
+            <div class="flex justify-between"><span>Opslagmethode:</span><span id="exp-method" style="color:var(--text-muted);font-size:0.58rem;">—</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    
+
+
+    <!-- PAGE: Instellingen -->
+    <div id="page-instellingen" class="page p-4">
+      <div class="mb-4">
+        <div style="font-size:1.4rem;font-weight:800;letter-spacing:-0.02em;" class="mb-1">Instellingen</div>
+        <div style="font-family:var(--mono);font-size:0.65rem;color:var(--text-muted);">Profiel en app-voorkeuren</div>
+      </div>
+
+      <div class="space-y-3">
+
+        <!-- Account kaart -->
         <div class="card p-4" id="account-card">
-          <div class="section-label mb-3">☁️ Account & Synchronisatie</div>
-          <!-- Niet ingelogd -->
-          <div id="account-logged-out">
+          <div class="section-label mb-3">☁️ Account</div>
+          <div id="account-logged-out-inst">
             <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:12px;">
-              Log in om meldingen automatisch te synchroniseren tussen apparaten.
+              Log in om meldingen te synchroniseren tussen apparaten.
             </div>
             <button onclick="showAuthOverlay()" class="btn-primary px-4 py-2 text-sm inline-flex items-center gap-2">
               🔐 Inloggen / Registreren
             </button>
           </div>
-          <!-- Ingelogd -->
-          <div id="account-logged-in" style="display:none;">
-            <div class="space-y-2 mono text-xs" style="color:var(--text-secondary);">
-              <div class="flex justify-between"><span>Ingelogd als:</span><span id="acc-email" style="color:var(--accent);">—</span></div>
-              <div class="flex justify-between"><span>Rol:</span><span id="acc-rol" style="color:var(--accent);">—</span></div>
-              <div class="flex justify-between"><span>Lokaal:</span><span id="acc-local-count" style="color:var(--accent);">—</span></div>
-              <div class="flex justify-between"><span>Gesynchroniseerd:</span><span id="acc-synced-count" style="color:var(--accent);">—</span></div>
-              <div class="flex justify-between"><span>In wachtrij:</span><span id="acc-pending-count" style="color:var(--warning);">—</span></div>
-              <div class="flex justify-between"><span>Te verwijderen:</span><span id="acc-delete-count" style="color:var(--danger);">—</span></div>
-              <div class="flex justify-between"><span>Sync mislukt:</span><span id="acc-error-count" style="color:var(--danger);">—</span></div>
-              <div class="flex justify-between"><span>Laatste sync:</span><span id="acc-last-sync">—</span></div>
+          <div id="account-logged-in-inst" style="display:none;">
+            <div class="space-y-2 mono text-xs" style="color:var(--text-secondary);margin-bottom:12px;">
+              <div class="flex justify-between"><span>Ingelogd als:</span><span id="inst-email" style="color:var(--accent);">—</span></div>
+              <div class="flex justify-between"><span>Rol:</span><span id="inst-rol" style="color:var(--accent);">—</span></div>
             </div>
-            <div class="flex gap-2 mt-3 flex-wrap">
+            <div class="flex gap-2 flex-wrap">
               <button onclick="syncNu()" class="btn-primary px-4 py-2 text-sm inline-flex items-center gap-2">
-                ↻ Sync nu
+                🔄 Synchroniseren
               </button>
               <button onclick="laadVanSupabase(true)" class="btn-outline px-4 py-2 text-sm inline-flex items-center gap-2">
                 ⬇ Laden van cloud
@@ -1237,18 +1383,42 @@
           </div>
         </div>
 
-        <!-- Admin sectie — alleen zichtbaar voor admin rol -->
+        <!-- Gemeente profiel -->
+        <div class="card p-4">
+          <div class="section-label mb-2">📍 Gemeente</div>
+          <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:10px;">In welke gemeente registreer je spuitactiviteiten? Wordt getoond op het dashboard.</div>
+          <div class="flex gap-2 mb-2">
+            <select id="profiel-gemeente" class="form-select px-3 py-2 text-sm flex-1" onchange="updateGemeentePreview()">
+              <option value="">— Selecteer gemeente —</option>
+            <option value="Aa en Hunze">Aa en Hunze</option>
+            <option value="Assen">Assen</option>
+            <option value="Borger-Odoorn">Borger-Odoorn</option>
+            <option value="Coevorden">Coevorden</option>
+            <option value="De Wolden">De Wolden</option>
+            <option value="Emmen">Emmen</option>
+            <option value="Hoogeveen">Hoogeveen</option>
+            <option value="Meppel">Meppel</option>
+            <option value="Midden-Drenthe">Midden-Drenthe</option>
+            <option value="Noordenveld">Noordenveld</option>
+            <option value="Tynaarlo">Tynaarlo</option>
+            <option value="Westerveld">Westerveld</option>
+            </select>
+            <button onclick="detecteerGemeente()" class="btn-outline px-3 py-2 text-sm" title="Detecteer via GPS">📡</button>
+          </div>
+          <button onclick="slaGemeenteOp()" class="btn-primary px-4 py-2 text-sm">Opslaan</button>
+          <div id="gemeente-status" style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-top:6px;"></div>
+        </div>
+
+        <!-- Admin sectie -->
         <div id="admin-section" class="card p-4" style="display:none;border-color:rgba(245,158,11,0.4);">
           <div class="flex items-start gap-3">
             <div style="font-size:1.5rem;">👑</div>
             <div class="flex-1">
               <div style="font-weight:700;font-size:0.95rem;color:var(--warning);">Beheer — Admin</div>
               <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px;">Functies beschikbaar voor de admin rol</div>
-
-              <!-- Backup terugzetten -->
               <div style="margin-top:16px;">
                 <div style="font-family:var(--mono);font-size:0.7rem;color:var(--text-muted);margin-bottom:8px;">BACKUP TERUGZETTEN</div>
-                <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:10px;">Herstel verwijderde meldingen uit de cloud. Meldingen die in de afgelopen 72 uur zijn verwijderd kunnen worden teruggezet.</div>
+                <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:10px;">Herstel verwijderde meldingen uit de cloud (max 14 dagen terug).</div>
                 <div class="flex gap-2 mb-3">
                   <select id="backup-dagen" class="form-select px-2 py-2 text-sm flex-1">
                     <option value="1">Afgelopen 1 dag</option>
@@ -1271,111 +1441,6 @@
           </div>
         </div>
 
-        <div class="card p-4">
-          <div class="flex items-start gap-3">
-            <div style="font-size:1.5rem;">📄</div>
-            <div class="flex-1">
-              <div style="font-weight:700;font-size:0.95rem;">PDF Rapport</div>
-              <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px;">Volledig juridisch dossier met alle meldingen, weerdata, hashes en tijdlijn</div>
-              <div class="space-y-2 mt-3">
-                <div class="grid grid-cols-2 gap-2">
-                  <div>
-                    <div style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-bottom:4px;">VAN maand</div>
-                    <select id="pdf-van-maand" class="form-select px-2 py-1 text-sm w-full">
-                      <option value="">Begin</option>
-                      <option value="01">Januari</option><option value="02">Februari</option><option value="03">Maart</option>
-                      <option value="04">April</option><option value="05">Mei</option><option value="06">Juni</option>
-                      <option value="07">Juli</option><option value="08">Augustus</option><option value="09">September</option>
-                      <option value="10">Oktober</option><option value="11">November</option><option value="12">December</option>
-                    </select>
-                  </div>
-                  <div>
-                    <div style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-bottom:4px;">VAN jaar</div>
-                    <select id="pdf-van-jaar" class="form-select px-2 py-1 text-sm w-full">
-                      <option value="">—</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                  <div>
-                    <div style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-bottom:4px;">TOT maand</div>
-                    <select id="pdf-tot-maand" class="form-select px-2 py-1 text-sm w-full">
-                      <option value="">Einde</option>
-                      <option value="01">Januari</option><option value="02">Februari</option><option value="03">Maart</option>
-                      <option value="04">April</option><option value="05">Mei</option><option value="06">Juni</option>
-                      <option value="07">Juli</option><option value="08">Augustus</option><option value="09">September</option>
-                      <option value="10">Oktober</option><option value="11">November</option><option value="12">December</option>
-                    </select>
-                  </div>
-                  <div>
-                    <div style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-bottom:4px;">TOT jaar</div>
-                    <select id="pdf-tot-jaar" class="form-select px-2 py-1 text-sm w-full">
-                      <option value="">—</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-              <button onclick="exportPDF()" class="btn-primary px-4 py-2 text-sm mt-3 inline-flex items-center gap-2">
-                📥 Exporteer PDF
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card p-4">
-          <div class="flex items-start gap-3">
-            <div style="font-size:1.5rem;">📊</div>
-            <div class="flex-1">
-              <div style="font-weight:700;font-size:0.95rem;">CSV Export</div>
-              <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px;">Spreadsheet formaat voor verdere analyse</div>
-              <button onclick="exportCSV()" class="btn-outline px-4 py-2 text-sm mt-3 inline-flex items-center gap-2">
-                📥 Exporteer CSV
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card p-4">
-          <div class="flex items-start gap-3">
-            <div style="font-size:1.5rem;">💾</div>
-            <div class="flex-1">
-              <div style="font-weight:700;font-size:0.95rem;">JSON Backup</div>
-              <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px;">Volledige ruwe data backup incl. weerdata JSON</div>
-              <button onclick="exportJSON()" class="btn-outline px-4 py-2 text-sm mt-3 inline-flex items-center gap-2">
-                📥 Exporteer JSON
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card p-4">
-          <div class="flex items-start gap-3">
-            <div style="font-size:1.5rem;">📥</div>
-            <div class="flex-1">
-              <div style="font-weight:700;font-size:0.95rem;">JSON Importeren</div>
-              <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px;">Herstel eerder gemaakte backup</div>
-              <input type="file" id="import-file" accept=".json" class="hidden" onchange="importJSON(event)">
-              <button onclick="document.getElementById('import-file').click()" class="btn-outline px-4 py-2 text-sm mt-3 inline-flex items-center gap-2">
-                📂 Importeer JSON
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Dossier info + Opslag Debug -->
-        <div class="card p-4">
-          <div class="section-label mb-3">Dossier Informatie</div>
-          <div class="space-y-2 mono text-xs" style="color:var(--text-secondary);">
-            <div class="flex justify-between"><span>Totaal meldingen:</span><span id="exp-total" style="color:var(--accent);">0</span></div>
-            <div class="flex justify-between"><span>Eerste melding:</span><span id="exp-first">—</span></div>
-            <div class="flex justify-between"><span>Laatste melding:</span><span id="exp-last">—</span></div>
-            <div class="flex justify-between"><span>Opslag (LS):</span><span id="exp-storage">—</span></div>
-            <div class="flex justify-between"><span>Bijlagen (totaal):</span><span id="exp-bijlagen" style="color:var(--info);">—</span></div>
-            <div class="flex justify-between"><span>Bijlagen in IndexedDB:</span><span id="exp-idb-count" style="color:var(--accent);">—</span></div>
-            <div class="flex justify-between"><span>Opslagmethode:</span><span id="exp-method" style="color:var(--text-muted);font-size:0.58rem;">—</span></div>
-          </div>
-        </div>
-
         <!-- Opschonen -->
         <div class="card p-4" style="border-color:rgba(59,130,246,0.3);">
           <div class="section-label mb-2" style="color:var(--info);">🧹 Opslag Opschonen</div>
@@ -1385,7 +1450,7 @@
           </button>
         </div>
 
-        <!-- SW Debug paneel -->
+        <!-- SW Debug -->
         <div class="card p-4">
           <div class="section-label mb-3">🔧 Service Worker Debug</div>
           <div id="sw-debug-panel">
@@ -1397,19 +1462,13 @@
             <div class="sw-debug-row"><span class="sw-debug-key">Cache namen (actief)</span><span class="sw-debug-val" id="dbg-all-caches">—</span></div>
           </div>
           <div class="flex gap-2 mt-3 flex-wrap">
-            <button onclick="swDebugRefresh()" style="background:transparent;border:1px solid var(--border-bright);color:var(--text-secondary);border-radius:8px;padding:6px 12px;font-size:0.7rem;font-family:var(--mono);">
-              ↻ Vernieuwen
-            </button>
-            <button onclick="forceerSWUpdate()" style="background:transparent;border:1px solid var(--warning);color:var(--warning);border-radius:8px;padding:6px 12px;font-size:0.7rem;font-family:var(--mono);">
-              ⚡ Update forceren
-            </button>
-            <button onclick="swCacheLeegmaken()" style="background:transparent;border:1px solid rgba(239,68,68,0.4);color:var(--danger);border-radius:8px;padding:6px 12px;font-size:0.7rem;font-family:var(--mono);">
-              🗑 Cache leegmaken
-            </button>
+            <button onclick="swDebugRefresh()" style="background:transparent;border:1px solid var(--border-bright);color:var(--text-secondary);border-radius:8px;padding:6px 12px;font-size:0.7rem;font-family:var(--mono);">↻ Vernieuwen</button>
+            <button onclick="forceerSWUpdate()" style="background:transparent;border:1px solid var(--warning);color:var(--warning);border-radius:8px;padding:6px 12px;font-size:0.7rem;font-family:var(--mono);">⚡ Update forceren</button>
+            <button onclick="swCacheLeegmaken()" style="background:transparent;border:1px solid rgba(239,68,68,0.4);color:var(--danger);border-radius:8px;padding:6px 12px;font-size:0.7rem;font-family:var(--mono);">🗑 Cache leegmaken</button>
           </div>
         </div>
 
-        <!-- Danger zone -->
+        <!-- Gevaarzone -->
         <div class="card p-4" style="border-color:rgba(239,68,68,0.3);">
           <div class="section-label mb-2" style="color:var(--danger);">⚠️ Gevaarzone</div>
           <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:12px;">Verwijder alle lokaal opgeslagen meldingen. Dit kan niet ongedaan worden gemaakt.</div>
@@ -1441,6 +1500,10 @@
       <button onclick="showPage('export')" class="nav-tab flex-1 flex flex-col items-center py-3 gap-1" id="tab-export">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
         <span style="font-size:0.6rem;font-family:var(--mono);">EXPORT</span>
+      </button>
+      <button onclick="showPage('instellingen')" class="nav-tab flex-1 flex flex-col items-center py-3 gap-1" id="tab-instellingen">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+        <span style="font-size:0.6rem;font-family:var(--mono);">INSTELLINGEN</span>
       </button>
     </div>
   </nav>
@@ -1704,11 +1767,20 @@ function authUpdateUI(user) {
     if (headerSyncIndicator) headerSyncIndicator.style.display = 'flex';
     const initial = (user.email || '?')[0].toUpperCase();
     if (headerUserInitial) headerUserInitial.textContent = initial;
+    // Export page elementen
     const emailEl = document.getElementById('acc-email');
     if (emailEl) emailEl.textContent = user.email || '—';
     const rolEl = document.getElementById('acc-rol');
     if (rolEl) rolEl.textContent = _gebruikerRol === 'admin' ? '👑 Admin' : '👤 Gebruiker';
-    // Toon admin-sectie als beschikbaar
+    // Instellingen pagina elementen
+    const instEmail = document.getElementById('inst-email');
+    if (instEmail) instEmail.textContent = user.email || '—';
+    const instRol = document.getElementById('inst-rol');
+    if (instRol) instRol.textContent = _gebruikerRol === 'admin' ? '👑 Admin' : '👤 Gebruiker';
+    const loggedInInst  = document.getElementById('account-logged-in-inst');
+    const loggedOutInst = document.getElementById('account-logged-out-inst');
+    if (loggedInInst)  loggedInInst.style.display  = 'block';
+    if (loggedOutInst) loggedOutInst.style.display  = 'none';
     const adminSection = document.getElementById('admin-section');
     if (adminSection) adminSection.style.display = _gebruikerRol === 'admin' ? 'block' : 'none';
   } else {
@@ -1716,6 +1788,10 @@ function authUpdateUI(user) {
     if (loggedIn)  loggedIn.style.display  = 'none';
     if (headerUser) headerUser.style.display = 'none';
     if (headerSyncIndicator) headerSyncIndicator.style.display = 'none';
+    const loggedInInst  = document.getElementById('account-logged-in-inst');
+    const loggedOutInst = document.getElementById('account-logged-out-inst');
+    if (loggedInInst)  loggedInInst.style.display  = 'none';
+    if (loggedOutInst) loggedOutInst.style.display  = 'block';
   }
   updateSyncStats();
 }
@@ -1834,6 +1910,8 @@ async function sbSyncMelding(melding) {
     drift_waarneming:     melding.drift_waarneming || [],
     client_hash:          melding.hash             || null,
     melder_email:         melding.melder_email     || _sbUser.email || null,
+    bedrijfsnaam:         melding.bedrijfsnaam     || null,
+    perceelnummer:        melding.perceelnummer    || null,
     sync_status:          'synced',
     warnings:             melding.warnings         || [],
     deleted:              false
@@ -2141,6 +2219,8 @@ async function laadVanSupabase(force = false) {
         type:                entry.type        || 'overig',
         description:         entry.description || '',
         melder_email:        entry.melder_email || null,
+        bedrijfsnaam:        entry.bedrijfsnaam || null,
+        perceelnummer:       entry.perceelnummer || null,
         gezondheidsklachten: entry.gezondheidsklachten || [],
         activiteiten:        entry.activiteiten        || [],
         drift_waarneming:    entry.drift_waarneming    || [],
@@ -2487,11 +2567,17 @@ async function laadGebruikerRol() {
   try {
     const { data, error } = await sb
       .from('user_roles')
-      .select('role')
+      .select('role, gemeente')
       .eq('user_id', _sbUser.id)
       .maybeSingle();
     _gebruikerRol = data?.role || 'gebruiker';
     console.log('[Auth] Rol geladen:', _gebruikerRol);
+
+    // Gemeente uit Supabase laden als beschikbaar
+    if (data?.gemeente) {
+      localStorage.setItem('spuitlog_gemeente', data.gemeente);
+    }
+    laadGemeenteProfiel();
     updateRolBadge();
     renderTimeline();
     updateDashboard();
@@ -2501,6 +2587,193 @@ async function laadGebruikerRol() {
   }
 }
 
+// ============================================================
+// PERCEEL & BEDRIJFSNAAM
+// ============================================================
+
+// PDOK WFS — haal kadastraal perceelnummer op via GPS coördinaat (gratis, geen API-key)
+async function detecteerPerceel() {
+  const btn    = document.getElementById('perceel-btn');
+  const input  = document.getElementById('f-perceelnummer');
+  const status = document.getElementById('perceel-status');
+
+  if (!btn || !input || !status) return;
+  btn.disabled = true;
+  btn.textContent = '⏳';
+  status.textContent = 'GPS ophalen...';
+  status.style.color = 'var(--text-muted)';
+
+  const lat = parseFloat(document.getElementById('f-lat')?.value);
+  const lng = parseFloat(document.getElementById('f-lng')?.value);
+
+  if (!lat || !lng || (Math.abs(lat) < 0.01 && Math.abs(lng) < 0.01)) {
+    status.textContent = '⚠️ Geen geldige GPS locatie — gebruik eerst de GPS knop';
+    status.style.color = 'var(--warning)';
+    btn.disabled = false;
+    btn.textContent = '🗺️ Detecteer';
+    return;
+  }
+
+  try {
+    const url = `https://service.pdok.nl/kadaster/kadastralekaart/wfs/v5_0?SERVICE=WFS&REQUEST=GetFeature&typeNames=kadastralekaartv5:perceel&outputFormat=application/json&srsName=EPSG:4326&CQL_FILTER=INTERSECTS(geometrie,POINT(${lng}%20${lat}))`;
+    const res  = await fetch(url);
+    const data = await res.json();
+
+    if (data.features?.length > 0) {
+      const props = data.features[0].properties;
+      // Kadastraal perceelnummer samenstellen: gemeente + sectie + perceelnummer
+      const kadastraleGemeente = props.kadastralegemeentecode || props.gemeentecode || '';
+      const sectie             = props.sectie  || '';
+      const nummer             = props.perceelnummer || props.perceelNummer || '';
+      const perceelId          = `${kadastraleGemeente}${sectie}-${nummer}`.toUpperCase();
+
+      input.value = perceelId;
+      input.style.color = 'var(--text-primary)';
+      status.textContent = `✓ Perceel gevonden: ${perceelId}`;
+      status.style.color = 'var(--accent)';
+      console.log('[PDOK] Perceeldata:', props);
+    } else {
+      status.textContent = 'Geen perceel gevonden op deze locatie';
+      status.style.color = 'var(--warning)';
+    }
+  } catch (e) {
+    console.warn('[PDOK] Perceel opvragen mislukt:', e.message);
+    status.textContent = 'Opvragen mislukt — controleer verbinding';
+    status.style.color = 'var(--danger)';
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🗺️ Detecteer';
+  setTimeout(() => { if (status) status.textContent = ''; }, 5000);
+}
+
+// Bedrijfsnaam autocomplete op basis van eerdere meldingen
+function getBedrijfSuggesties(query) {
+  if (!query || query.length < 2) return [];
+  const meldingen = getMeldingen();
+  const namen = [...new Set(
+    meldingen
+      .map(m => m.bedrijfsnaam)
+      .filter(n => n && n.toLowerCase().includes(query.toLowerCase()))
+  )].sort().slice(0, 6);
+  return namen;
+}
+
+function toonBedrijfSuggesties(val) {
+  const panel = document.getElementById('bedrijf-suggesties');
+  if (!panel) return;
+  const suggesties = getBedrijfSuggesties(val);
+  if (!suggesties.length) { panel.style.display = 'none'; return; }
+  panel.innerHTML = suggesties.map(n =>
+    `<div onclick="kiesBedrijf('${n.replace(/'/g,"\\'")}')"\
+      style="padding:10px 14px;font-size:0.85rem;cursor:pointer;border-bottom:1px solid var(--border);"\
+      onmouseover="this.style.background='var(--bg-secondary)'"\
+      onmouseout="this.style.background=''">🏢 ${n}</div>`
+  ).join('');
+  panel.style.display = 'block';
+}
+
+function kiesBedrijf(naam) {
+  const input = document.getElementById('f-bedrijfsnaam');
+  if (input) input.value = naam;
+  verbergBedrijfSuggesties();
+}
+
+function verbergBedrijfSuggesties() {
+  const panel = document.getElementById('bedrijf-suggesties');
+  if (panel) panel.style.display = 'none';
+}
+
+
+function laadGemeenteProfiel() {
+  const gemeente = localStorage.getItem('spuitlog_gemeente') || '';
+  const el = document.getElementById('profiel-gemeente');
+  if (el) el.value = gemeente;
+  updateDashboardGemeente(gemeente);
+}
+
+function updateGemeentePreview() {
+  const val = document.getElementById('profiel-gemeente')?.value || '';
+  updateDashboardGemeente(val);
+}
+
+function updateDashboardGemeente(gemeente) {
+  const el = document.getElementById('dashboard-gemeente');
+  if (!el) return;
+  el.textContent = gemeente ? `Gemeente ${gemeente} — Drenthe` : 'Nederland';
+}
+
+// GPS-gebaseerde gemeente detectie via reverse geocoding
+async function detecteerGemeente() {
+  const status = document.getElementById('gemeente-status');
+  if (status) { status.textContent = '📡 GPS lokaliseren...'; status.style.color = 'var(--text-muted)'; }
+
+  if (!navigator.geolocation) {
+    if (status) { status.textContent = 'GPS niet beschikbaar'; status.style.color = 'var(--danger)'; }
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const { latitude: lat, longitude: lng } = pos.coords;
+    if (status) status.textContent = '🌐 Gemeente opzoeken...';
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=nl`);
+      const data = await res.json();
+      const gemeente = data.address?.municipality || data.address?.county || '';
+
+      // Zoek exacte match in Drenthe lijst
+      const drenthe = ["Aa en Hunze","Assen","Borger-Odoorn","Coevorden","De Wolden","Emmen","Hoogeveen","Meppel","Midden-Drenthe","Noordenveld","Tynaarlo","Westerveld"];
+      const match = drenthe.find(g => gemeente.toLowerCase().includes(g.toLowerCase()) || g.toLowerCase().includes(gemeente.toLowerCase()));
+
+      const el = document.getElementById('profiel-gemeente');
+      if (match && el) {
+        el.value = match;
+        updateDashboardGemeente(match);
+        if (status) { status.textContent = `✓ Gevonden: ${match}`; status.style.color = 'var(--accent)'; }
+      } else {
+        if (status) { status.textContent = gemeente ? `Gevonden: "${gemeente}" — niet in Drenthe lijst` : 'Gemeente niet herkend'; status.style.color = 'var(--warning)'; }
+      }
+    } catch (e) {
+      if (status) { status.textContent = 'Opzoeken mislukt'; status.style.color = 'var(--danger)'; }
+    }
+    setTimeout(() => { if (status) status.textContent = ''; }, 4000);
+  }, () => {
+    if (status) { status.textContent = 'GPS geweigerd'; status.style.color = 'var(--danger)'; }
+  }, { enableHighAccuracy: true, timeout: 8000 });
+}
+
+async function slaGemeenteOp() {
+  const val = document.getElementById('profiel-gemeente')?.value.trim() || '';
+  const status = document.getElementById('gemeente-status');
+
+  // Altijd lokaal opslaan
+  localStorage.setItem('spuitlog_gemeente', val);
+  updateDashboardGemeente(val);
+
+  // Sync naar Supabase als ingelogd
+  if (SUPABASE_ENABLED && _sbUser && navigator.onLine) {
+    const sb = sbClient();
+    if (sb) {
+      const { error } = await sb
+        .from('user_roles')
+        .upsert({ user_id: _sbUser.id, gemeente: val }, { onConflict: 'user_id' });
+
+      if (error) {
+        console.warn('[Supabase] Gemeente opslaan mislukt:', error.message);
+        if (status) { status.textContent = '✓ Lokaal opgeslagen (cloud mislukt)'; status.style.color = 'var(--warning)'; }
+      } else {
+        console.log('[Supabase] Gemeente opgeslagen:', val);
+        if (status) { status.textContent = '✓ Opgeslagen in cloud'; status.style.color = 'var(--accent)'; }
+      }
+    }
+  } else {
+    if (status) { status.textContent = '✓ Lokaal opgeslagen'; status.style.color = 'var(--accent)'; }
+  }
+
+  if (status) setTimeout(() => { status.textContent = ''; }, 2500);
+}
+
+// ============================================================
 function isAdmin() {
   return _gebruikerRol === 'admin';
 }
@@ -2856,6 +3129,7 @@ function refreshGPS() {
       document.getElementById('f-lat').value = lat.toFixed(6);
       document.getElementById('f-lng').value = lng.toFixed(6);
       if (formMarker) formMarker.setLatLng([lat, lng]);
+      detecteerPerceel();
       if (formMap) formMap.setView([pos.coords.latitude, pos.coords.longitude], 16);
       fetchWeather();
       toast('✓ GPS locatie bijgewerkt', 'success');
@@ -3343,6 +3617,8 @@ async function submitMelding() {
       type,
       description: desc,
       melder_email: _sbUser?.email || null,
+      bedrijfsnaam:   document.getElementById('f-bedrijfsnaam')?.value.trim() || null,
+      perceelnummer:  document.getElementById('f-perceelnummer')?.value.trim() || null,
       geur_intensiteit: parseInt(document.getElementById('f-geur').value) || 0,
       wind_subjectief: document.getElementById('f-wind-subj').value || 'geen',
       drift_waarneming: Array.from(document.querySelectorAll('.drift-check:checked')).map(el => el.value),
@@ -3432,6 +3708,12 @@ async function submitMelding() {
     document.getElementById('f-geur').value = 0;
     document.getElementById('f-notes').value = '';
     document.querySelectorAll('.health-check, .activity-check, .drift-check').forEach(el => el.checked = false);
+    const bedrijfEl = document.getElementById('f-bedrijfsnaam');
+    const perceelEl = document.getElementById('f-perceelnummer');
+    const perceelStatus = document.getElementById('perceel-status');
+    if (bedrijfEl) bedrijfEl.value = '';
+    if (perceelEl) { perceelEl.value = ''; perceelEl.style.color = 'var(--text-muted)'; }
+    if (perceelStatus) perceelStatus.textContent = '';
     updateGezondheidBadge();
     updateDriftLabel();
     // Gezondheid panel weer inklappen
@@ -3503,8 +3785,13 @@ function showPage(name) {
   if (name === 'tijdlijn') {
     renderTimeline();
   }
+  if (name === 'instellingen') {
+    laadGemeenteProfiel();
+    swDebugRefresh();
+  }
   if (name === 'export') {
     updateExportInfo();
+    laadGemeenteProfiel();
     // Vul jaar-dropdowns op basis van aanwezige meldingen
     const jaren = [...new Set(getMeldingen().map(m => new Date(m.timestamp_local).getFullYear()))].sort((a,b) => b-a);
     ['pdf-van-jaar', 'pdf-tot-jaar'].forEach(id => {
@@ -3572,11 +3859,13 @@ function initFormMap() {
       const p = e.target.getLatLng();
       document.getElementById('f-lat').value = p.lat.toFixed(6);
       document.getElementById('f-lng').value = p.lng.toFixed(6);
+      detecteerPerceel();
     });
     formMap.on('click', (e) => {
       formMarker.setLatLng(e.latlng);
       document.getElementById('f-lat').value = e.latlng.lat.toFixed(6);
       document.getElementById('f-lng').value = e.latlng.lng.toFixed(6);
+      detecteerPerceel();
     });
   }, 100);
 }
@@ -4043,6 +4332,12 @@ function showMeldingDetail(id) {
         </div>
         ${m.gezondheidsklachten?.length ? `<div class="mt-2"><div class="section-label">Gezondheid</div><div style="color:var(--danger);font-size:0.75rem;margin-top:4px;">${m.gezondheidsklachten.join(', ')}</div></div>` : ''}
         ${m.activiteiten?.length ? `<div class="mt-2"><div class="section-label">Activiteiten</div><div style="color:var(--warning);font-size:0.75rem;margin-top:4px;">${m.activiteiten.join(', ')}</div></div>` : ''}
+        ${(m.bedrijfsnaam || m.perceelnummer) ? `
+        <div class="mt-2" style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;">
+          <div class="section-label mb-1">Teler & Perceel</div>
+          ${m.bedrijfsnaam  ? `<div style="font-size:0.75rem;">🏢 ${m.bedrijfsnaam}</div>` : ''}
+          ${m.perceelnummer ? `<div style="font-size:0.75rem;font-family:var(--mono);">📋 ${m.perceelnummer}</div>` : ''}
+        </div>` : ''}
         ${m.drift_waarneming?.length ? (() => {
           const labels = { nevel_zichtbaar: '🌫️ Nevel/drift zichtbaar', druppels_voelbaar: '💦 Druppels voelbaar', drift_ver: '📏 Drift >10m zichtbaar', geur_direct: '👃 Geur direct', ogen_keel: '👁️ Ogen/keel irritatie' };
           return `<div class="mt-2" style="border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:8px 10px;"><div class="section-label" style="color:var(--danger);margin-bottom:4px;">Drift & Overlast</div><div style="font-size:0.75rem;color:var(--danger);">${m.drift_waarneming.map(v => labels[v]||v).join(' · ')}</div></div>`;
@@ -4345,6 +4640,12 @@ async function exportPDF() {
 
         ${m.gezondheidsklachten?.length ? `<div style="margin-bottom:8px;"><div class="label">Gezondheidsklachten</div><div style="color:#b91c1c;font-size:9pt;">${m.gezondheidsklachten.join(', ')}</div></div>` : ''}
         ${m.activiteiten?.length ? `<div style="margin-bottom:8px;"><div class="label">Activiteiten</div><div style="color:#b45309;font-size:9pt;">${m.activiteiten.join(', ')}</div></div>` : ''}
+        ${(m.bedrijfsnaam || m.perceelnummer) ? `
+        <div style="margin-bottom:8px;padding:6px 8px;background:#f0fdf4;border:1px solid #86efac;border-radius:4px;">
+          <div class="label">Teler & Perceel</div>
+          ${m.bedrijfsnaam  ? `<div style="font-size:9pt;">🏢 ${m.bedrijfsnaam}</div>` : ''}
+          ${m.perceelnummer ? `<div style="font-size:9pt;font-family:JetBrains Mono;">📋 Perceelnummer: ${m.perceelnummer}</div>` : ''}
+        </div>` : ''}
         ${m.drift_waarneming?.length ? (() => {
           const labels = { nevel_zichtbaar: '🌫️ Nevel/drift zichtbaar in de lucht', druppels_voelbaar: '💦 Druppels/nevel voelbaar', drift_ver: '📏 Drift zichtbaar op >10m', geur_direct: '👃 Geur direct waargenomen', ogen_keel: '👁️ Ogen/keel irritatie' };
           return `<div style="margin-bottom:8px;padding:6px 8px;background:#fee2e2;border:1px solid #fca5a5;border-radius:4px;"><div class="label" style="color:#b91c1c;">Drift & Overlast Waarneming</div><div style="font-size:9pt;color:#b91c1c;">${m.drift_waarneming.map(v=>labels[v]||v).join(' · ')}</div></div>`;
@@ -4525,7 +4826,7 @@ window.addEventListener('offline', updateOnlineStatus);
 // ============================================================
 // SERVICE WORKER — REGISTRATIE & UPDATE MANAGEMENT
 // ============================================================
-const APP_VERSION_CLIENT = '7.20';
+const APP_VERSION_CLIENT = '7.25';
 
 let _swRegistration  = null;   // actieve SW registratie
 let _updateCheckTimer = null;  // interval ID voor periodieke check
@@ -4636,7 +4937,7 @@ function reloadApp() {
 
 function updateVersionLabel(version) {
   const el = document.getElementById('app-version-label');
-  if (el) el.textContent = `SPUIT PESTICIDE DOSSIER v${version}`;
+  if (el) el.textContent = 'SPUITACTIVITEITEN DOSSIER';
   const hv = document.getElementById('header-versie');
   if (hv) hv.textContent = `v${version}`;
 }
@@ -4752,6 +5053,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   updateVersionLabel(APP_VERSION_CLIENT);
+  laadGemeenteProfiel();
   updateOnlineStatus();
   initDashMap();
   updateDashboard();
