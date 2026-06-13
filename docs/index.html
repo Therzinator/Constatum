@@ -748,7 +748,7 @@
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em; display:flex; align-items:baseline; gap:6px;">
           SpuitLogger
-          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v7.25</span>
+          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v7.26</span>
         </div>
         <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">SPUITACTIVITEITEN DOSSIER</div>
       </div>
@@ -2615,23 +2615,35 @@ async function detecteerPerceel() {
   }
 
   try {
-    const url = `https://service.pdok.nl/kadaster/kadastralekaart/wfs/v5_0?SERVICE=WFS&REQUEST=GetFeature&typeNames=kadastralekaartv5:perceel&outputFormat=application/json&srsName=EPSG:4326&CQL_FILTER=INTERSECTS(geometrie,POINT(${lng}%20${lat}))`;
+    // PDOK WFS ondersteunt geen CQL_FILTER — gebruik BBOX met kleine buffer rondom het punt
+    const delta = 0.0001; // ~10 meter buffer
+    const bbox  = `${lng - delta},${lat - delta},${lng + delta},${lat + delta},EPSG:4326`;
+    const url   = `https://service.pdok.nl/kadaster/kadastralekaart/wfs/v5_0?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=kadastralekaart:Perceel&outputFormat=application/json&srsName=EPSG:4326&BBOX=${bbox}&count=1`;
+
     const res  = await fetch(url);
-    const data = await res.json();
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const text = await res.text();
+    // PDOK geeft soms XML terug bij fouten — check eerst of het JSON is
+    if (!text.trim().startsWith('{')) {
+      console.warn('[PDOK] Geen JSON ontvangen:', text.substring(0, 200));
+      throw new Error('Onverwacht antwoord van PDOK (geen JSON)');
+    }
+    const data = JSON.parse(text);
 
     if (data.features?.length > 0) {
       const props = data.features[0].properties;
-      // Kadastraal perceelnummer samenstellen: gemeente + sectie + perceelnummer
-      const kadastraleGemeente = props.kadastralegemeentecode || props.gemeentecode || '';
-      const sectie             = props.sectie  || '';
-      const nummer             = props.perceelnummer || props.perceelNummer || '';
-      const perceelId          = `${kadastraleGemeente}${sectie}-${nummer}`.toUpperCase();
-
-      input.value = perceelId;
-      input.style.color = 'var(--text-primary)';
-      status.textContent = `✓ Perceel gevonden: ${perceelId}`;
-      status.style.color = 'var(--accent)';
       console.log('[PDOK] Perceeldata:', props);
+      // Perceelnummer samenstellen — veldnamen variëren per versie
+      const gemeente = props.kadastralegemeentecode || props.AKRKadastraleGemeenteCode || '';
+      const sectie   = props.sectie   || props.Sectie   || '';
+      const nummer   = props.perceelnummer || props.Perceelnummer || props.perceelNummer || '';
+      const perceelId = [gemeente, sectie, nummer].filter(Boolean).join('-').toUpperCase();
+
+      input.value = perceelId || 'Gevonden';
+      input.style.color = 'var(--text-primary)';
+      status.textContent = `✓ ${perceelId || 'Perceel gevonden'}`;
+      status.style.color = 'var(--accent)';
     } else {
       status.textContent = 'Geen perceel gevonden op deze locatie';
       status.style.color = 'var(--warning)';
@@ -2647,7 +2659,7 @@ async function detecteerPerceel() {
   setTimeout(() => { if (status) status.textContent = ''; }, 5000);
 }
 
-// Bedrijfsnaam autocomplete op basis van eerdere meldingen
+
 function getBedrijfSuggesties(query) {
   if (!query || query.length < 2) return [];
   const meldingen = getMeldingen();
@@ -4826,7 +4838,7 @@ window.addEventListener('offline', updateOnlineStatus);
 // ============================================================
 // SERVICE WORKER — REGISTRATIE & UPDATE MANAGEMENT
 // ============================================================
-const APP_VERSION_CLIENT = '7.25';
+const APP_VERSION_CLIENT = '7.26';
 
 let _swRegistration  = null;   // actieve SW registratie
 let _updateCheckTimer = null;  // interval ID voor periodieke check
