@@ -748,7 +748,7 @@
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em; display:flex; align-items:baseline; gap:6px;">
           SpuitLogger
-          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v7.28</span>
+          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v7.29</span>
         </div>
         <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">SPUITACTIVITEITEN DOSSIER</div>
       </div>
@@ -1413,15 +1413,34 @@
         <div class="card p-4">
           <div class="section-label mb-2">🏠 Thuislocatie</div>
           <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:10px;">Jouw adres als standaard startlocatie voor nieuwe meldingen.</div>
+
+          <!-- Postcode + huisnummer invoer -->
           <div class="flex gap-2 mb-2">
-            <input type="text" id="profiel-locatie-label" class="form-input px-3 py-2 text-sm flex-1" placeholder="bijv. Dorpsstraat 1, Assen">
-            <button onclick="detecteerThuislocatie()" class="btn-outline px-3 py-2 text-sm" title="Gebruik huidige GPS locatie">📡</button>
+            <input type="text" id="profiel-postcode"
+              class="form-input px-3 py-2 text-sm"
+              placeholder="1234AB"
+              maxlength="7"
+              style="max-width:100px;"
+              oninput="this.value=this.value.toUpperCase().replace(/\s/g,'')">
+            <input type="text" id="profiel-huisnummer"
+              class="form-input px-3 py-2 text-sm flex-1"
+              placeholder="Huisnummer (bijv. 5A)">
+            <button onclick="zoekAdres()" class="btn-primary px-3 py-2 text-sm" title="Adres opzoeken">🔍</button>
+            <button onclick="detecteerThuislocatie()" class="btn-outline px-3 py-2 text-sm" title="Gebruik GPS locatie">📡</button>
           </div>
-          <div class="grid grid-cols-2 gap-2 mb-3">
-            <input type="number" id="profiel-locatie-lat" class="form-input px-3 py-2 text-sm" placeholder="Breedtegraad" step="0.000001">
-            <input type="number" id="profiel-locatie-lng" class="form-input px-3 py-2 text-sm" placeholder="Lengtegraad" step="0.000001">
+
+          <!-- Gevonden adres preview -->
+          <div id="thuislocatie-preview" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;">
+            <div style="font-size:0.8rem;color:var(--text-primary);" id="thuislocatie-preview-label"></div>
+            <div style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-top:2px;" id="thuislocatie-preview-coords"></div>
           </div>
-          <button onclick="slaThuislocatieOp()" class="btn-primary px-4 py-2 text-sm">Opslaan</button>
+
+          <!-- Verborgen coördinaatvelden -->
+          <input type="hidden" id="profiel-locatie-lat">
+          <input type="hidden" id="profiel-locatie-lng">
+          <input type="hidden" id="profiel-locatie-label">
+
+          <button onclick="slaThuislocatieOp()" id="thuislocatie-opslaan-btn" class="btn-primary px-4 py-2 text-sm" style="display:none;">Opslaan</button>
           <div id="thuislocatie-status" style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-top:6px;"></div>
         </div>
 
@@ -2624,12 +2643,73 @@ async function laadGebruikerRol() {
 
 function laadThuislocatieProfiel() {
   const loc = laadThuislocatie();
-  const labelEl = document.getElementById('profiel-locatie-label');
-  const latEl   = document.getElementById('profiel-locatie-lat');
-  const lngEl   = document.getElementById('profiel-locatie-lng');
-  if (labelEl) labelEl.value = loc.label !== 'Nederland' ? loc.label : '';
-  if (latEl)   latEl.value   = loc.lat !== 52.3676 ? loc.lat : '';
-  if (lngEl)   lngEl.value   = loc.lng !== 5.2006  ? loc.lng : '';
+  if (loc.label && loc.label !== 'Nederland') {
+    // Toon huidig opgeslagen adres in preview
+    document.getElementById('profiel-locatie-lat').value  = loc.lat;
+    document.getElementById('profiel-locatie-lng').value  = loc.lng;
+    document.getElementById('profiel-locatie-label').value = loc.label;
+    toonThuislocatiePreview(loc.label, loc.lat, loc.lng);
+  }
+}
+
+// Zoek adres op via PDOK Locatieserver (postcode + huisnummer)
+async function zoekAdres() {
+  const postcode    = document.getElementById('profiel-postcode')?.value.trim().replace(/\s/g,'').toUpperCase();
+  const huisnummer  = document.getElementById('profiel-huisnummer')?.value.trim();
+  const status      = document.getElementById('thuislocatie-status');
+
+  if (!postcode || postcode.length < 6) {
+    if (status) { status.textContent = '⚠️ Voer een geldige postcode in (bijv. 1234AB)'; status.style.color = 'var(--warning)'; }
+    return;
+  }
+
+  if (status) { status.textContent = '🔍 Adres opzoeken...'; status.style.color = 'var(--text-muted)'; }
+
+  try {
+    const query = huisnummer ? `${postcode} ${huisnummer}` : postcode;
+    const url   = `https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=${encodeURIComponent(query)}&fq=type:adres&rows=1&fl=id,weergavenaam,centroide_ll`;
+    const res   = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data  = await res.json();
+
+    const docs = data.response?.docs;
+    if (!docs?.length) {
+      if (status) { status.textContent = 'Adres niet gevonden — controleer postcode/huisnummer'; status.style.color = 'var(--warning)'; }
+      return;
+    }
+
+    const doc    = docs[0];
+    const label  = doc.weergavenaam || query;
+    // centroide_ll formaat: "POINT(lng lat)"
+    const match  = doc.centroide_ll?.match(/POINT\(([0-9.]+)\s+([0-9.]+)\)/);
+    if (!match) throw new Error('Coördinaten niet gevonden in response');
+
+    const lng = parseFloat(match[1]);
+    const lat = parseFloat(match[2]);
+
+    // Vul verborgen velden
+    document.getElementById('profiel-locatie-lat').value   = lat;
+    document.getElementById('profiel-locatie-lng').value   = lng;
+    document.getElementById('profiel-locatie-label').value = label;
+
+    toonThuislocatiePreview(label, lat, lng);
+    if (status) { status.textContent = ''; }
+
+  } catch (e) {
+    console.warn('[PDOK] Adres opzoeken mislukt:', e.message);
+    if (status) { status.textContent = 'Opzoeken mislukt — controleer verbinding'; status.style.color = 'var(--danger)'; }
+  }
+}
+
+function toonThuislocatiePreview(label, lat, lng) {
+  const preview      = document.getElementById('thuislocatie-preview');
+  const previewLabel = document.getElementById('thuislocatie-preview-label');
+  const previewCoords = document.getElementById('thuislocatie-preview-coords');
+  const opslaanBtn   = document.getElementById('thuislocatie-opslaan-btn');
+  if (preview)       preview.style.display      = 'block';
+  if (previewLabel)  previewLabel.textContent    = label;
+  if (previewCoords) previewCoords.textContent   = `${lat.toFixed(6)}°N  ${lng.toFixed(6)}°E`;
+  if (opslaanBtn)    opslaanBtn.style.display    = 'inline-flex';
 }
 
 async function slaThuislocatieOp() {
@@ -4956,7 +5036,7 @@ window.addEventListener('offline', updateOnlineStatus);
 // ============================================================
 // SERVICE WORKER — REGISTRATIE & UPDATE MANAGEMENT
 // ============================================================
-const APP_VERSION_CLIENT = '7.28';
+const APP_VERSION_CLIENT = '7.29';
 
 let _swRegistration  = null;   // actieve SW registratie
 let _updateCheckTimer = null;  // interval ID voor periodieke check
