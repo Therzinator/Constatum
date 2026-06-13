@@ -748,7 +748,7 @@
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em; display:flex; align-items:baseline; gap:6px;">
           SpuitLogger
-          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v7.30</span>
+          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v7.31</span>
         </div>
         <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">SPUITACTIVITEITEN DOSSIER</div>
       </div>
@@ -1179,13 +1179,19 @@
 
         <!-- Locatie kaart -->
         <div>
-          <label class="section-label block mb-2">Locatie Melding</label>
-          <div id="form-map" style="height:270px;"></div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="section-label">Locatie Melding</label>
+            <button type="button" id="kaart-toggle-btn" onclick="toggleFormKaartLaag()"
+              style="font-family:var(--mono);font-size:0.6rem;background:var(--bg-secondary);border:1px solid var(--border-bright);color:var(--text-muted);border-radius:6px;padding:4px 8px;cursor:pointer;">
+              🛰️ Luchtfoto
+            </button>
+          </div>
+          <div id="form-map" style="height:270px;border-radius:8px;overflow:hidden;"></div>
           <div class="flex items-center gap-2 mt-2">
             <input type="text" id="f-lat" class="form-input px-2 py-2 text-xs mono flex-1" placeholder="Breedtegraad" readonly>
             <input type="text" id="f-lng" class="form-input px-2 py-2 text-xs mono flex-1" placeholder="Lengtegraad" readonly>
           </div>
-          <p style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-top:4px;">Klik op kaart voor handmatige correctie</p>
+          <p style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-top:4px;">Klik op kaart of sleep pin voor exacte locatie · 🛰️ luchtfoto voor perceel identificatie</p>
         </div>
 
         <!-- Foto upload – [WIJZIGING 1] verbeterd grid -->
@@ -2911,8 +2917,28 @@ async function detecteerPerceel() {
 }
 
 // ============================================================
-// BAG — dichtstbijzijnde woning + Natura 2000 detectie
+// WINDRICHTING → WONING VECTOR ANALYSE
 // ============================================================
+
+// Bereken de hoek van perceel → woning (0° = Noord, 90° = Oost etc.)
+function berekenHoekNaarWoning(percLat, percLng, woningLat, woningLng) {
+  const dLat = woningLat - percLat;
+  const dLng = woningLng - percLng;
+  const hoek = (Math.atan2(dLng, dLat) * 180 / Math.PI + 360) % 360;
+  return Math.round(hoek);
+}
+
+// Bepaal of wind op dit moment naar de woning waait (±60° marge)
+function windWaaitNaarWoning(windDeg, percLat, percLng, woningLat, woningLng) {
+  if (windDeg == null) return null;
+  const hoekNaarWoning = berekenHoekNaarWoning(percLat, percLng, woningLat, woningLng);
+  // Wind waait in de richting windDeg — dus drift gaat die kant op
+  let verschil = Math.abs(windDeg - hoekNaarWoning);
+  if (verschil > 180) verschil = 360 - verschil;
+  return { waait: verschil <= 60, verschil: Math.round(verschil), hoekNaarWoning };
+}
+
+
 
 function haversineAfstand(lat1, lng1, lat2, lng2) {
   const R = 6371000;
@@ -2953,6 +2979,7 @@ async function detecteerAfstandEnNatura2000(lat, lng) {
         );
         if (woningen.length > 0) {
           let minAfstand = Infinity;
+          let dichtstbijzijndeLat = 0, dichtstbijzijndeLng = 0;
           woningen.forEach(f => {
             const geom = f.geometry;
             if (!geom) return;
@@ -2964,7 +2991,11 @@ async function detecteerAfstandEnNatura2000(lat, lng) {
               pandLng = geom.coordinates[0]; pandLat = geom.coordinates[1];
             } else return;
             const d = haversineAfstand(lat, lng, pandLat, pandLng);
-            if (d < minAfstand) minAfstand = d;
+            if (d < minAfstand) {
+              minAfstand = d;
+              dichtstbijzijndeLat = pandLat;
+              dichtstbijzijndeLng = pandLng;
+            }
           });
           const afstandM = Math.round(minAfstand);
           const kleur = afstandM < 50 ? 'var(--danger)' : afstandM < 100 ? 'var(--warning)' : 'var(--accent)';
@@ -2975,6 +3006,19 @@ async function detecteerAfstandEnNatura2000(lat, lng) {
             : `✓ ${afstandM}m tot dichtstbijzijnde woning`;
           if (afstandDisplay) { afstandDisplay.textContent = label; afstandDisplay.style.color = kleur; }
           if (afstandInput)   afstandInput.value = afstandM;
+
+          // Windanalyse: waait de wind van het perceel naar de woning?
+          const windDeg = window._actueleWindDeg ?? null;
+          if (windDeg != null) {
+            const analyse = windWaaitNaarWoning(windDeg, lat, lng, dichtstbijzijndeLat, dichtstbijzijndeLng);
+            if (analyse?.waait) {
+              // Wind waait richting woning — sla op als extra waarschuwing
+              window._windNaarWoning = { waait: true, windDeg, hoekNaarWoning: analyse.hoekNaarWoning, afstandM };
+              console.log(`[Wind] ⚠️ Wind (${windDeg}°) waait naar woning (${analyse.hoekNaarWoning}°), verschil ${analyse.verschil}°`);
+            } else {
+              window._windNaarWoning = { waait: false };
+            }
+          }
           console.log(`[BAG] Dichtstbijzijnde woning: ${afstandM}m (${woningen.length} panden)`);
         } else {
           if (afstandDisplay) { afstandDisplay.textContent = 'Geen woningen gevonden binnen 300m'; afstandDisplay.style.color = 'var(--text-muted)'; }
@@ -3563,6 +3607,7 @@ async function fetchWeather() {
     const wsrc = document.getElementById('wd-source');
     if (wd) wd.textContent = `${c.wind_speed_10m} km/h`;
     if (wdir) wdir.textContent = `${c.wind_direction_10m}° (${degToCompass(c.wind_direction_10m)})`;
+    window._actueleWindDeg = c.wind_direction_10m; // voor windrichting→woning analyse
     if (wg) wg.textContent = `${c.wind_gusts_10m} km/h`;
     if (wt) wt.textContent = `${c.temperature_2m}°C`;
     if (wh) wh.textContent = `${c.relative_humidity_2m}%`;
@@ -3985,6 +4030,7 @@ async function submitMelding() {
       perceelnummer:  document.getElementById('f-perceelnummer')?.value.trim() || null,
       gewas:          document.getElementById('f-gewas')?.value || null,
       afstand_woning: parseFloat(document.getElementById('f-afstand-woning')?.value) || null,
+      wind_naar_woning: window._windNaarWoning?.waait ? window._windNaarWoning : null,
       geur_intensiteit: parseInt(document.getElementById('f-geur').value) || 0,
       wind_subjectief: document.getElementById('f-wind-subj').value || 'geen',
       drift_waarneming: Array.from(document.querySelectorAll('.drift-check:checked')).map(el => el.value),
@@ -4204,11 +4250,18 @@ function initFormDateTime() {
 function initFormMap() {
   if (formMap) return;
   setTimeout(() => {
-    // [WIJZIGING 2] Gebruik DEFAULT_LOCATION als startpunt
     formMap = L.map('form-map').setView([DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OSM', maxZoom: 19
-    }).addTo(formMap);
+
+    // Twee lagen: stratenkaart + PDOK luchtfoto actueel
+    window._formLayerOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap', maxZoom: 19
+    });
+    window._formLayerLucht = L.tileLayer(
+      'https://service.pdok.nl/hwh/luchtfotorgb/wmts/v1_0?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=Actueel_ortho25&STYLE=default&TILEMATRIXSET=EPSG:3857&TILEMATRIX=EPSG:3857:{z}&TILEROW={y}&TILECOL={x}&FORMAT=image/png',
+      { attribution: '© PDOK Luchtfoto 2025', maxZoom: 19, tileSize: 256 }
+    );
+    window._formLayerOSM.addTo(formMap);
+    window._formKaartModus = 'osm'; // 'osm' | 'lucht'
 
     const homeIcon = L.divIcon({
       html: '<div style="width:14px;height:14px;background:#00d4aa;border-radius:50%;border:3px solid white;box-shadow:0 0 6px rgba(0,212,170,0.5);"></div>',
@@ -4262,7 +4315,23 @@ function initDashMap() {
   L.marker([HOME_LAT, HOME_LNG], { icon: homeIcon }).addTo(dashMap).bindPopup('🏠 ' + HOME_NAME);
 }
 
-function kaartNaarGPS() {
+function toggleFormKaartLaag() {
+  if (!formMap) return;
+  const btn = document.getElementById('kaart-toggle-btn');
+  if (window._formKaartModus === 'osm') {
+    formMap.removeLayer(window._formLayerOSM);
+    window._formLayerLucht.addTo(formMap);
+    window._formKaartModus = 'lucht';
+    if (btn) { btn.textContent = '🗺️ Kaart'; btn.style.color = 'var(--accent)'; btn.style.borderColor = 'var(--accent)'; }
+  } else {
+    formMap.removeLayer(window._formLayerLucht);
+    window._formLayerOSM.addTo(formMap);
+    window._formKaartModus = 'osm';
+    if (btn) { btn.textContent = '🛰️ Luchtfoto'; btn.style.color = 'var(--text-muted)'; btn.style.borderColor = 'var(--border-bright)'; }
+  }
+}
+
+
   if (!dashMap) return;
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
@@ -4716,6 +4785,7 @@ function showMeldingDetail(id) {
           ${m.gewas         ? `<div style="font-size:0.75rem;">🌱 ${m.gewas}</div>` : ''}
           ${m.perceelnummer ? `<div style="font-size:0.75rem;font-family:var(--mono);">📋 ${m.perceelnummer}</div>` : ''}
           ${m.afstand_woning != null ? `<div style="font-size:0.75rem;color:${m.afstand_woning < 50 ? 'var(--danger)' : m.afstand_woning < 100 ? 'var(--warning)' : 'var(--accent)'};">📏 ${m.afstand_woning}m tot dichtstbijzijnde woning${m.afstand_woning < 50 ? ' ⛔ ONDER 50m NORM' : ''}</div>` : ''}
+          ${m.wind_naar_woning?.waait ? `<div style="font-size:0.75rem;color:var(--danger);font-weight:700;">💨 Wind waait naar woning (${m.wind_naar_woning.windDeg}° → ${m.wind_naar_woning.hoekNaarWoning}°)</div>` : ''}
         </div>` : ''}
         ${m.drift_waarneming?.length ? (() => {
           const labels = { nevel_zichtbaar: '🌫️ Nevel/drift zichtbaar', druppels_voelbaar: '💦 Druppels voelbaar', drift_ver: '📏 Drift >10m zichtbaar', geur_direct: '👃 Geur direct', ogen_keel: '👁️ Ogen/keel irritatie' };
@@ -5026,6 +5096,7 @@ async function exportPDF() {
           ${m.gewas         ? `<div style="font-size:9pt;">🌱 Gewas: ${m.gewas}</div>` : ''}
           ${m.perceelnummer ? `<div style="font-size:9pt;font-family:JetBrains Mono;">📋 Perceelnummer: ${m.perceelnummer}</div>` : ''}
           ${m.afstand_woning != null ? `<div style="font-size:9pt;color:${m.afstand_woning < 50 ? '#dc2626' : m.afstand_woning < 100 ? '#d97706' : '#16a34a'};">📏 Afstand dichtstbijzijnde woning: ${m.afstand_woning}m${m.afstand_woning < 50 ? ' — ONDER DE 50m NORM (ABRvS vuistregel)' : ''}</div>` : ''}
+          ${m.wind_naar_woning?.waait ? `<div style="font-size:9pt;color:#dc2626;font-weight:bold;">💨 WIND WAAIT NAAR WONING — windrichting ${m.wind_naar_woning.windDeg}° richting woning op ${m.wind_naar_woning.hoekNaarWoning}°, afstand ${m.wind_naar_woning.afstandM}m. Directe blootstelling aan drift aannemelijk.</div>` : ''}
         </div>` : ''}
         ${m.drift_waarneming?.length ? (() => {
           const labels = { nevel_zichtbaar: '🌫️ Nevel/drift zichtbaar in de lucht', druppels_voelbaar: '💦 Druppels/nevel voelbaar', drift_ver: '📏 Drift zichtbaar op >10m', geur_direct: '👃 Geur direct waargenomen', ogen_keel: '👁️ Ogen/keel irritatie' };
@@ -5207,7 +5278,7 @@ window.addEventListener('offline', updateOnlineStatus);
 // ============================================================
 // SERVICE WORKER — REGISTRATIE & UPDATE MANAGEMENT
 // ============================================================
-const APP_VERSION_CLIENT = '7.30';
+const APP_VERSION_CLIENT = '7.31';
 
 let _swRegistration  = null;   // actieve SW registratie
 let _updateCheckTimer = null;  // interval ID voor periodieke check
