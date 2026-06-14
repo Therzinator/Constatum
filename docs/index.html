@@ -16,7 +16,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>SpuitLog — Pesticide Drift Dossier</title>
+  <title>SpuitLogger — Spuitactiviteiten Dossier</title>
 
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -690,7 +690,7 @@
 <div id="update-banner" role="alert" aria-live="polite">
   <div class="update-banner-text">
     <strong>🔄 Nieuwe versie beschikbaar</strong>
-    <span id="update-version-label">SpuitLog is bijgewerkt.</span>
+    <span id="update-version-label">SpuitLogger is bijgewerkt.</span>
   </div>
   <div style="display:flex;gap:8px;flex-shrink:0;">
     <button class="update-dismiss-btn" onclick="dismissUpdateBanner()" aria-label="Sluiten">Later</button>
@@ -701,8 +701,8 @@
 <!-- ── AUTH OVERLAY ── -->
 <div id="auth-overlay">
   <div class="auth-card">
-    <div class="auth-title">SpuitLog</div>
-    <div class="auth-sub">PESTICIDE DRIFT DOSSIER — INLOGGEN</div>
+    <div class="auth-title">SpuitLogger</div>
+    <div class="auth-sub">SPUITACTIVITEITEN DOSSIER — INLOGGEN</div>
 
     <!-- Tabs: inloggen / registreren -->
     <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--border);">
@@ -750,7 +750,7 @@
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em; display:flex; align-items:baseline; gap:6px;">
           SpuitLogger
-          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v7.38</span>
+          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v7.39</span>
         </div>
         <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">SPUITACTIVITEITEN DOSSIER</div>
       </div>
@@ -1303,9 +1303,12 @@
             <div class="flex justify-between"><span>Sync mislukt:</span><span id="acc-error-count" style="color:var(--danger);">—</span></div>
             <div class="flex justify-between"><span>Laatste sync:</span><span id="acc-last-sync">—</span></div>
           </div>
-        </div>
-
-        <!-- PDF Rapport -->
+          <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:8px;">Meldingen opnieuw naar cloud sturen inclusief alle velden (geur, wind, gewas etc.):</div>
+            <button id="migreer-btn" onclick="migreerNaarSupabase()" class="btn-outline px-4 py-2 text-sm inline-flex items-center gap-2">
+              ☁️ Hermigreer naar cloud
+            </button>
+          </div>
         <div class="card p-4">
           <div class="flex items-start gap-3">
             <div style="font-size:1.5rem;">📄</div>
@@ -1630,7 +1633,7 @@
 <div id="lightbox" role="dialog" aria-modal="true" aria-label="Foto viewer">
   <!-- Topbalk -->
   <div class="lightbox-bar">
-    <div style="font-family:var(--mono);font-size:0.7rem;color:rgba(255,255,255,0.5);">SpuitLog Fotobewijs</div>
+    <div style="font-family:var(--mono);font-size:0.7rem;color:rgba(255,255,255,0.5);">SpuitLogger Fotobewijs</div>
     <button class="lightbox-close" onclick="closeLightbox()" aria-label="Sluiten">✕</button>
   </div>
   <!-- Inhoud -->
@@ -2614,16 +2617,16 @@ function saveMeldingen(data) {
   try {
     safeSetLocalStorage('spuitlog_meldingen', stripped);
   } catch (err) {
-    console.error('[SpuitLog] localStorage opslag mislukt:', err);
+    console.error('[SpuitLogger] localStorage opslag mislukt:', err);
     // Noodplan: sla op zonder bijlagen-thumbnails
     const ultraLight = stripped.map(m => ({ ...m, bestanden: (m.bestanden || []).map(f => ({
       name: f.name, type: f.type, size: f.size, hash: f.hash, thumbnail: null, dataUrl: null
     })) }));
     try {
       safeSetLocalStorage('spuitlog_meldingen', ultraLight);
-      console.warn('[SpuitLog] Opgeslagen zonder thumbnails vanwege opslaglimiet');
+      console.warn('[SpuitLogger] Opgeslagen zonder thumbnails vanwege opslaglimiet');
     } catch (err2) {
-      console.error('[SpuitLog] Kon niet opslaan, ook niet zonder thumbnails:', err2);
+      console.error('[SpuitLogger] Kon niet opslaan, ook niet zonder thumbnails:', err2);
       throw err2;
     }
   }
@@ -2688,7 +2691,7 @@ async function idbSaveBijlage(record) {
       tx.onerror    = e => reject(e.target.error);
     });
   } catch (err) {
-    console.warn('[SpuitLog] IndexedDB opslaan mislukt:', err);
+    console.warn('[SpuitLogger] IndexedDB opslaan mislukt:', err);
     return false;
   }
 }
@@ -2946,8 +2949,40 @@ async function detecteerPerceel() {
 }
 
 // ============================================================
-// KNMI API KEY BEHEER
+// DATA MIGRATIE — Alle lokale meldingen opnieuw naar Supabase
 // ============================================================
+async function migreerNaarSupabase() {
+  if (!SUPABASE_ENABLED || !_sbUser) { toast('Niet ingelogd', 'error'); return; }
+  if (!navigator.onLine) { toast('Offline — verbinding vereist', 'error'); return; }
+
+  const meldingen = getMeldingen().filter(m => !m.deleted);
+  if (!meldingen.length) { toast('Geen meldingen om te migreren', ''); return; }
+
+  const btn = document.getElementById('migreer-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Bezig...'; }
+  toonSyncBalk(`Migreren: 0 / ${meldingen.length}`);
+
+  let geslaagd = 0, mislukt = 0;
+
+  for (let i = 0; i < meldingen.length; i++) {
+    const m = meldingen[i];
+    toonSyncBalk(`Migreren: ${i + 1} / ${meldingen.length} — ${m.type || 'melding'}`);
+
+    const ok = await sbSyncMelding(m);
+    if (ok) { geslaagd++; m.sync_status = 'synced'; }
+    else     { mislukt++; }
+
+    await new Promise(r => setTimeout(r, 80)); // rate limit
+  }
+
+  saveMeldingen(getMeldingen()); // sync_status bijwerken
+  sluitSyncBalk(mislukt === 0, `✓ ${geslaagd} gemigreerd${mislukt ? `, ${mislukt} mislukt` : ''}`);
+  toast(`Migratie klaar: ${geslaagd} ✓${mislukt ? `, ${mislukt} ✗` : ''}`, mislukt ? '' : 'success');
+
+  if (btn) { btn.disabled = false; btn.textContent = '☁️ Hermigreer naar cloud'; }
+}
+
+
 function slaKNMIKeyOp() {
   const key    = document.getElementById('knmi-api-key')?.value.trim();
   const status = document.getElementById('knmi-key-status');
@@ -3532,7 +3567,7 @@ async function idbGetBijlagen(meldingId) {
       }
     });
   } catch (err) {
-    console.warn('[SpuitLog] IndexedDB ophalen mislukt:', err);
+    console.warn('[SpuitLogger] IndexedDB ophalen mislukt:', err);
     return [];
   }
 }
@@ -3546,7 +3581,7 @@ async function idbDeleteBijlagen(meldingId) {
     const store = tx.objectStore(IDB_STORE);
     bestaand.forEach(b => store.delete(b.id));
   } catch (err) {
-    console.warn('[SpuitLog] IndexedDB verwijderen mislukt:', err);
+    console.warn('[SpuitLogger] IndexedDB verwijderen mislukt:', err);
   }
 }
 
@@ -3959,10 +3994,10 @@ async function fetchWeather() {
     if (spinner) spinner.style.display = 'none';
     if (statusText) { statusText.textContent = 'Actueel'; statusText.style.color = 'var(--accent)'; }
 
-    console.log(`[SpuitLog] Weerdata geladen: wind ${c.wind_speed_10m} km/h uit ${c.wind_direction_10m}°`);
+    console.log(`[SpuitLogger] Weerdata geladen: wind ${c.wind_speed_10m} km/h uit ${c.wind_direction_10m}°`);
 
   } catch (e) {
-    console.warn('[SpuitLog] Weerdata niet beschikbaar:', e.message);
+    console.warn('[SpuitLogger] Weerdata niet beschikbaar:', e.message);
     if (spinner) spinner.style.display = 'none';
     if (statusText) {
       statusText.textContent = navigator.onLine ? 'Fout bij ophalen' : 'Offline — geen weerdata';
@@ -4391,7 +4426,7 @@ async function submitMelding() {
     const meldingen = getMeldingen();
     meldingen.unshift(melding);
     saveMeldingen(meldingen);  // gooit error als te groot
-    console.log(`[SpuitLog] Metadata opgeslagen: ${meldingId}, hash: ${melding.hash}`);
+    console.log(`[SpuitLogger] Metadata opgeslagen: ${meldingId}, hash: ${melding.hash}`);
 
     // ── FASE 3: Sla bijlagen op in IndexedDB ─────────────────
     if (geldigeBestanden.length > 0) {
@@ -4422,7 +4457,7 @@ async function submitMelding() {
         }
         toast('⚠️ Melding opgeslagen — bijlagen niet bewaard', 'error');
       } else {
-        console.log(`[SpuitLog] ${geldigeBestanden.length} bijlage(n) opgeslagen in IndexedDB`);
+        console.log(`[SpuitLogger] ${geldigeBestanden.length} bijlage(n) opgeslagen in IndexedDB`);
       }
     }
 
@@ -4482,7 +4517,7 @@ async function submitMelding() {
     showPage('tijdlijn');
 
   } catch (error) {
-    console.error('[SpuitLog] Opslaan mislukt:', error);
+    console.error('[SpuitLogger] Opslaan mislukt:', error);
     toast(`Opslaan mislukt: ${error.message || 'Onbekende fout'}`, 'error');
   } finally {
     btn.disabled = false;
@@ -5255,7 +5290,7 @@ async function exportJSON() {
   const backup = {
     export_timestamp: new Date().toISOString(),
     version: '1.0.0',
-    source: 'SpuitLog PWA',
+    source: 'SpuitLogger PWA',
     location: HOME_NAME,
     total_meldingen: verrijkt.length,
     meldingen: verrijkt
@@ -5340,7 +5375,7 @@ async function exportPDF() {
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <title>SpuitLog — Juridisch Dossier</title>
+  <title>SpuitLogger — Juridisch Dossier</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Syne:wght@400;600;700;800&display=swap');
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -5384,8 +5419,8 @@ async function exportPDF() {
       <line x1="34" y1="24" x2="44" y2="24" stroke="#00d4aa" stroke-width="2"/>
     </svg>
     <div>
-      <div class="header-title">SpuitLog</div>
-      <div class="header-sub">JURIDISCH DOSSIER — PESTICIDE DRIFT REGISTRATIE</div>
+      <div class="header-title">SpuitLogger</div>
+      <div class="header-sub">JURIDISCH DOSSIER — SPUITACTIVITEITEN REGISTRATIE</div>
     </div>
   </div>
 
@@ -5402,7 +5437,7 @@ async function exportPDF() {
         <div><div class="label">Export datum</div><div class="value">${new Date().toLocaleDateString('nl-NL', { timeZone: 'Europe/Amsterdam' })}</div></div>
         <div><div class="label">Totaal meldingen</div><div class="value">${verrijkt.length}</div></div>
         <div><div class="label">Periode</div><div class="value">${verrijkt.length ? new Date(verrijkt[verrijkt.length-1].timestamp_local).toLocaleDateString('nl-NL', { timeZone: 'Europe/Amsterdam' }) + ' — ' + new Date(verrijkt[0].timestamp_local).toLocaleDateString('nl-NL', { timeZone: 'Europe/Amsterdam' }) : '—'}</div></div>
-        <div><div class="label">Dossier versie</div><div class="value">SpuitLog v1.0.0</div></div>
+        <div><div class="label">Dossier versie</div><div class="value">SpuitLogger v1.0.0</div></div>
       </div>
     </div>
 
@@ -5594,7 +5629,7 @@ async function opslagOpschonen() {
     toast(`✓ ${verouderd.length} verouderde bijlagen verwijderd`, 'success');
     updateExportInfo();
   } catch (err) {
-    console.error('[SpuitLog] Opschonen mislukt:', err);
+    console.error('[SpuitLogger] Opschonen mislukt:', err);
     toast('Opschonen mislukt: ' + err.message, 'error');
   }
 }
@@ -5641,7 +5676,7 @@ window.addEventListener('offline', updateOnlineStatus);
 // ============================================================
 // SERVICE WORKER — REGISTRATIE & UPDATE MANAGEMENT
 // ============================================================
-const APP_VERSION_CLIENT = '7.38';
+const APP_VERSION_CLIENT = '7.39';
 
 let _swRegistration  = null;   // actieve SW registratie
 let _updateCheckTimer = null;  // interval ID voor periodieke check
@@ -5727,7 +5762,7 @@ function toonUpdateBanner(versie) {
   const banner = document.getElementById('update-banner');
   const label  = document.getElementById('update-version-label');
   if (!banner) return;
-  if (label) label.textContent = `SpuitLog v${versie || APP_VERSION_CLIENT} is klaar om te installeren.`;
+  if (label) label.textContent = `SpuitLogger v${versie || APP_VERSION_CLIENT} is klaar om te installeren.`;
   banner.classList.add('visible');
   // Push content omlaag zodat banner niet over header valt
   const header = document.querySelector('header');
