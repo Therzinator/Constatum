@@ -4,8 +4,10 @@
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="apple-touch-startup-image" href="icons/splash.png">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#0a0e17">
+  <meta name="theme-color" content="#010510">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SpuitLogger">
@@ -748,7 +750,7 @@
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em; display:flex; align-items:baseline; gap:6px;">
           SpuitLogger
-          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v7.33</span>
+          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v7.35</span>
         </div>
         <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">SPUITACTIVITEITEN DOSSIER</div>
       </div>
@@ -1529,6 +1531,23 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- KNMI Weerdata -->
+        <div class="card p-4">
+          <div class="section-label mb-2">🌦️ KNMI Weerdata</div>
+          <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:10px;">
+            Officiële KNMI-stationsdata versterkt het juridische dossier. Gratis API-key aanvragen via
+            <a href="https://dataplatform.knmi.nl" target="_blank" style="color:var(--accent);">dataplatform.knmi.nl</a>.
+          </div>
+          <div class="flex gap-2 mb-2">
+            <input type="password" id="knmi-api-key" class="form-input px-3 py-2 text-sm flex-1" placeholder="KNMI API key">
+            <button onclick="slaKNMIKeyOp()" class="btn-primary px-3 py-2 text-sm">Opslaan</button>
+          </div>
+          <div id="knmi-key-status" style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);"></div>
+          <div style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-top:6px;">
+            Wordt gebruikt bij PDF-export voor gecertificeerde weerdata (CC BY 4.0 © KNMI).
           </div>
         </div>
 
@@ -2917,8 +2936,222 @@ async function detecteerPerceel() {
 }
 
 // ============================================================
-// WINDRICHTING → WONING VECTOR ANALYSE
+// KNMI API KEY BEHEER
 // ============================================================
+function slaKNMIKeyOp() {
+  const key    = document.getElementById('knmi-api-key')?.value.trim();
+  const status = document.getElementById('knmi-key-status');
+  if (!key) { if (status) { status.textContent = '⚠️ Voer een API-key in'; status.style.color = 'var(--warning)'; } return; }
+  localStorage.setItem('spuitlog_knmi_key', key);
+  if (status) { status.textContent = '✓ Key opgeslagen'; status.style.color = 'var(--accent)'; setTimeout(() => { status.textContent = ''; }, 2000); }
+}
+
+function laadKNMIKey() {
+  const key = localStorage.getItem('spuitlog_knmi_key') || '';
+  const el  = document.getElementById('knmi-api-key');
+  if (el && key) el.value = key;
+  return key;
+}
+
+// Haal KNMI stationsdata op voor een locatie en tijdstip
+// Gebruikt EDR API: nearest station + datetime
+async function haalKNMIWeerdata(lat, lng, isoDatetime) {
+  const key = localStorage.getItem('spuitlog_knmi_key');
+  if (!key) return null;
+
+  try {
+    // Stap 1: dichtstbijzijnd station vinden via /locations endpoint
+    const locUrl = `https://api.dataplatform.knmi.nl/edr/collections/10-minute-in-situ-meteorological-observations/locations?bbox=${lng-0.5},${lat-0.5},${lng+0.5},${lat+0.5}`;
+    const locRes = await fetch(locUrl, { headers: { Authorization: key } });
+    if (!locRes.ok) return null;
+    const locData = await locRes.json();
+    const stations = locData.features || [];
+    if (!stations.length) return null;
+
+    // Dichtstbijzijnd station bepalen
+    let dichtstbij = null, minDist = Infinity;
+    stations.forEach(s => {
+      const [sLng, sLat] = s.geometry.coordinates;
+      const d = haversineAfstand(lat, lng, sLat, sLng);
+      if (d < minDist) { minDist = d; dichtstbij = s; }
+    });
+    if (!dichtstbij) return null;
+
+    const stationId   = dichtstbij.id;
+    const stationNaam = dichtstbij.properties?.name || stationId;
+    const stationAfst = Math.round(minDist / 1000 * 10) / 10; // km
+
+    // Stap 2: observaties ophalen voor dat tijdstip (±10 min venster)
+    const dt  = new Date(isoDatetime);
+    const van = new Date(dt.getTime() - 10 * 60000).toISOString().replace('.000Z', 'Z');
+    const tot = new Date(dt.getTime() + 10 * 60000).toISOString().replace('.000Z', 'Z');
+    const obsUrl = `https://api.dataplatform.knmi.nl/edr/collections/10-minute-in-situ-meteorological-observations/locations/${stationId}?datetime=${van}/${tot}&parameter-name=wind_speed,wind_direction,air_temperature,relative_humidity,precipitation_duration`;
+    const obsRes = await fetch(obsUrl, { headers: { Authorization: key } });
+    if (!obsRes.ok) return null;
+    const obsData = await obsRes.json();
+
+    // Parseer CoverageJSON
+    const params = obsData.ranges || {};
+    const getValue = (param) => {
+      const vals = params[param]?.values;
+      return vals?.length ? vals[vals.length - 1] : null;
+    };
+
+    return {
+      station:     stationNaam,
+      stationId,
+      afstand_km:  stationAfst,
+      windsnelheid: getValue('wind_speed'),
+      windrichting: getValue('wind_direction'),
+      temperatuur:  getValue('air_temperature'),
+      luchtvochtigheid: getValue('relative_humidity'),
+      neerslag:     getValue('precipitation_duration'),
+      bron:         'KNMI Open Data (CC BY 4.0)',
+      tijdstip:     isoDatetime
+    };
+  } catch (e) {
+    console.warn('[KNMI] Weerdata ophalen mislukt:', e.message);
+    return null;
+  }
+}
+
+// ============================================================
+// FREQUENTIEANALYSE PER PERCEEL
+// ============================================================
+
+// Bereken statistieken per perceelnummer
+function perceelStatistieken() {
+  const meldingen = getMeldingen();
+  const nu        = new Date();
+  const jaarGeleden = new Date(nu.getFullYear() - 1, nu.getMonth(), nu.getDate());
+
+  const stats = {}; // perceelnummer → { totaal, ditJaar, bovenWindNorm, gewassen, data }
+
+  meldingen.forEach(m => {
+    const p = m.perceelnummer;
+    if (!p) return;
+    if (!stats[p]) stats[p] = { totaal: 0, ditJaar: 0, bovenWindNorm: 0, gewassen: new Set(), data: [] };
+
+    stats[p].totaal++;
+    stats[p].data.push(m);
+
+    const d = new Date(m.timestamp_local);
+    if (d >= jaarGeleden) stats[p].ditJaar++;
+
+    // Wind boven norm (5 m/s = 18 km/h)
+    const ws = m.weather?.wind_speed;
+    if (ws && ws > 18) stats[p].bovenWindNorm++;
+
+    if (m.gewas) stats[p].gewassen.add(m.gewas);
+  });
+
+  return stats;
+}
+
+// Toon frequentie-badge op een perceelkaart
+function perceelFrequentieBadge(perceelnummer) {
+  if (!perceelnummer) return '';
+  const stats = perceelStatistieken();
+  const s = stats[perceelnummer];
+  if (!s || s.totaal < 2) return '';
+
+  const kleur = s.ditJaar >= 5 ? 'var(--danger)' : s.ditJaar >= 3 ? 'var(--warning)' : 'var(--accent)';
+  return `<div style="font-family:var(--mono);font-size:0.6rem;color:${kleur};margin-top:4px;">
+    📊 ${s.ditJaar}× gemeld afgelopen jaar${s.bovenWindNorm > 0 ? ` · ${s.bovenWindNorm}× boven windnorm` : ''}
+  </div>`;
+}
+
+// Frequentie samenvatting voor PDF per perceel
+function perceelSamenvattingPDF(perceelnummer, meldingId) {
+  if (!perceelnummer) return '';
+  const stats = perceelStatistieken();
+  const s = stats[perceelnummer];
+  if (!s || s.totaal < 2) return '';
+
+  const gewassenLijst = [...s.gewassen].join(', ') || 'onbekend';
+  const norm = s.bovenWindNorm > 0
+    ? `<span style="color:#dc2626;font-weight:bold;">${s.bovenWindNorm} keer boven de 18 km/h windnorm gespoten</span>`
+    : 'geen overschrijdingen windnorm geregistreerd';
+
+  return `
+    <div style="margin:8px 0;padding:8px 10px;background:#fff7ed;border:2px solid #f59e0b;border-radius:4px;font-size:8.5pt;">
+      <div style="font-weight:bold;color:#92400e;margin-bottom:4px;">📊 PERCEELFREQUENTIE — ${perceelnummer}</div>
+      <div>Totaal geregistreerd: <strong>${s.totaal} meldingen</strong> (${s.ditJaar} in afgelopen 12 maanden)</div>
+      <div>${norm}</div>
+      ${s.gewassen.size ? `<div>Gewassen: ${gewassenLijst}</div>` : ''}
+      <div style="color:#92400e;font-size:7.5pt;margin-top:4px;">Herhaaldelijkheid is een zwaarwegende factor in pesticidenjurisprudentie (ABRvS).</div>
+    </div>`;
+}
+
+// ============================================================
+// PESTICIDE-WEERPATROON ANALYSE
+// ============================================================
+
+// Analyseer weerpatroon en gewas → indicatie van spuittype
+function analyseerSpuitpatroon(melding) {
+  const gewas  = melding.gewas || '';
+  const weer   = melding.weather || {};
+  const regen  = weer.precipitation ?? 0;
+  const rv     = weer.relative_humidity ?? 0;
+  const temp   = weer.temperature ?? 0;
+  const wind   = weer.wind_speed ?? 0;
+  const uur    = new Date(melding.timestamp_local).getHours();
+  const isNacht = uur >= 21 || uur <= 5;
+  const isSierteelt = ['lelies','tulpen','hyacinten','narcissen','gladiolen','pioenrozen','dahlia','overige_sierteelt'].includes(gewas);
+
+  const indicaties = [];
+  let risicoScore = 0;
+
+  // Fungicide patronen
+  if (regen > 2 && isSierteelt) {
+    indicaties.push({ type: 'fungicide', label: '🍄 Fungicide waarschijnlijk', reden: `${regen}mm neerslag recent + sierteelt (schimmelpreventie na regen)`, score: 3 });
+    risicoScore += 3;
+  } else if (rv > 80 && isSierteelt) {
+    indicaties.push({ type: 'fungicide', label: '🍄 Fungicide mogelijk', reden: `Hoge luchtvochtigheid (${rv}%) gunstig voor schimmelontwikkeling in sierteelt`, score: 2 });
+    risicoScore += 2;
+  }
+
+  // Insecticide patronen
+  if (isNacht && temp > 12) {
+    indicaties.push({ type: 'insecticide', label: '🦟 Insecticide patroon', reden: `Nachtelijk spuiten (${uur}:00u) + temp ${temp}°C — optimaal voor pyrethroïden`, score: 2 });
+    risicoScore += 2;
+  }
+
+  // Herbicide/drift patroon
+  if (wind > 10 && !isSierteelt) {
+    indicaties.push({ type: 'herbicide', label: '💨 Drift risico herbicide', reden: `Wind ${wind} km/h bij akkerbouw — verhoogd driftrisico`, score: 2 });
+    risicoScore += 2;
+  }
+
+  // PFAS-waarschuwing bij sierteelt
+  if (isSierteelt) {
+    indicaties.push({ type: 'pfas', label: '⚠️ PFAS-risico', reden: 'In sierteelt (met name lelies) worden PFAS-houdende middelen gebruikt (TFA)', score: 1 });
+    risicoScore += 1;
+  }
+
+  return { indicaties, risicoScore };
+}
+
+function spuitpatroonHTML(melding, voorPDF = false) {
+  const { indicaties, risicoScore } = analyseerSpuitpatroon(melding);
+  if (!indicaties.length) return '';
+
+  if (voorPDF) {
+    return `
+      <div style="margin:8px 0;padding:8px 10px;background:#eff6ff;border:1px solid #93c5fd;border-radius:4px;font-size:8.5pt;">
+        <div style="font-weight:bold;color:#1e40af;margin-bottom:4px;">🔬 SPUITTYPE INDICATIE (weerpatroon)</div>
+        ${indicaties.map(i => `<div><strong>${i.label}</strong> — ${i.reden}</div>`).join('')}
+        <div style="color:#1e40af;font-size:7.5pt;margin-top:4px;">Dit is een indicatie op basis van weerpatroon en gewas, geen bewijs. Gebruik art. 67 EU-Vo 1107/2009 voor inzage in spuitregistratie.</div>
+      </div>`;
+  }
+
+  const kleur = risicoScore >= 4 ? 'var(--danger)' : risicoScore >= 2 ? 'var(--warning)' : 'var(--text-muted)';
+  return `<div style="font-family:var(--mono);font-size:0.6rem;color:${kleur};margin-top:4px;">
+    🔬 ${indicaties.map(i => i.label).join(' · ')}
+  </div>`;
+}
+
+
 
 // Bereken de hoek van perceel → woning (0° = Noord, 90° = Oost etc.)
 function berekenHoekNaarWoning(percLat, percLng, woningLat, woningLng) {
@@ -4214,6 +4447,7 @@ function showPage(name) {
   if (name === 'instellingen') {
     laadGemeenteProfiel();
     laadThuislocatieProfiel();
+    laadKNMIKey();
     swDebugRefresh();
   }
   if (name === 'export') {
@@ -4784,6 +5018,8 @@ function showMeldingDetail(id) {
         </div>
         ${m.gezondheidsklachten?.length ? `<div class="mt-2"><div class="section-label">Gezondheid</div><div style="color:var(--danger);font-size:0.75rem;margin-top:4px;">${m.gezondheidsklachten.join(', ')}</div></div>` : ''}
         ${m.activiteiten?.length ? `<div class="mt-2"><div class="section-label">Activiteiten</div><div style="color:var(--warning);font-size:0.75rem;margin-top:4px;">${m.activiteiten.join(', ')}</div></div>` : ''}
+        ${perceelFrequentieBadge(m.perceelnummer)}
+        ${spuitpatroonHTML(m)}
         ${(m.bedrijfsnaam || m.perceelnummer || m.gewas || m.afstand_woning) ? `
         <div class="mt-2" style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;">
           <div class="section-label mb-1">Teler & Perceel</div>
@@ -4978,8 +5214,24 @@ async function exportPDF() {
   }
   toonSyncBalk(`PDF samenstellen (${meldingen.length} meldingen)…`);
 
-  // Kleine vertraging zodat de UI de spinner kan tonen vóór de zware berekening
   await new Promise(resolve => setTimeout(resolve, 80));
+
+  // KNMI weerdata ophalen per melding (als key beschikbaar)
+  const knmiKey = localStorage.getItem('spuitlog_knmi_key');
+  const knmiData = {}; // id → knmi weerdata
+  if (knmiKey) {
+    toonSyncBalk(`KNMI weerdata ophalen voor ${meldingen.length} meldingen…`);
+    for (const m of meldingen) {
+      if (m.gps?.lat && m.gps?.lng && m.timestamp_local) {
+        knmiData[m.id] = await haalKNMIWeerdata(m.gps.lat, m.gps.lng, m.timestamp_local);
+        await new Promise(r => setTimeout(r, 200)); // rate limiting
+      }
+    }
+    toonSyncBalk(`PDF samenstellen (${meldingen.length} meldingen)…`);
+  }
+
+  // Perceelfrequentie statistieken
+  const perceelStats = perceelStatistieken();
 
   try {
 
@@ -5104,6 +5356,23 @@ async function exportPDF() {
           ${m.afstand_woning != null ? `<div style="font-size:9pt;color:${m.afstand_woning < 50 ? '#dc2626' : m.afstand_woning < 100 ? '#d97706' : '#16a34a'};">📏 Afstand dichtstbijzijnde woning: ${m.afstand_woning}m${m.afstand_woning < 50 ? ' — ONDER DE 50m NORM (ABRvS vuistregel)' : ''}</div>` : ''}
           ${m.wind_naar_woning?.waait ? `<div style="font-size:9pt;color:#dc2626;font-weight:bold;">💨 WIND WAAIT NAAR WONING — windrichting ${m.wind_naar_woning.windDeg}° richting woning op ${m.wind_naar_woning.hoekNaarWoning}°, afstand ${m.wind_naar_woning.afstandM}m. Directe blootstelling aan drift aannemelijk.</div>` : ''}
         </div>` : ''}
+
+        ${perceelSamenvattingPDF(m.perceelnummer, m.id)}
+        ${spuitpatroonHTML(m, true)}
+
+        ${(() => {
+          const kd = knmiData[m.id];
+          if (!kd) return '';
+          return `
+          <div style="margin:8px 0;padding:8px 10px;background:#f0fdf4;border:2px solid #16a34a;border-radius:4px;font-size:8.5pt;">
+            <div style="font-weight:bold;color:#14532d;margin-bottom:4px;">🌦️ KNMI WEERSTATION DATA (officieel)</div>
+            <div>Station: ${kd.station} (${kd.afstand_km} km)</div>
+            ${kd.windsnelheid != null ? `<div>Wind: ${(kd.windsnelheid * 3.6).toFixed(1)} km/h uit ${kd.windrichting}°</div>` : ''}
+            ${kd.temperatuur != null ? `<div>Temperatuur: ${kd.temperatuur}°C</div>` : ''}
+            ${kd.luchtvochtigheid != null ? `<div>Luchtvochtigheid: ${kd.luchtvochtigheid}%</div>` : ''}
+            <div style="color:#14532d;font-size:7.5pt;margin-top:4px;">${kd.bron} — ${new Date(kd.tijdstip).toLocaleString('nl-NL', {timeZone:'Europe/Amsterdam'})}</div>
+          </div>`;
+        })()}
         ${m.drift_waarneming?.length ? (() => {
           const labels = { nevel_zichtbaar: '🌫️ Nevel/drift zichtbaar in de lucht', druppels_voelbaar: '💦 Druppels/nevel voelbaar', drift_ver: '📏 Drift zichtbaar op >10m', geur_direct: '👃 Geur direct waargenomen', ogen_keel: '👁️ Ogen/keel irritatie' };
           return `<div style="margin-bottom:8px;padding:6px 8px;background:#fee2e2;border:1px solid #fca5a5;border-radius:4px;"><div class="label" style="color:#b91c1c;">Drift & Overlast Waarneming</div><div style="font-size:9pt;color:#b91c1c;">${m.drift_waarneming.map(v=>labels[v]||v).join(' · ')}</div></div>`;
@@ -5284,7 +5553,7 @@ window.addEventListener('offline', updateOnlineStatus);
 // ============================================================
 // SERVICE WORKER — REGISTRATIE & UPDATE MANAGEMENT
 // ============================================================
-const APP_VERSION_CLIENT = '7.33';
+const APP_VERSION_CLIENT = '7.35';
 
 let _swRegistration  = null;   // actieve SW registratie
 let _updateCheckTimer = null;  // interval ID voor periodieke check
