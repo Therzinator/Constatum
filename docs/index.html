@@ -750,7 +750,7 @@
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em; display:flex; align-items:baseline; gap:6px;">
           SpuitLogger
-          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.01</span>
+          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.02</span>
         </div>
         <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">SPUITACTIVITEITEN DOSSIER</div>
       </div>
@@ -3035,74 +3035,6 @@ async function detecteerKadastraalPerceel(lat, lng) {
   const nummer   = props.perceelnummer || '';
   return `${gemeente}${sectie}-${nummer}`.toUpperCase().replace(/^-|-$/g, '') || null;
 }
-
-
-  const btn    = document.getElementById('perceel-btn');
-  const input  = document.getElementById('f-perceelnummer');
-  const status = document.getElementById('perceel-status');
-
-  if (!btn || !input || !status) return;
-  btn.disabled = true;
-  btn.textContent = '⏳';
-  status.textContent = 'GPS ophalen...';
-  status.style.color = 'var(--text-muted)';
-
-  const lat = parseFloat(document.getElementById('f-lat')?.value);
-  const lng = parseFloat(document.getElementById('f-lng')?.value);
-
-  if (!lat || !lng || (Math.abs(lat) < 0.01 && Math.abs(lng) < 0.01)) {
-    status.textContent = '⚠️ Geen geldige GPS locatie — gebruik eerst de GPS knop';
-    status.style.color = 'var(--warning)';
-    btn.disabled = false;
-    btn.textContent = '🗺️ Detecteer';
-    return;
-  }
-
-  try {
-    // PDOK WFS — BBOX volgorde voor EPSG:4326 is: minLat,minLng,maxLat,maxLng
-    const delta = 0.0002; // ~20 meter buffer
-    const bbox  = `${lat - delta},${lng - delta},${lat + delta},${lng + delta},EPSG:4326`;
-    const url   = `https://service.pdok.nl/kadaster/kadastralekaart/wfs/v5_0?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=kadastralekaart:Perceel&outputFormat=application/json&srsName=EPSG:4326&BBOX=${bbox}&count=1`;
-
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-    const text = await res.text();
-    if (!text.trim().startsWith('{')) {
-      console.warn('[PDOK] Geen JSON ontvangen:', text.substring(0, 300));
-      throw new Error('Geen JSON response van PDOK');
-    }
-    const data = JSON.parse(text);
-    console.log('[PDOK] Response:', JSON.stringify(data).substring(0, 500));
-
-    if (data.features?.length > 0) {
-      const props = data.features[0].properties;
-      console.log('[PDOK] Perceeldata velden:', Object.keys(props));
-      // Veldnamen v5: AKRKadastraleGemeenteCode, sectie, perceelnummer
-      const gemeente = props.AKRKadastraleGemeenteCode || props.kadastralegemeentecode || '';
-      const sectie   = props.sectie || '';
-      const nummer   = props.perceelnummer || '';
-      const perceelId = `${gemeente}${sectie}-${nummer}`.toUpperCase().replace(/^-|-$/, '');
-
-      input.value = perceelId || 'Gevonden';
-      input.style.color = 'var(--text-primary)';
-      status.textContent = `✓ ${perceelId}`;
-      status.style.color = 'var(--accent)';
-    } else {
-      status.textContent = 'Geen perceel op deze locatie — klik op het perceel zelf';
-      status.style.color = 'var(--warning)';
-    }
-  } catch (e) {
-    console.warn('[PDOK] Perceel opvragen mislukt:', e.message);
-    status.textContent = 'Opvragen mislukt — controleer verbinding';
-    status.style.color = 'var(--danger)';
-  }
-
-  btn.disabled = false;
-  btn.textContent = '🗺️ Detecteer';
-  setTimeout(() => { if (status) status.textContent = ''; }, 5000);
-}
-
 
 function slaKNMIKeyOp() {
   const key    = document.getElementById('knmi-api-key')?.value.trim();
@@ -5809,7 +5741,7 @@ window.addEventListener('offline', updateOnlineStatus);
 // ============================================================
 // SERVICE WORKER — REGISTRATIE & UPDATE MANAGEMENT
 // ============================================================
-const APP_VERSION_CLIENT = '8.01';
+const APP_VERSION_CLIENT = '8.02';
 
 let _swRegistration  = null;   // actieve SW registratie
 let _updateCheckTimer = null;  // interval ID voor periodieke check
