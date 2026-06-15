@@ -750,7 +750,7 @@
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em; display:flex; align-items:baseline; gap:6px;">
           SpuitLogger
-          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.03</span>
+          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.04</span>
         </div>
         <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">SPUITACTIVITEITEN DOSSIER</div>
       </div>
@@ -1235,6 +1235,13 @@
       <div class="mb-4">
         <div style="font-size:1.4rem;font-weight:800;letter-spacing:-0.02em;" class="mb-1">Dossier Tijdlijn</div>
         <div style="font-family:var(--mono);font-size:0.65rem;color:var(--text-muted);" id="tl-count">0 meldingen</div>
+          <button onclick="toggleClusterWeergave()" id="tl-cluster-btn"
+            style="font-family:var(--mono);font-size:0.6rem;background:var(--bg-secondary);border:1px solid var(--accent);color:var(--accent);border-radius:6px;padding:4px 10px;cursor:pointer;">
+            🔗 Gebundeld
+          </button>
+          <button onclick="toggleClusterModus()" id="tl-cluster-btn" style="font-family:var(--mono);font-size:0.6rem;background:rgba(0,212,170,0.1);border:1px solid rgba(0,212,170,0.3);color:var(--accent);border-radius:6px;padding:3px 8px;cursor:pointer;" title="Schakel tussen gebundelde en losse weergave">
+            🔗 Gebundeld
+          </button>
       </div>
 
       <!-- Filters -->
@@ -4482,7 +4489,9 @@ function showPage(name) {
   if (name === 'melding') {
     initFormDateTime();
     initFormMap();
-    setTimeout(() => { if (formMap) formMap.invalidateSize(); }, 120);
+    // Leaflet heeft meer tijd nodig na page-activatie om correct te renderen
+    setTimeout(() => { if (formMap) { formMap.invalidateSize(); } }, 50);
+    setTimeout(() => { if (formMap) { formMap.invalidateSize(); } }, 300);
     // Standaard aanvinken bij elke nieuwe melding
     const tractor = document.querySelector('.activity-check[value="tractor"]');
     const spuit   = document.querySelector('.activity-check[value="spuitmachine"]');
@@ -4868,10 +4877,183 @@ function renderCharts(meldingen) {
 // ============================================================
 // TIMELINE
 // ============================================================
+// ============================================================
+// SPUITGEBEURTENIS CLUSTERING
+// ============================================================
+
+window._clusterWeergave = true; // standaard gebundeld
+
+function toggleClusterWeergave() {
+  window._clusterWeergave = !window._clusterWeergave;
+  const btn = document.getElementById('tl-cluster-btn');
+  if (btn) {
+    btn.textContent   = window._clusterWeergave ? '🔗 Gebundeld' : '📋 Alle meldingen';
+    btn.style.color   = window._clusterWeergave ? 'var(--accent)' : 'var(--text-muted)';
+    btn.style.borderColor = window._clusterWeergave ? 'var(--accent)' : 'var(--border)';
+  }
+  renderTimeline();
+}
+
+// Cluster algoritme:
+// Groepeert meldingen op: zelfde perceel (of GPS-radius 300m) + tijdvenster 8u
+function clusterMeldingen(meldingen) {
+  const MAX_TIJDms  = 8 * 60 * 60 * 1000; // 8 uur
+  const MAX_AFSTAND = 300;                  // meter, voor meldingen zonder perceelnummer
+  const gesorteerd  = [...meldingen].sort((a,b) => new Date(a.timestamp_local) - new Date(b.timestamp_local));
+
+  const clusters = [];
+
+  gesorteerd.forEach(melding => {
+    // Zoek een bestaand cluster waar deze melding bij past
+    const cluster = clusters.find(c => {
+      const laatstemst = new Date(c.meldingen[c.meldingen.length-1].timestamp_local).getTime();
+      const huidigemst = new Date(melding.timestamp_local).getTime();
+      if (huidigemst - laatstemst > MAX_TIJDms) return false;
+
+      // Perceel-match
+      if (c.perceelnummer && melding.perceelnummer) {
+        return c.perceelnummer === melding.perceelnummer;
+      }
+      // GPS-radius fallback
+      if (c.lat && c.lng && melding.gps?.lat && melding.gps?.lng) {
+        return haversineAfstand(c.lat, c.lng, melding.gps.lat, melding.gps.lng) <= MAX_AFSTAND;
+      }
+      return false;
+    });
+
+    if (cluster) {
+      cluster.meldingen.push(melding);
+      // Update cluster metadata
+      cluster.eindTijd = melding.timestamp_local;
+      const melders = new Set(cluster.meldingen.map(m => m.melder_email).filter(Boolean));
+      cluster.aantalMelders = melders.size || 1;
+      if (melding.gps?.lat) { cluster.lat = melding.gps.lat; cluster.lng = melding.gps.lng; }
+    } else {
+      clusters.push({
+        id:             `cluster-${melding.id}`,
+        perceelnummer:  melding.perceelnummer || null,
+        lat:            melding.gps?.lat || null,
+        lng:            melding.gps?.lng || null,
+        beginTijd:      melding.timestamp_local,
+        eindTijd:       melding.timestamp_local,
+        aantalMelders:  1,
+        meldingen:      [melding]
+      });
+    }
+  });
+
+  // Sorteer clusters op recentste beginTijd
+  return clusters.sort((a,b) => new Date(b.beginTijd) - new Date(a.beginTijd));
+}
+
+function clusterDuur(cluster) {
+  const ms = new Date(cluster.eindTijd) - new Date(cluster.beginTijd);
+  if (ms < 60000) return null; // < 1 min = één melding
+  const uren   = Math.floor(ms / 3600000);
+  const minuten = Math.floor((ms % 3600000) / 60000);
+  return uren > 0 ? `${uren}u${minuten > 0 ? minuten+'m' : ''}` : `${minuten}m`;
+}
+
+function renderClusterKaart(cluster) {
+  const isSingle     = cluster.meldingen.length === 1;
+  const duur         = clusterDuur(cluster);
+  const datum        = new Date(cluster.beginTijd);
+  const datumStr     = datum.toLocaleDateString('nl-NL', { weekday:'short', day:'numeric', month:'short' });
+  const tijdStr      = datum.toLocaleTimeString('nl-NL', { hour:'2-digit', minute:'2-digit' });
+  const melderBadge  = cluster.aantalMelders > 1
+    ? `<span style="background:rgba(0,212,170,0.15);color:var(--accent);border-radius:4px;padding:1px 6px;font-size:0.6rem;">👥 ${cluster.aantalMelders} melders</span>`
+    : '';
+  const duurBadge    = duur
+    ? `<span style="background:rgba(245,158,11,0.15);color:var(--warning);border-radius:4px;padding:1px 6px;font-size:0.6rem;">⏱ ${duur}</span>`
+    : '';
+  const perceelBadge = cluster.perceelnummer
+    ? `<span style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);">📋 ${cluster.perceelnummer}</span>`
+    : '';
+
+  // Dominant type
+  const types = cluster.meldingen.map(m => m.type);
+  const dominantType = types.sort((a,b) => types.filter(t=>t===b).length - types.filter(t=>t===a).length)[0];
+
+  // Klachten aggregaat
+  const klachten = [...new Set(cluster.meldingen.flatMap(m => m.gezondheidsklachten || []))];
+
+  // Wind range
+  const windValues = cluster.meldingen.map(m => m.weather?.wind_speed).filter(w => w != null);
+  const windRange  = windValues.length
+    ? `${Math.min(...windValues).toFixed(0)}–${Math.max(...windValues).toFixed(0)} km/h`
+    : null;
+
+  // Expanded state
+  const expandId = `expand-${cluster.id}`;
+
+  if (isSingle) {
+    // Enkelvoudige melding: toon als normale kaart
+    return renderMeldingCard(cluster.meldingen[0]);
+  }
+
+  return `
+    <div class="card p-4 mb-3" style="border-left:3px solid var(--warning);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div>
+          <div style="font-weight:700;font-size:0.95rem;">${typeLabel(dominantType)}</div>
+          <div style="font-family:var(--mono);font-size:0.65rem;color:var(--text-muted);margin-top:2px;">
+            ${datumStr} ${tijdStr}${duur ? ` — +${duur}` : ''}
+          </div>
+        </div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+          <span style="background:rgba(245,158,11,0.2);color:var(--warning);border-radius:4px;padding:2px 8px;font-family:var(--mono);font-size:0.65rem;font-weight:700;">${cluster.meldingen.length} meldingen</span>
+          ${melderBadge}
+        </div>
+      </div>
+
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+        ${duurBadge} ${perceelBadge}
+        ${windRange ? `<span style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);">💨 ${windRange}</span>` : ''}
+        ${klachten.length ? `<span style="font-family:var(--mono);font-size:0.6rem;color:var(--danger);">🏥 ${klachten.slice(0,2).join(', ')}${klachten.length > 2 ? ' +'+( klachten.length-2) : ''}</span>` : ''}
+      </div>
+
+      <!-- Tijdlijn van meldingen binnen cluster -->
+      <div style="border-top:1px solid var(--border);padding-top:8px;margin-bottom:8px;">
+        <div style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-bottom:6px;">SPUITBEURT TIJDLIJN</div>
+        <div style="display:flex;align-items:center;gap:0;overflow-x:auto;">
+          ${cluster.meldingen.map((m, idx) => {
+            const t = new Date(m.timestamp_local);
+            const tStr = t.toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'});
+            const ws = m.weather?.wind_speed;
+            const kleur = ws > 18 ? 'var(--danger)' : ws > 10 ? 'var(--warning)' : 'var(--accent)';
+            return `<div style="display:flex;flex-direction:column;align-items:center;min-width:48px;">
+              <div style="width:10px;height:10px;border-radius:50%;background:${kleur};border:2px solid var(--bg-card);z-index:1;"></div>
+              <div style="font-family:var(--mono);font-size:0.55rem;color:var(--text-muted);margin-top:3px;">${tStr}</div>
+              ${ws != null ? `<div style="font-family:var(--mono);font-size:0.5rem;color:${kleur};">${ws.toFixed(0)}km/h</div>` : ''}
+            </div>${idx < cluster.meldingen.length-1 ? '<div style="flex:1;height:2px;background:var(--border);min-width:16px;margin-bottom:14px;"></div>' : ''}`;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- Uitklappen knop -->
+      <button onclick="toggleClusterDetail('${expandId}')"
+        style="width:100%;text-align:center;background:transparent;border:1px solid var(--border);color:var(--text-muted);border-radius:6px;padding:5px;font-family:var(--mono);font-size:0.6rem;cursor:pointer;"
+        id="btn-${expandId}">▼ Toon alle ${cluster.meldingen.length} meldingen</button>
+
+      <div id="${expandId}" style="display:none;margin-top:8px;">
+        ${cluster.meldingen.map(m => renderMeldingCard(m, true)).join('')}
+      </div>
+    </div>`;
+}
+
+function toggleClusterDetail(expandId) {
+  const el  = document.getElementById(expandId);
+  const btn = document.getElementById(`btn-${expandId}`);
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if (btn) btn.textContent = open
+    ? `▼ Toon alle meldingen`
+    : `▲ Verberg meldingen`;
+}
+
 function renderTimeline() {
   const meldingen = getMeldingen();
-
-  // Bouw een ID→melding map zodat onclick handlers geen JSON in HTML-attributen nodig hebben
   window._meldingMap = Object.fromEntries(meldingen.map(m => [m.id, m]));
 
   // Vul jarenlijst dynamisch
@@ -4899,17 +5081,27 @@ function renderTimeline() {
     return true;
   });
 
-  document.getElementById('tl-count').textContent = `${filtered.length} meldingen`;
-
   const el = document.getElementById('timeline-entries');
   if (filtered.length === 0) {
     const isLoading = SUPABASE_ENABLED && _sbUser && navigator.onLine;
     el.innerHTML = isLoading
       ? `<div style="text-align:center;padding:40px;color:var(--text-muted);font-family:var(--mono);font-size:0.75rem;"><div class="spinner" style="display:inline-block;margin-bottom:12px;"></div><br>Meldingen ophalen van cloud...</div>`
       : `<div style="text-align:center;padding:40px;color:var(--text-muted);font-family:var(--mono);font-size:0.75rem;">Geen meldingen gevonden</div>`;
+    document.getElementById('tl-count').textContent = '0 meldingen';
     return;
   }
-  el.innerHTML = filtered.map(m => renderMeldingCard(m)).join('');
+
+  if (window._clusterWeergave) {
+    const clusters = clusterMeldingen(filtered);
+    const aantalEvents = clusters.length;
+    const aantalGeclusterd = clusters.filter(c => c.meldingen.length > 1).length;
+    document.getElementById('tl-count').textContent =
+      `${filtered.length} meldingen · ${aantalEvents} gebeurtenis${aantalEvents !== 1 ? 'sen' : ''}${aantalGeclusterd > 0 ? ` · ${aantalGeclusterd} gebundeld` : ''}`;
+    el.innerHTML = clusters.map(c => renderClusterKaart(c)).join('');
+  } else {
+    document.getElementById('tl-count').textContent = `${filtered.length} meldingen`;
+    el.innerHTML = filtered.map(m => renderMeldingCard(m)).join('');
+  }
 }
 
 function typeLabel(type) {
@@ -5611,7 +5803,7 @@ window.addEventListener('offline', updateOnlineStatus);
 // ============================================================
 // SERVICE WORKER — REGISTRATIE & UPDATE MANAGEMENT
 // ============================================================
-const APP_VERSION_CLIENT = '8.03';
+const APP_VERSION_CLIENT = '8.04';
 
 let _swRegistration  = null;   // actieve SW registratie
 let _updateCheckTimer = null;  // interval ID voor periodieke check
