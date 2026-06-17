@@ -750,7 +750,7 @@
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em; display:flex; align-items:baseline; gap:6px;">
           SpuitLogger
-          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.05</span>
+          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.07</span>
         </div>
         <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">SPUITACTIVITEITEN DOSSIER</div>
       </div>
@@ -1222,22 +1222,24 @@
         ⚠️ Melding wordt voorzien van SHA256 hash voor juridische betrouwbaarheid
       </div>
     </div>
-  </div>
-
-  </div>
 
     <!-- PAGE: Tijdlijn -->
     <div id="page-tijdlijn" class="page p-4">
       <div class="mb-4">
         <div style="font-size:1.4rem;font-weight:800;letter-spacing:-0.02em;" class="mb-1">Dossier Tijdlijn</div>
-        <div style="font-family:var(--mono);font-size:0.65rem;color:var(--text-muted);" id="tl-count">0 meldingen</div>
-          <button onclick="toggleClusterWeergave()" id="tl-cluster-btn"
-            style="font-family:var(--mono);font-size:0.6rem;background:var(--bg-secondary);border:1px solid var(--accent);color:var(--accent);border-radius:6px;padding:4px 10px;cursor:pointer;">
-            🔗 Gebundeld
-          </button>
-          <button onclick="toggleClusterModus()" id="tl-cluster-btn" style="font-family:var(--mono);font-size:0.6rem;background:rgba(0,212,170,0.1);border:1px solid rgba(0,212,170,0.3);color:var(--accent);border-radius:6px;padding:3px 8px;cursor:pointer;" title="Schakel tussen gebundelde en losse weergave">
-            🔗 Gebundeld
-          </button>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+          <div style="font-family:var(--mono);font-size:0.65rem;color:var(--text-muted);" id="tl-count">0 meldingen</div>
+          <div style="display:flex;gap:6px;">
+            <button onclick="setTijdlijnModus('los')" id="tl-btn-los"
+              style="font-family:var(--mono);font-size:0.6rem;border-radius:6px;padding:4px 10px;cursor:pointer;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-muted);">
+              📋 Alle meldingen
+            </button>
+            <button onclick="setTijdlijnModus('cluster')" id="tl-btn-cluster"
+              style="font-family:var(--mono);font-size:0.6rem;border-radius:6px;padding:4px 10px;cursor:pointer;border:1px solid var(--accent);background:rgba(0,212,170,0.1);color:var(--accent);">
+              🔗 Gebeurtenissen
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Filters -->
@@ -2915,6 +2917,28 @@ async function detecteerPerceel() {
   setTimeout(() => { if (status) status.textContent = ''; }, 4000);
 }
 
+
+async function migreerNaarSupabase() {
+  if (!SUPABASE_ENABLED || !_sbUser) { toast('Niet ingelogd', 'error'); return; }
+  if (!navigator.onLine) { toast('Offline — verbinding vereist', 'error'); return; }
+  const meldingen = getMeldingen().filter(m => !m.deleted);
+  if (!meldingen.length) { toast('Geen meldingen om te migreren', ''); return; }
+  const btn = document.getElementById('migreer-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Bezig...'; }
+  toonSyncBalk(`Migreren: 0 / ${meldingen.length}`);
+  let geslaagd = 0, mislukt = 0;
+  for (let i = 0; i < meldingen.length; i++) {
+    const m = meldingen[i];
+    toonSyncBalk(`Migreren: ${i + 1} / ${meldingen.length}`);
+    const ok = await sbSyncMelding(m);
+    if (ok) { geslaagd++; m.sync_status = 'synced'; } else { mislukt++; }
+    await new Promise(r => setTimeout(r, 80));
+  }
+  saveMeldingen(getMeldingen());
+  sluitSyncBalk(mislukt === 0, `✓ ${geslaagd} gemigreerd${mislukt ? `, ${mislukt} mislukt` : ''}`);
+  toast(`Migratie klaar: ${geslaagd} ✓${mislukt ? `, ${mislukt} ✗` : ''}`, mislukt ? '' : 'success');
+  if (btn) { btn.disabled = false; btn.textContent = '☁️ Hermigreer naar cloud'; }
+}
 
 function slaKNMIKeyOp() {
   const key    = document.getElementById('knmi-api-key')?.value.trim();
@@ -4879,13 +4903,19 @@ function renderCharts(meldingen) {
 
 window._clusterWeergave = true; // standaard gebundeld
 
-function toggleClusterWeergave() {
-  window._clusterWeergave = !window._clusterWeergave;
-  const btn = document.getElementById('tl-cluster-btn');
-  if (btn) {
-    btn.textContent   = window._clusterWeergave ? '🔗 Gebundeld' : '📋 Alle meldingen';
-    btn.style.color   = window._clusterWeergave ? 'var(--accent)' : 'var(--text-muted)';
-    btn.style.borderColor = window._clusterWeergave ? 'var(--accent)' : 'var(--border)';
+function setTijdlijnModus(modus) {
+  window._clusterWeergave = (modus === 'cluster');
+  const btnLos     = document.getElementById('tl-btn-los');
+  const btnCluster = document.getElementById('tl-btn-cluster');
+  if (btnLos) {
+    btnLos.style.background   = window._clusterWeergave ? 'var(--bg-secondary)' : 'rgba(0,212,170,0.1)';
+    btnLos.style.borderColor  = window._clusterWeergave ? 'var(--border)'        : 'var(--accent)';
+    btnLos.style.color        = window._clusterWeergave ? 'var(--text-muted)'    : 'var(--accent)';
+  }
+  if (btnCluster) {
+    btnCluster.style.background  = window._clusterWeergave ? 'rgba(0,212,170,0.1)' : 'var(--bg-secondary)';
+    btnCluster.style.borderColor = window._clusterWeergave ? 'var(--accent)'        : 'var(--border)';
+    btnCluster.style.color       = window._clusterWeergave ? 'var(--accent)'        : 'var(--text-muted)';
   }
   renderTimeline();
 }
@@ -5799,7 +5829,7 @@ window.addEventListener('offline', updateOnlineStatus);
 // ============================================================
 // SERVICE WORKER — REGISTRATIE & UPDATE MANAGEMENT
 // ============================================================
-const APP_VERSION_CLIENT = '8.05';
+const APP_VERSION_CLIENT = '8.07';
 
 let _swRegistration  = null;   // actieve SW registratie
 let _updateCheckTimer = null;  // interval ID voor periodieke check
