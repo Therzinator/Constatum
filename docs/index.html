@@ -750,7 +750,7 @@
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em; display:flex; align-items:baseline; gap:6px;">
           SpuitLogger
-          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.10</span>
+          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.12</span>
         </div>
         <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">SPUITACTIVITEITEN DOSSIER</div>
       </div>
@@ -810,6 +810,10 @@
           <div class="flex items-center justify-between gap-2 flex-wrap">
             <div class="section-label">Kaart Overzicht</div>
             <div class="flex items-center gap-2 flex-wrap">
+              <button id="drift-toggle-btn" onclick="toggleDashDriftLaag()"
+                style="font-family:var(--mono);font-size:0.6rem;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.5);color:#60a5fa;border-radius:6px;padding:3px 9px;cursor:pointer;">
+                🌬️ Driftzone aan
+              </button>
               <select id="map-filter-maand" class="form-select px-2 py-1 text-xs" onchange="updateDashboard()" style="font-size:0.65rem;">
                 <option value="huidig">Deze maand</option>
                 <option value="">Alle maanden</option>
@@ -823,6 +827,16 @@
               <select id="map-filter-jaar" class="form-select px-2 py-1 text-xs" onchange="updateDashboard()" style="font-size:0.65rem;">
                 <option value="">Alle jaren</option>
               </select>
+            </div>
+          </div>
+          <!-- Driftzone uitleg — zichtbaar als drift aan -->
+          <div id="drift-uitleg" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(59,130,246,0.06);border-radius:8px;border:1px solid rgba(59,130,246,0.2);">
+            <div style="font-family:var(--mono);font-size:0.6rem;color:#60a5fa;font-weight:700;margin-bottom:4px;">🌬️ DRIFTZONE — EU FOCUS STEP model (grondspuit)</div>
+            <div style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);line-height:1.6;">
+              De kegel geeft aan waar pesticiden naartoe waaien op basis van windrichting en windsnelheid.
+              Hoe dichter bij het spuitperceel, hoe hoger de concentratie.<br>
+              <span style="color:#ef4444;">●</span> <strong>Rood</strong> &gt;2% · <span style="color:#f97316;">●</span> <strong>Oranje</strong> 0.5–2% · <span style="color:#eab308;">●</span> <strong>Geel</strong> 0.1–0.5% · <span style="color:#22c55e;">●</span> <strong>Groen</strong> spoor aantoonbaar<br>
+              Bron: FOCUS STEP EU-standaard · geen driftreductie aangenomen (worst case)
             </div>
           </div>
         </div>
@@ -5010,7 +5024,7 @@ function updateDashboard() {
       });
 
       // Driftzone op dashboard kaart (alleen voor spuitactiviteit met winddata)
-      if (m.weather?.wind_dir != null && (m.type === 'spuitactiviteit' || m.type === 'drift')) {
+      if (window._driftAan && m.weather?.wind_dir != null && (m.type === 'spuitactiviteit' || m.type === 'drift')) {
         const driftLaag = maakDriftZoneLayer(m);
         if (driftLaag) window._driftLayer.addLayer(driftLaag);
       }
@@ -5142,7 +5156,30 @@ function renderCharts(meldingen) {
 // SPUITGEBEURTENIS CLUSTERING
 // ============================================================
 
-window._clusterWeergave = true; // standaard gebundeld
+window._driftAan = true;
+
+function toggleDashDriftLaag() {
+  window._driftAan = !window._driftAan;
+  const btn  = document.getElementById('drift-toggle-btn');
+  const info = document.getElementById('drift-uitleg');
+  if (btn) {
+    btn.textContent    = window._driftAan ? '🌬️ Driftzone aan' : '🌬️ Driftzone uit';
+    btn.style.background   = window._driftAan ? 'rgba(59,130,246,0.15)' : 'var(--bg-secondary)';
+    btn.style.borderColor  = window._driftAan ? 'rgba(59,130,246,0.5)'  : 'var(--border)';
+    btn.style.color        = window._driftAan ? '#60a5fa'                : 'var(--text-muted)';
+  }
+  if (info) info.style.display = window._driftAan ? 'block' : 'none';
+
+  if (window._driftLayer) {
+    if (window._driftAan) {
+      if (dashMap && !dashMap.hasLayer(window._driftLayer)) window._driftLayer.addTo(dashMap);
+    } else {
+      if (dashMap && dashMap.hasLayer(window._driftLayer)) dashMap.removeLayer(window._driftLayer);
+    }
+  }
+}
+
+
 
 function setTijdlijnModus(modus) {
   window._clusterWeergave = (modus === 'cluster');
@@ -5510,6 +5547,16 @@ function showMeldingDetail(id) {
         </div>
       </div>
 
+      <!-- Mini kaart met locatie + driftzone -->
+      ${m.gps?.lat && m.gps?.lng ? `
+      <div class="card p-3">
+        <div class="section-label mb-2" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>Locatie & Driftzone</span>
+          ${m.weather?.wind_dir != null ? `<button onclick="toonDriftZoneModal(window._meldingMap['${m.id}'])" style="font-family:var(--mono);font-size:0.6rem;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.4);color:#60a5fa;border-radius:4px;padding:2px 8px;cursor:pointer;">🔍 Volledig</button>` : ''}
+        </div>
+        <div id="detail-map-${m.id}" style="height:200px;border-radius:8px;overflow:hidden;border:1px solid var(--border);"></div>
+      </div>` : ''}
+
       <!-- GPS -->
       <div class="card p-3">
         <div class="section-label mb-2">Locatie</div>
@@ -5604,10 +5651,32 @@ function showMeldingDetail(id) {
   `;
 
   document.getElementById('modal-overlay').style.display = 'block';
+
+  // Init mini-kaart na DOM render
+  if (m.gps?.lat && m.gps?.lng) {
+    setTimeout(() => {
+      const mapEl = document.getElementById(`detail-map-${m.id}`);
+      if (!mapEl || mapEl._leaflet_id) return; // al geïnitialiseerd
+      const miniMap = L.map(mapEl, { zoomControl: false, attributionControl: false })
+        .setView([m.gps.lat, m.gps.lng], 16);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(miniMap);
+      // Driftzone
+      if (m.weather?.wind_dir != null) {
+        const driftLaag = maakDriftZoneLayer(m);
+        if (driftLaag) driftLaag.addTo(miniMap);
+      } else {
+        // Alleen locatiepin zonder drift
+        L.circleMarker([m.gps.lat, m.gps.lng], {
+          radius: 7, color: '#fff', fillColor: '#f59e0b', fillOpacity: 1, weight: 2
+        }).addTo(miniMap);
+      }
+      miniMap.invalidateSize();
+    }, 120);
+  }
 }
 
 function closeModal(e) {
-  if (e.target === document.getElementById('modal-overlay')) {
+  if (!e || e.target === document.getElementById('modal-overlay')) {
     document.getElementById('modal-overlay').style.display = 'none';
   }
 }
@@ -5915,6 +5984,32 @@ async function exportPDF() {
           })() : ''}
         </div>` : ''}
 
+        ${m.gps?.lat && m.gps?.lng ? (() => {
+          const lat  = m.gps.lat;
+          const lng  = m.gps.lng;
+          const zoom = 15;
+          // OSM tile URL voor statische kaartafbeelding (OpenStreetMap standaard tiles)
+          // Bereken tile coördinaten
+          const tileX = Math.floor((lng + 180) / 360 * Math.pow(2, zoom));
+          const tileY = Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom));
+          const windInfo = m.weather?.wind_dir != null
+            ? `Wind: ${m.weather.wind_speed ?? '?'} km/h uit ${degToCompass(m.weather.wind_dir)} (${m.weather.wind_dir}°)`
+            : 'Winddata niet beschikbaar';
+          const zones = m.weather?.wind_dir != null ? driftZones(m.weather.wind_speed || 5) : [];
+          const zonesText = zones.map(z => `${z.naam} ≤${z.reikwijdteM}m`).join(' · ');
+          return `
+          <div style="border-top:1px solid #e2e8f0;padding-top:8px;margin-top:8px;page-break-inside:avoid;">
+            <div class="label" style="margin-bottom:6px;">Locatiekaart & Driftzone</div>
+            <img src="https://tile.openstreetmap.org/${zoom}/${tileX}/${tileY}.png"
+              style="width:100%;max-width:400px;height:200px;object-fit:cover;border-radius:4px;border:1px solid #e2e8f0;display:block;"
+              alt="Kaart ${lat.toFixed(5)}, ${lng.toFixed(5)}">
+            <div style="font-family:JetBrains Mono;font-size:7.5pt;color:#374151;margin-top:4px;">
+              📍 ${lat.toFixed(6)}°N · ${lng.toFixed(6)}°E · ${windInfo}
+            </div>
+            ${zones.length ? `<div style="font-family:JetBrains Mono;font-size:7pt;color:#6b7280;margin-top:2px;">FOCUS STEP driftbereik: ${zonesText}</div>` : ''}
+          </div>`;
+        })() : ''}
+
         ${m.bestanden?.filter(f => f.type?.startsWith('image/') && f.dataUrl).length ? `
         <div style="border-top:1px solid #e2e8f0;padding-top:8px;margin-top:8px;">
           ${m.bestanden.filter(f => f.type?.startsWith('image/') && f.dataUrl).map((f, fi, arr) => `
@@ -6071,7 +6166,7 @@ window.addEventListener('offline', updateOnlineStatus);
 // ============================================================
 // SERVICE WORKER — REGISTRATIE & UPDATE MANAGEMENT
 // ============================================================
-const APP_VERSION_CLIENT = '8.10';
+const APP_VERSION_CLIENT = '8.12';
 
 let _swRegistration  = null;   // actieve SW registratie
 let _updateCheckTimer = null;  // interval ID voor periodieke check
