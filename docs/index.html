@@ -750,7 +750,7 @@
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em; display:flex; align-items:baseline; gap:6px;">
           SpuitLogger
-          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.07</span>
+          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.08</span>
         </div>
         <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">SPUITACTIVITEITEN DOSSIER</div>
       </div>
@@ -3967,7 +3967,235 @@ async function fetchWeather() {
   }
 }
 
-function degToCompass(deg) {
+// ============================================================
+// DRIFTZONE VISUALISATIE — FOCUS STEP model (grondspuit)
+// Bron: FOCUS Surface Water Scenarios (EU standaard)
+// ============================================================
+
+// FOCUS STEP drift % op afstand voor grondspuit zonder driftreductie
+// [afstand_m, drift_%]
+const FOCUS_DRIFT_TABEL = [
+  [1,  6.8], [3,  3.3], [5,  2.0], [7,  1.4],
+  [10, 0.9], [15, 0.6], [20, 0.4], [30, 0.25],
+  [50, 0.08],[75, 0.03],[100,0.01]
+];
+
+// Interpoleer driftpercentage op willekeurige afstand
+function focusDriftPct(afstandM) {
+  const t = FOCUS_DRIFT_TABEL;
+  if (afstandM <= t[0][0]) return t[0][1];
+  if (afstandM >= t[t.length-1][0]) return t[t.length-1][1];
+  for (let i = 0; i < t.length - 1; i++) {
+    if (afstandM >= t[i][0] && afstandM <= t[i+1][0]) {
+      const pct = (afstandM - t[i][0]) / (t[i+1][0] - t[i][0]);
+      return t[i][1] + pct * (t[i+1][1] - t[i][1]);
+    }
+  }
+  return 0;
+}
+
+// Windsnelheid vermenigvuldiger (ref: 5 km/h = factor 1.0)
+// Gebaseerd op empirische data: verdubbeling windsnelheid ≈ 700% meer drift
+function windFactor(kmh) {
+  if (!kmh || kmh <= 0) return 1.0;
+  const ref = 5;
+  return Math.pow(kmh / ref, 1.8); // empirische exponent
+}
+
+// Bereken driftzone bereik in meters voor gegeven windsnelheid + drempelpercentage
+// drempel: 0.1% = grens waaronder drift verwaarloosbaar
+function berekenDriftReikwijdte(windKmh, drempelPct = 0.05) {
+  const factor = windFactor(windKmh);
+  // Zoek de afstand waarop drift*factor < drempel
+  for (let afstand = 1; afstand <= 200; afstand++) {
+    if (focusDriftPct(afstand) * factor < drempelPct) {
+      return Math.min(afstand, 200);
+    }
+  }
+  return 200;
+}
+
+// Zones met kleurcodering
+// Rood: >2% drift, Oranje: 0.5-2%, Geel: 0.1-0.5%
+function driftZones(windKmh) {
+  const f = windFactor(windKmh);
+  const zones = [];
+  const grenzen = [
+    { naam: 'kritiek',  kleur: '#ef4444', alpha: 0.35, minPct: 2.0  },
+    { naam: 'hoog',     kleur: '#f97316', alpha: 0.28, minPct: 0.5  },
+    { naam: 'matig',    kleur: '#eab308', alpha: 0.20, minPct: 0.1  },
+    { naam: 'laag',     kleur: '#22c55e', alpha: 0.12, minPct: 0.02 },
+  ];
+  for (const zone of grenzen) {
+    // Zoek de maximale afstand voor deze zone
+    let maxAfstand = 0;
+    for (let d = 1; d <= 200; d++) {
+      if (focusDriftPct(d) * f >= zone.minPct) maxAfstand = d;
+    }
+    if (maxAfstand > 0) zones.push({ ...zone, reikwijdteM: maxAfstand });
+  }
+  return zones;
+}
+
+// Genereer een kegelvorm polygon (windrichting = richting WIT drift heen gaat)
+// windDir: graden (0=N, 90=E, 180=S, 270=W) — dit is de richting VANWAAR de wind komt
+// Driftzone gaat dus TEGENOVERGESTELD aan windrichting (= richting wind naartoe gaat)
+function driftKegel(lat, lng, windDirVanaf, reikwijdteM, openingshoek = 60) {
+  // Wind komt uit windDir, gaat naar windDir + 180
+  const driftRichting = (windDirVanaf + 180) % 360;
+  const punten = [];
+  const startHoek = driftRichting - openingshoek / 2;
+  const stappen = 20;
+
+  punten.push([lat, lng]); // Startpunt = perceel
+
+  for (let i = 0; i <= stappen; i++) {
+    const hoek = startHoek + (i / stappen) * openingshoek;
+    const hoekRad = (hoek * Math.PI) / 180;
+    // Haversine inverse: bereken punt op afstand en richting
+    const R = 6371000;
+    const dLat = (reikwijdteM / R) * Math.cos(hoekRad);
+    const dLng = (reikwijdteM / R) * Math.sin(hoekRad) / Math.cos((lat * Math.PI) / 180);
+    punten.push([lat + (dLat * 180) / Math.PI, lng + (dLng * 180) / Math.PI]);
+  }
+
+  punten.push([lat, lng]); // Sluit kegel
+  return punten;
+}
+
+// Teken driftzone op een Leaflet kaart voor één melding
+// Geeft een LayerGroup terug die je zelf kunt toevoegen/verwijderen
+function maakDriftZoneLayer(melding) {
+  const lat = melding.gps?.lat;
+  const lng = melding.gps?.lng;
+  const windDir = melding.weather?.wind_dir;
+  const windKmh = melding.weather?.wind_speed;
+
+  if (!lat || !lng || windDir == null) return null;
+
+  const groep = L.layerGroup();
+  const zones = driftZones(windKmh || 5);
+
+  // Teken van grootste naar kleinste zone (zodat kleine zones bovenop komen)
+  [...zones].reverse().forEach(zone => {
+    const punten = driftKegel(lat, lng, windDir, zone.reikwijdteM);
+    L.polygon(punten, {
+      color:       zone.kleur,
+      fillColor:   zone.kleur,
+      fillOpacity: zone.alpha,
+      weight:      1,
+      opacity:     0.6,
+      dashArray:   zone.naam === 'laag' ? '4,4' : null,
+    }).addTo(groep);
+  });
+
+  // Perceel marker
+  L.circleMarker([lat, lng], {
+    radius: 5, color: '#fff', fillColor: '#ef4444',
+    fillOpacity: 1, weight: 2
+  }).addTo(groep);
+
+  // Windpijl label
+  const windLabel = windKmh
+    ? `💨 ${windKmh} km/h uit ${degToCompass(windDir)}`
+    : `Windrichting: ${degToCompass(windDir)}`;
+
+  L.marker([lat, lng], {
+    icon: L.divIcon({
+      html: `<div style="background:rgba(0,0,0,0.75);color:#fff;font-family:monospace;font-size:10px;padding:3px 6px;border-radius:4px;white-space:nowrap;">${windLabel}</div>`,
+      className: '', iconAnchor: [-8, 10]
+    })
+  }).addTo(groep);
+
+  return groep;
+}
+
+// Teken driftzone popup modal met eigen Leaflet kaart
+function toonDriftZoneModal(melding) {
+  const modalContent = document.getElementById('modal-content');
+  if (!modalContent) return;
+
+  const windDir = melding.weather?.wind_dir;
+  const windKmh = melding.weather?.wind_speed;
+  const lat     = melding.gps?.lat;
+  const lng     = melding.gps?.lng;
+
+  if (!lat || !lng || windDir == null) {
+    toast('Geen locatie of winddata beschikbaar voor driftzone', '');
+    return;
+  }
+
+  const zones      = driftZones(windKmh || 5);
+  const maxBereik  = Math.max(...zones.map(z => z.reikwijdteM));
+  const datum      = new Date(melding.timestamp_local).toLocaleString('nl-NL');
+
+  const modalHtml = `
+    <div style="padding:16px;">
+      <div style="font-weight:800;font-size:1.1rem;margin-bottom:4px;">🌬️ Driftzone Analyse</div>
+      <div style="font-family:var(--mono);font-size:0.65rem;color:var(--text-muted);margin-bottom:12px;">${datum}</div>
+
+      <div id="drift-map" style="height:320px;border-radius:8px;overflow:hidden;margin-bottom:12px;border:1px solid var(--border);"></div>
+
+      <div style="font-family:var(--mono);font-size:0.7rem;margin-bottom:8px;color:var(--text-secondary);">
+        💨 Wind: ${windKmh ?? '?'} km/h uit ${degToCompass(windDir)} (${windDir}°)
+        ${melding.perceelnummer ? ` · 📋 ${melding.perceelnummer}` : ''}
+      </div>
+
+      <div style="font-family:var(--mono);font-size:0.65rem;color:var(--text-muted);margin-bottom:10px;">FOCUS STEP model · grondspuit · geen driftreductie aangenomen</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;">
+        ${zones.map(z => `
+          <div style="background:${z.kleur}22;border:1px solid ${z.kleur}55;border-radius:6px;padding:6px 10px;">
+            <div style="font-weight:700;font-size:0.75rem;color:${z.kleur};">≤ ${z.reikwijdteM}m</div>
+            <div style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);">${z.naam} (>${z.minPct}%)</div>
+          </div>`).join('')}
+      </div>
+
+      ${melding.afstand_woning ? `
+        <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.4);border-radius:8px;padding:8px 12px;margin-bottom:10px;">
+          <div style="font-size:0.8rem;font-weight:700;color:var(--danger);">🏠 Dichtstbijzijnde woning: ${melding.afstand_woning}m</div>
+          <div style="font-family:var(--mono);font-size:0.65rem;color:var(--text-muted);margin-top:3px;">
+            Drift op woningafstand: ~${(focusDriftPct(melding.afstand_woning) * windFactor(windKmh || 5)).toFixed(2)}% (gecorrigeerd voor windsnelheid)
+          </div>
+        </div>` : ''}
+
+      <div style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);line-height:1.5;border-top:1px solid var(--border);padding-top:8px;">
+        ⚠️ Dit is een indicatieve visualisatie op basis van het EU FOCUS STEP model voor grondspuit. Werkelijke drift hangt af van spuitdop, rijsnelheid, boomhoogte en meteorologische omstandigheden. Gebruik dit als ondersteuning voor dossieropbouw, niet als exacte meting.
+      </div>
+    </div>`;
+
+  modalContent.innerHTML = modalHtml;
+  document.getElementById('modal-overlay').style.display = 'block';
+
+  // Init Leaflet kaart in modal
+  setTimeout(() => {
+    const driftMap = L.map('drift-map').setView([lat, lng], 16);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap', maxZoom: 19
+    }).addTo(driftMap);
+
+    const driftLayer = maakDriftZoneLayer(melding);
+    if (driftLayer) driftLayer.addTo(driftMap);
+
+    // Woning marker als afstand bekend
+    if (melding.afstand_woning && windDir != null) {
+      const woningRichting = (windDir + 180) % 360;
+      const woningRad = (woningRichting * Math.PI) / 180;
+      const R = 6371000;
+      const dLat = (melding.afstand_woning / R) * Math.cos(woningRad);
+      const dLng = (melding.afstand_woning / R) * Math.sin(woningRad) / Math.cos((lat * Math.PI) / 180);
+      const woningLat = lat + (dLat * 180) / Math.PI;
+      const woningLng = lng + (dLng * 180) / Math.PI;
+      L.marker([woningLat, woningLng], {
+        icon: L.divIcon({ html: '🏠', className: '', iconSize: [20,20], iconAnchor:[10,10] })
+      }).bindPopup(`Dichtstbijzijnde woning (~${melding.afstand_woning}m)`).addTo(driftMap);
+    }
+
+    driftMap.invalidateSize();
+  }, 100);
+}
+
+
   const dirs = ['N','NNO','NO','ONO','O','OZO','ZO','ZZO','Z','ZZW','ZW','WZW','W','WNW','NW','NNW'];
   return dirs[Math.round(deg / 22.5) % 16];
 }
@@ -4751,6 +4979,12 @@ function updateDashboard() {
     }
     window._markersLayer.clearLayers();
 
+    // Aparte laag voor driftzones (onder markers)
+    if (!window._driftLayer) {
+      window._driftLayer = L.layerGroup().addTo(dashMap);
+    }
+    window._driftLayer.clearLayers();
+
     const typeColors = { spuitactiviteit: '#f59e0b', drift: '#3b82f6', geur: '#8b5cf6', gezondheid: '#ef4444', geluid: '#f97316', overig: '#6b7280' };
 
     gefiltered.slice(0, 100).forEach(m => {
@@ -4773,6 +5007,12 @@ function updateDashboard() {
         showPage('tijdlijn');
         setTimeout(() => showMeldingDetail(m.id), 150);
       });
+
+      // Driftzone op dashboard kaart (alleen voor spuitactiviteit met winddata)
+      if (m.weather?.wind_dir != null && (m.type === 'spuitactiviteit' || m.type === 'drift')) {
+        const driftLaag = maakDriftZoneLayer(m);
+        if (driftLaag) window._driftLayer.addLayer(driftLaag);
+      }
     });
 
     // Legenda
@@ -5170,6 +5410,7 @@ function renderMeldingCard(m, compact = false) {
       <div style="font-size:0.85rem;color:var(--text-primary);line-height:1.4;" class="mb-2">${m.description.substring(0, compact ? 80 : 120)}${m.description.length > (compact ? 80 : 120) ? '...' : ''}</div>
       <div class="flex items-center gap-3 flex-wrap">
         ${m.weather?.wind_speed != null ? `<span style="font-family:var(--mono);font-size:0.65rem;color:var(--info);">💨 ${m.weather.wind_speed} km/h ${degToCompass(m.weather.wind_dir)}</span>` : ''}
+        ${m.gps?.lat && m.weather?.wind_dir != null ? `<button onclick="event.stopPropagation();toonDriftZoneModal(window._meldingMap['${m.id}'])" style="font-family:var(--mono);font-size:0.6rem;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.4);color:#60a5fa;border-radius:4px;padding:2px 7px;cursor:pointer;">🌬️ Driftzone</button>` : ''}
         ${m.gezondheidsklachten?.length ? `<span style="font-family:var(--mono);font-size:0.65rem;color:var(--danger);">🏥 ${m.gezondheidsklachten.length} klacht(en)</span>` : ''}
         ${m.bestanden?.length ? `<span style="font-family:var(--mono);font-size:0.65rem;color:var(--text-muted);">📎 ${m.bestanden.length} bestand(en)</span>` : ''}
         ${m.melder_email ? `<span style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);">✉️ ${m.melder_email}</span>` : ''}
@@ -5829,7 +6070,7 @@ window.addEventListener('offline', updateOnlineStatus);
 // ============================================================
 // SERVICE WORKER — REGISTRATIE & UPDATE MANAGEMENT
 // ============================================================
-const APP_VERSION_CLIENT = '8.07';
+const APP_VERSION_CLIENT = '8.08';
 
 let _swRegistration  = null;   // actieve SW registratie
 let _updateCheckTimer = null;  // interval ID voor periodieke check
