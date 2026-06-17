@@ -444,17 +444,17 @@
     /* Stat card */
     .stat-value {
       font-family: var(--mono);
-      font-size: 2rem;
+      font-size: 1.1rem;
       font-weight: 700;
       color: var(--accent);
       line-height: 1;
     }
     .stat-label {
-      font-size: 0.7rem;
+      font-size: 0.55rem;
       color: var(--text-muted);
       text-transform: uppercase;
-      letter-spacing: 0.1em;
-      margin-top: 4px;
+      letter-spacing: 0.08em;
+      margin-top: 2px;
     }
 
     /* Wind arrow on map */
@@ -750,7 +750,7 @@
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em; display:flex; align-items:baseline; gap:6px;">
           SpuitLogger
-          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.14</span>
+          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.16</span>
         </div>
         <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">SPUITACTIVITEITEN DOSSIER</div>
       </div>
@@ -787,20 +787,20 @@
       <!-- Stats + maandgrafiek naast elkaar -->
       <div class="flex gap-3 mb-4" style="align-items:flex-start;">
         <!-- Stats kolom: vaste breedte, vaste hoogte per kaart -->
-        <div class="flex flex-col gap-2" style="width:130px;flex-shrink:0;">
-          <div class="card p-3">
+        <div class="flex flex-col gap-1" style="width:90px;flex-shrink:0;">
+          <div class="card p-2">
             <div class="stat-value" id="stat-total">0</div>
             <div class="stat-label">Totaal meldingen</div>
           </div>
-          <div class="card p-3">
+          <div class="card p-2">
             <div class="stat-value" id="stat-month">0</div>
             <div class="stat-label">Deze maand</div>
           </div>
-          <div class="card p-3">
+          <div class="card p-2">
             <div class="stat-value" id="stat-week">0</div>
             <div class="stat-label">Deze week</div>
           </div>
-          <div class="card p-3">
+          <div class="card p-2">
             <div class="stat-value" id="stat-wind">—</div>
             <div class="stat-label">Meest wind</div>
           </div>
@@ -811,7 +811,7 @@
             <div class="section-label" style="font-size:0.6rem;">Meldingen per maand</div>
           </div>
           <div class="p-2">
-            <canvas id="chart-monthly" height="120"></canvas>
+            <canvas id="chart-monthly" height="90"></canvas>
           </div>
         </div>
       </div>
@@ -3731,7 +3731,7 @@ async function laadVerwijderdeMeldingen() {
             <div style="flex:1;min-width:0;">
               <div style="font-family:var(--mono);font-size:0.65rem;color:var(--accent);">${datum} ${tijd}</div>
               <div style="font-size:0.8rem;color:var(--text-primary);margin:4px 0;line-height:1.4;word-break:break-word;">${omschrijving}</div>
-              <div style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);">${e.melder_email || e.user_id || '?'}</div>
+              <div style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);">${e.melder_email ? melderCode(e.melder_email) : (e.user_id ? 'Melder#??????' : '?')}</div>
             </div>
             <button onclick="herstelMelding('${e.id}')" class="btn-outline px-3 py-1" style="font-size:0.7rem;white-space:nowrap;flex-shrink:0;margin-top:2px;">↩ Herstel</button>
           </div>
@@ -4938,6 +4938,25 @@ function gebruikerKleur(email) {
   return _gebruikerKleuren[email];
 }
 
+// Deterministische anonieme melder code: "Melder#4I2XN6"
+// Zelfde email → altijd zelfde code, consistent over sessies
+function melderCode(email) {
+  if (!email) return 'Melder#??????';
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // geen 0/O/1/I verwarring
+  let hash = 0;
+  for (let i = 0; i < email.length; i++) {
+    hash = ((hash << 5) - hash) + email.charCodeAt(i);
+    hash |= 0;
+  }
+  let code = '';
+  let h = Math.abs(hash);
+  for (let i = 0; i < 6; i++) {
+    code += chars[h % chars.length];
+    h = Math.floor(h / chars.length) + email.charCodeAt(i % email.length);
+  }
+  return `Melder#${code}`;
+}
+
 function updateDashboard() {
   const meldingen = getMeldingen();
   const now = new Date();
@@ -5039,10 +5058,10 @@ function updateDashboard() {
     if (legendaEl) {
       const gebruikers = [...new Set(gefiltered.map(m => m.melder_email).filter(Boolean))];
       if (gebruikers.length) {
-        legendaEl.innerHTML = gebruikers.map((email, idx) =>
+        legendaEl.innerHTML = gebruikers.map((email) =>
           `<span style="display:inline-flex;align-items:center;gap:4px;">
             <span style="width:10px;height:10px;border-radius:50%;background:#6b7280;border:2px solid ${gebruikerKleur(email)};flex-shrink:0;display:inline-block;"></span>
-            Melder ${idx + 1}
+            ${melderCode(email)}
           </span>`
         ).join('');
         legendaEl.style.display = 'flex';
@@ -5435,7 +5454,7 @@ function renderMeldingCard(m, compact = false) {
         ${m.gps?.lat && m.weather?.wind_dir != null ? `<button onclick="event.stopPropagation();toonDriftZoneModal(window._meldingMap['${m.id}'])" style="font-family:var(--mono);font-size:0.6rem;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.4);color:#60a5fa;border-radius:4px;padding:2px 7px;cursor:pointer;">🌬️ Driftzone</button>` : ''}
         ${m.gezondheidsklachten?.length ? `<span style="font-family:var(--mono);font-size:0.65rem;color:var(--danger);">🏥 ${m.gezondheidsklachten.length} klacht(en)</span>` : ''}
         ${m.bestanden?.length ? `<span style="font-family:var(--mono);font-size:0.65rem;color:var(--text-muted);">📎 ${m.bestanden.length} bestand(en)</span>` : ''}
-        ${m.melder_email ? `<span style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);">✉️ ${m.melder_email}</span>` : ''}
+        ${m.melder_email ? `<span style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);">${melderCode(m.melder_email)}</span>` : ''}
         <span style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-left:auto;">${m.id}</span>
       </div>
       ${!compact ? `<div class="hash-display mt-2">${m.hash}</div>` : ''}
@@ -5902,7 +5921,7 @@ async function exportPDF() {
           </div>
           <div class="timestamp">${m.date} ${m.time}</div>
         </div>
-        ${m.melder_email ? `<div style="font-family:JetBrains Mono;font-size:7.5pt;color:#64748b;margin-bottom:6px;">✉️ ${m.melder_email}</div>` : ''}
+        ${m.melder_email ? `<div style="font-family:JetBrains Mono;font-size:7.5pt;color:#64748b;margin-bottom:6px;">${melderCode(m.melder_email)}</div>` : ''}
 
         <p style="margin-bottom:12px;">${m.description}</p>
 
@@ -6148,7 +6167,7 @@ window.addEventListener('offline', updateOnlineStatus);
 // ============================================================
 // SERVICE WORKER — REGISTRATIE & UPDATE MANAGEMENT
 // ============================================================
-const APP_VERSION_CLIENT = '8.14';
+const APP_VERSION_CLIENT = '8.16';
 
 let _swRegistration  = null;   // actieve SW registratie
 let _updateCheckTimer = null;  // interval ID voor periodieke check
