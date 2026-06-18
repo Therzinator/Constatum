@@ -753,7 +753,7 @@
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em; display:flex; align-items:baseline; gap:6px;">
           SpuitLogger
-          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.32</span>
+          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.33</span>
         </div>
         <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">SPUITACTIVITEITEN DOSSIER</div>
       </div>
@@ -2036,21 +2036,28 @@ async function sbSyncMelding(melding) {
     timestamp_local:      melding.timestamp_local  || null,
     timestamp_utc:        melding.timestamp_utc    || null,
     type:                 melding.type             || 'overig',
+    types:                melding.types            || [],
     description:          melding.description      || '',
     gps_lat:              melding.gps?.lat         ?? null,
     gps_lng:              melding.gps?.lng         ?? null,
+    gps_accuracy:         melding.gps?.accuracy    ?? null,
     weather:              melding.weather          || null,
     geur_intensiteit:     melding.geur_intensiteit ?? null,
     wind_subjectief:      melding.wind_subjectief  || null,
+    richting_deg:         melding.richting_deg     ?? null,
+    richting_compass:     melding.richting_compass || null,
     gezondheidsklachten:  melding.gezondheidsklachten || [],
     activiteiten:         melding.activiteiten     || [],
     drift_waarneming:     melding.drift_waarneming || [],
+    wind_naar_woning:     melding.wind_naar_woning || null,
+    afstand_woning:       melding.afstand_woning   ?? null,
+    natura2000:           melding.natura2000       || null,
+    kwetsbare_locaties:   melding.kwetsbare_locaties || [],
     client_hash:          melding.hash             || null,
     melder_email:         melding.melder_email     || _sbUser.email || null,
     bedrijfsnaam:         melding.bedrijfsnaam     || null,
     perceelnummer:        melding.perceelnummer    || null,
     gewas:                melding.gewas            || null,
-    afstand_woning:       melding.afstand_woning   || null,
     sync_status:          'synced',
     warnings:             melding.warnings         || [],
     deleted:              false
@@ -3350,6 +3357,8 @@ async function detecteerAfstandEnNatura2000(lat, lng) {
             n2000Lng = feat.geometry.coordinates[0];
             n2000Lat = feat.geometry.coordinates[1];
           }
+          // Opslaan voor submitMelding
+          window._natura2000 = { naam, lat: n2000Lat, lng: n2000Lng };
           if (natura2000El)   natura2000El.style.display = 'block';
           if (natura2000Naam) natura2000Naam.textContent = `Nabij: ${naam}`;
           const n2000CoordsEl = document.getElementById('natura2000-coords');
@@ -3358,6 +3367,7 @@ async function detecteerAfstandEnNatura2000(lat, lng) {
           }
           console.log('[Natura2000] Gevonden:', naam);
         } else {
+          window._natura2000 = null;
           if (natura2000El) natura2000El.style.display = 'none';
         }
       }
@@ -3454,9 +3464,11 @@ async function detecteerAfstandEnNatura2000(lat, lng) {
     if (gevonden.length > 0 && kwetsbareEl && kwetsbareLijst) {
       kwetsbareLijst.innerHTML = gevonden.map(t => `<div>• ${t}</div>`).join('');
       kwetsbareEl.style.display = 'block';
+      window._kwetsbareLocaties = gevonden; // opslaan voor submitMelding
       console.log('[Kwetsbaar] Gevonden:', gevonden);
     } else if (kwetsbareEl) {
       kwetsbareEl.style.display = 'none';
+      window._kwetsbareLocaties = [];
     }
   } catch (e) {
     console.warn('[Kwetsbaar] Check mislukt:', e.message);
@@ -4856,6 +4868,8 @@ async function submitMelding() {
       richting_compass: degToCompass(parseInt(document.getElementById('f-direction').value) || 0),
       gezondheidsklachten: healthChecks,
       activiteiten: activityChecks,
+      natura2000: window._natura2000 || null,
+      kwetsbare_locaties: window._kwetsbareLocaties || [],
       weather: weatherData,
       weather_raw: null,    // te groot voor LS — weggooien
       // Bestanden: alleen metadata + thumbnail, GEEN dataUrl
@@ -5313,8 +5327,7 @@ function updateDashboard() {
       const marker = L.marker([m.gps.lat, m.gps.lng], { icon });
       window._markersLayer.addLayer(marker);
       marker.on('click', () => {
-        showPage('tijdlijn');
-        setTimeout(() => showMeldingDetail(m.id), 150);
+        showMeldingDetail(m.id);
       });
 
       // Driftzone op dashboard kaart (alleen voor spuitactiviteit met winddata)
@@ -6536,7 +6549,7 @@ window.addEventListener('offline', updateOnlineStatus);
 // ============================================================
 // SERVICE WORKER — REGISTRATIE & UPDATE MANAGEMENT
 // ============================================================
-const APP_VERSION_CLIENT = '8.32';
+const APP_VERSION_CLIENT = '8.33';
 
 let _swRegistration  = null;   // actieve SW registratie
 let _updateCheckTimer = null;  // interval ID voor periodieke check
