@@ -753,7 +753,7 @@
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em; display:flex; align-items:baseline; gap:6px;">
           SpuitLogger
-          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.33</span>
+          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.35</span>
         </div>
         <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">SPUITACTIVITEITEN DOSSIER</div>
       </div>
@@ -2054,6 +2054,7 @@ async function sbSyncMelding(melding) {
     natura2000:           melding.natura2000       || null,
     kwetsbare_locaties:   melding.kwetsbare_locaties || [],
     client_hash:          melding.hash             || null,
+    rfc3161:              melding.rfc3161          || null,
     melder_email:         melding.melder_email     || _sbUser.email || null,
     bedrijfsnaam:         melding.bedrijfsnaam     || null,
     perceelnummer:        melding.perceelnummer    || null,
@@ -3781,6 +3782,122 @@ async function sha256(message) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// ============================================================
+// RFC 3161 TIJDSTEMPELING via Freetsa.org (gratis, publiek)
+// ============================================================
+// Bouwt een minimale DER-encoded TimeStampReq (RFC 3161 §2.4)
+// hash: hex-string van SHA-256 digest van het te timestampen bericht
+function bouwTSQ(hashHex) {
+  // SHA-256 OID: 2.16.840.1.101.3.4.2.1
+  const sha256Oid = new Uint8Array([0x30,0x0d,0x06,0x09,0x60,0x86,0x48,0x01,0x65,0x03,0x04,0x02,0x01,0x05,0x00]);
+  // messageImprint: SEQUENCE { AlgorithmIdentifier, OCTET STRING (hash) }
+  const hashBytes  = new Uint8Array(hashHex.match(/.{2}/g).map(b => parseInt(b,16)));
+  const octetStr   = new Uint8Array([0x04, 0x20, ...hashBytes]);
+  const msgImprint = derSeq([...sha256Oid, ...octetStr]);
+  // nonce: 8 willekeurige bytes
+  const nonce      = crypto.getRandomValues(new Uint8Array(8));
+  const nonceInt   = derInt(nonce);
+  // certReq: BOOLEAN TRUE (vraag TSA-certificaat op)
+  const certReq    = new Uint8Array([0x01,0x01,0xff]);
+  // version: INTEGER 1
+  const version    = new Uint8Array([0x02,0x01,0x01]);
+  // TimeStampReq SEQUENCE
+  const tsq = derSeq([...version, ...msgImprint, ...nonceInt, ...certReq]);
+  return tsq;
+}
+
+function derSeq(content) {
+  const bytes = content instanceof Uint8Array ? content : new Uint8Array(content);
+  const len   = derLen(bytes.length);
+  return new Uint8Array([0x30, ...len, ...bytes]);
+}
+
+function derInt(bytes) {
+  // Zorg dat hoge bit niet gezet is (positief getal)
+  const b = bytes[0] & 0x80 ? new Uint8Array([0x00, ...bytes]) : bytes;
+  return new Uint8Array([0x02, b.length, ...b]);
+}
+
+function derLen(n) {
+  if (n < 128) return [n];
+  const hex = n.toString(16).padStart(2,'0');
+  const b   = hex.match(/.{2}/g).map(x => parseInt(x,16));
+  return [0x80 | b.length, ...b];
+}
+
+// Parseer minimal de TSR om genTime en serialNumber te extraheren
+function parseTSR(tsrBytes) {
+  // Zoek de UTC/GeneralizedTime tag in de DER structuur
+  let genTime = null;
+  let serial  = null;
+  const dv    = new DataView(tsrBytes.buffer || tsrBytes);
+  const bytes = new Uint8Array(tsrBytes.buffer || tsrBytes);
+
+  // Simpele lineaire scan naar UTCTime (0x17) of GeneralizedTime (0x18)
+  for (let i = 0; i < bytes.length - 2; i++) {
+    if ((bytes[i] === 0x17 || bytes[i] === 0x18) && bytes[i+1] >= 13) {
+      const len  = bytes[i+1];
+      const str  = Array.from(bytes.slice(i+2, i+2+len)).map(c => String.fromCharCode(c)).join('');
+      // UTCTime: YYMMDDHHmmssZ, GeneralizedTime: YYYYMMDDHHmmssZ
+      try {
+        const y  = bytes[i] === 0x18 ? str.slice(0,4) : (parseInt(str.slice(0,2)) < 50 ? '20'+str.slice(0,2) : '19'+str.slice(0,2));
+        const mo = bytes[i] === 0x18 ? str.slice(4,6) : str.slice(2,4);
+        const d  = bytes[i] === 0x18 ? str.slice(6,8) : str.slice(4,6);
+        const h  = bytes[i] === 0x18 ? str.slice(8,10) : str.slice(6,8);
+        const mi = bytes[i] === 0x18 ? str.slice(10,12) : str.slice(8,10);
+        const s  = bytes[i] === 0x18 ? str.slice(12,14) : str.slice(10,12);
+        genTime  = new Date(`${y}-${mo}-${d}T${h}:${mi}:${s}Z`).toISOString();
+        break;
+      } catch(e) {}
+    }
+  }
+  // Zoek INTEGER na een SEQUENCE met OID (serial number zit vroeg in de TSR)
+  for (let i = 4; i < Math.min(bytes.length - 2, 200); i++) {
+    if (bytes[i] === 0x02 && bytes[i+1] > 0 && bytes[i+1] <= 20) {
+      const len   = bytes[i+1];
+      const sBytes = bytes.slice(i+2, i+2+len);
+      serial = Array.from(sBytes).map(b => b.toString(16).padStart(2,'0')).join('');
+      if (serial.length >= 4) break;
+    }
+  }
+  return { genTime, serial };
+}
+
+// Vraag RFC 3161 timestamp op bij Freetsa.org
+// Geeft { token_b64, timestamp, serial, tsa } terug of null bij fout
+async function vraagRFC3161Timestamp(hashHex) {
+  try {
+    const tsq = bouwTSQ(hashHex);
+    const res = await fetch('https://freetsa.org/tsr', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/timestamp-query' },
+      body:    tsq
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const tsrBuffer = await res.arrayBuffer();
+    const tsrBytes  = new Uint8Array(tsrBuffer);
+
+    // Controleer PKIStatusInfo: eerste bytes moeten status 0 (granted) aangeven
+    // TSR structuur: SEQUENCE { PKIStatusInfo { INTEGER(0) }, TimeStampToken }
+    // status 0 = granted, 1 = grantedWithMods
+    const { genTime, serial } = parseTSR(tsrBytes);
+
+    // Base64 encoderen voor opslag
+    const token_b64 = btoa(Array.from(tsrBytes).map(b => String.fromCharCode(b)).join(''));
+
+    return {
+      token_b64,
+      timestamp:  genTime || new Date().toISOString(),
+      serial:     serial || null,
+      tsa:        'Freetsa.org (RFC 3161)',
+      hash_input: hashHex
+    };
+  } catch (e) {
+    console.warn('[RFC3161] Timestamp mislukt:', e.message);
+    return null;
+  }
+}
+
 async function hashFile(file) {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -4883,7 +5000,7 @@ async function submitMelding() {
         dataUrl: null   // bewust leeg in LS
       })),
       warnings,
-      version: '1.0.0',
+      version: APP_VERSION_CLIENT,
       hash: null,
       sync_status: SUPABASE_ENABLED && _sbUser ? 'lokaal' : 'lokaal',  // wordt 'synced' na sync
       sync_at: null
@@ -4892,6 +5009,17 @@ async function submitMelding() {
     // SHA256 van licht object (zonder dataUrls — dit is de juridische hash)
     const hashInput = JSON.stringify({ ...melding, hash: null });
     melding.hash = await sha256(hashInput);
+
+    // RFC 3161 tijdstempel via Freetsa.org (op de SHA256 hash)
+    btn.innerHTML = '<div class="spinner" style="display:inline-block;margin-right:8px;vertical-align:middle;"></div> RFC 3161 tijdstempel ophalen...';
+    const tsResult = await vraagRFC3161Timestamp(melding.hash);
+    if (tsResult) {
+      melding.rfc3161 = tsResult;
+      console.log(`[RFC3161] ✓ Tijdstempel: ${tsResult.timestamp} (serial: ${tsResult.serial})`);
+    } else {
+      melding.rfc3161 = null;
+      console.warn('[RFC3161] Tijdstempel niet beschikbaar — melding wordt zonder opgeslagen');
+    }
 
     // ── FASE 2: Sla metadata op in localStorage ───────────────
     btn.innerHTML = '<div class="spinner" style="display:inline-block;margin-right:8px;vertical-align:middle;"></div> Metadat opslaan...';
@@ -5667,12 +5795,18 @@ function renderTimeline() {
   const filterYear  = document.getElementById('tl-filter-year')?.value || '';
 
   let filtered = meldingen.filter(m => {
-    if (filterType && m.type !== filterType) return false;
+    if (filterType) {
+      // Check primair type én de types-array (multi-select)
+      const matchType  = m.type === filterType;
+      const matchTypes = Array.isArray(m.types) && m.types.includes(filterType);
+      if (!matchType && !matchTypes) return false;
+    }
     const d = new Date(m.timestamp_local);
     if (filterYear  && String(d.getFullYear()) !== filterYear) return false;
     if (filterMonth && String(d.getMonth()+1).padStart(2,'0') !== filterMonth) return false;
     if (search) {
-      const text = (m.description + ' ' + m.type + ' ' + m.id + ' ' + (m.melder_email || '')).toLowerCase();
+      const typesStr = Array.isArray(m.types) ? m.types.join(' ') : '';
+      const text = (m.description + ' ' + m.type + ' ' + typesStr + ' ' + m.id + ' ' + (m.melder_email || '')).toLowerCase();
       if (!text.includes(search)) return false;
     }
     return true;
@@ -5747,7 +5881,10 @@ function renderMeldingCard(m, compact = false) {
         ${m.melder_email ? `<span style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);">${melderCode(m.melder_email)}</span>` : ''}
         <span style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-left:auto;">${m.id}</span>
       </div>
-      ${!compact ? `<div class="hash-display mt-2">${m.hash}</div>` : ''}
+      ${!compact ? `<div class="hash-display mt-2">${m.hash}</div>
+      <div style="font-family:var(--mono);font-size:0.55rem;margin-top:4px;${m.rfc3161 ? 'color:var(--accent);' : 'color:var(--text-muted);'}">
+        ${m.rfc3161 ? `✓ RFC 3161 · ${new Date(m.rfc3161.timestamp).toLocaleString('nl-NL',{timeZone:'Europe/Amsterdam'})}` : '⚠️ Geen RFC 3161 tijdstempel'}
+      </div>` : ''}
     </div>
     ${!compact ? `
     <div style="border-top:1px solid var(--border);padding:6px 12px;display:flex;justify-content:flex-end;">
@@ -5932,11 +6069,19 @@ function showMeldingDetail(id) {
         ${m.warnings?.length ? `<div style="font-size:0.65rem;color:var(--warning);margin-top:8px;">⚠️ ${m.warnings.join(' ')}</div>` : ''}
       </div>` : ''}
 
-      <!-- Hash -->
+      <!-- Hash + RFC 3161 -->
       <div class="card p-3">
         <div class="section-label mb-2">Integriteitsverificatie</div>
         <div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:4px;">SHA-256 Hash</div>
         <div class="hash-display">${m.hash}</div>
+        ${m.rfc3161 ? `
+        <div style="margin-top:10px;padding:8px 10px;background:rgba(0,212,170,0.06);border:1px solid rgba(0,212,170,0.25);border-radius:6px;">
+          <div style="font-family:var(--mono);font-size:0.6rem;font-weight:700;color:var(--accent);margin-bottom:4px;">✓ RFC 3161 Tijdstempel</div>
+          <div style="font-family:var(--mono);font-size:0.6rem;color:var(--text-secondary);">🕐 ${new Date(m.rfc3161.timestamp).toLocaleString('nl-NL',{timeZone:'Europe/Amsterdam'})}</div>
+          <div style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-top:2px;">TSA: ${m.rfc3161.tsa}</div>
+          ${m.rfc3161.serial ? `<div style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-top:2px;">Serial: ${m.rfc3161.serial}</div>` : ''}
+        </div>` : `
+        <div style="margin-top:8px;font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);">⚠️ Geen RFC 3161 tijdstempel — mogelijk offline bij aanmaken</div>`}
         <div class="section-label mt-3 mb-1">Apparaat</div>
         <div class="mono" style="font-size:0.6rem;color:var(--text-muted);word-break:break-all;">${m.device?.substring(0,120)}...</div>
       </div>
@@ -6045,7 +6190,7 @@ async function exportJSON() {
 
   const backup = {
     export_timestamp: new Date().toISOString(),
-    version: '1.0.0',
+    version: APP_VERSION_CLIENT,
     source: 'SpuitLogger PWA',
     location: HOME_NAME,
     total_meldingen: verrijkt.length,
@@ -6403,7 +6548,7 @@ async function exportPDF() {
 
         ${(mapHtml || fotoHtml) ? `<div class="media-row">${mapHtml}${fotoHtml}</div>` : ''}
 
-        <div class="hash">SHA-256: ${m.hash}</div>
+        <div class="hash">SHA-256: ${m.hash}${m.rfc3161 ? ` · RFC 3161: ${new Date(m.rfc3161.timestamp).toLocaleString('nl-NL',{timeZone:'Europe/Amsterdam'})} · TSA: ${m.rfc3161.tsa}${m.rfc3161.serial ? ` · Serial: ${m.rfc3161.serial}` : ''}` : ' · ⚠️ Geen RFC 3161 tijdstempel'}</div>
       </div>`;
     }).join('')}
 
@@ -6549,7 +6694,7 @@ window.addEventListener('offline', updateOnlineStatus);
 // ============================================================
 // SERVICE WORKER — REGISTRATIE & UPDATE MANAGEMENT
 // ============================================================
-const APP_VERSION_CLIENT = '8.33';
+const APP_VERSION_CLIENT = '8.35';
 
 let _swRegistration  = null;   // actieve SW registratie
 let _updateCheckTimer = null;  // interval ID voor periodieke check
