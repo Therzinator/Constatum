@@ -753,7 +753,7 @@
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em; display:flex; align-items:baseline; gap:6px;">
           SpuitLogger
-          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.36</span>
+          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.37</span>
         </div>
         <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">SPUITACTIVITEITEN DOSSIER</div>
       </div>
@@ -2159,6 +2159,12 @@ async function sbSyncBijlagen(meldingId, bestanden) {
         console.error('[Supabase] attachments insert mislukt:', insErr.message, '| code:', insErr.code);
       } else {
         console.log('[Supabase] attachments insert OK voor:', bestand.name);
+        sbAuditLog(meldingId, 'bijlage_uploaded', {
+          bestand: bestand.name,
+          type:    bestand.type,
+          size:    bestand.size,
+          hash:    bestand.hash
+        });
       }
     }
   }
@@ -2167,24 +2173,18 @@ async function sbSyncBijlagen(meldingId, bestanden) {
 // Voeg een audit_log regel toe
 async function sbAuditLog(entryId, action, detail = {}) {
   const sb = sbClient();
-  if (!sb || !_sbUser) {
-    console.warn('[Supabase] audit_log: geen client of user');
-    return;
-  }
+  if (!sb || !_sbUser) return;
   try {
     const payload = {
-      user_id:  _sbUser.id,
-      entry_id: entryId || null,
-      action:   action  || 'unknown',
-      detail:   detail  || {}
+      user_id:     _sbUser.id,
+      entry_id:    entryId || null,
+      action:      action  || 'unknown',
+      detail:      detail  || {},
+      ip_hint:     navigator.userAgent.substring(0, 120),
+      app_version: APP_VERSION_CLIENT
     };
-    console.log('[Supabase] audit_log insert:', payload);
-    const { data, error } = await sb.from('audit_log').insert(payload).select();
-    if (error) {
-      console.error('[Supabase] audit_log mislukt:', error.message, '| code:', error.code, '| details:', error.details);
-    } else {
-      console.log('[Supabase] audit_log OK:', data);
-    }
+    const { error } = await sb.from('audit_log').insert(payload);
+    if (error) console.error('[Supabase] audit_log mislukt:', error.message);
   } catch (e) {
     console.error('[Supabase] audit_log exception:', e.message);
   }
@@ -2263,7 +2263,12 @@ async function syncNu(toonStatus = true) {
       const ok = await sbSyncMelding(melding);
       if (ok) {
         await sbSyncBijlagen(melding.id, melding.bestanden);
-        await sbAuditLog(melding.id, 'sync', { device: navigator.platform });
+        await sbAuditLog(melding.id, 'synced', {
+          hash:        melding.hash,
+          rfc3161:     melding.rfc3161?.timestamp || null,
+          bijlagen:    melding.bestanden?.length  || 0,
+          device:      navigator.platform
+        });
 
         // Update lokale sync_status
         const alle = getMeldingen();
@@ -4073,6 +4078,7 @@ async function herstelMelding(id) {
     return;
   }
 
+  sbAuditLog(id, 'restored', { door: _sbUser.id, rol: 'admin' });
   toast('✓ Melding hersteld — laad van cloud om te zien', 'success');
   // Herlaad de backup lijst
   laadVerwijderdeMeldingen();
@@ -5057,6 +5063,18 @@ async function submitMelding() {
       console.warn('[RFC3161] Tijdstempel niet beschikbaar — melding wordt zonder opgeslagen');
     }
 
+    // Audit log: aanmaken (client-side, vóór Supabase sync)
+    if (SUPABASE_ENABLED && _sbUser) {
+      sbAuditLog(meldingId, 'created', {
+        type:         melding.type,
+        hash:         melding.hash,
+        rfc3161:      tsResult ? tsResult.timestamp : null,
+        rfc3161_tsa:  tsResult ? tsResult.tsa : null,
+        gps:          melding.gps?.lat ? `${melding.gps.lat.toFixed(5)},${melding.gps.lng.toFixed(5)}` : null,
+        online:       navigator.onLine
+      });
+    }
+
     // ── FASE 2: Sla metadata op in localStorage ───────────────
     btn.innerHTML = '<div class="spinner" style="display:inline-block;margin-right:8px;vertical-align:middle;"></div> Metadat opslaan...';
     const meldingen = getMeldingen();
@@ -5977,6 +5995,7 @@ function verwijderMelding(id, event) {
             verwijderUitQueue(id);
             updateSyncStats();
             console.log('[Supabase] Verwijdering bevestigd:', id);
+            sbAuditLog(id, 'deleted', { methode: 'soft_delete', door: _sbUser.id });
           }
         });
       }
@@ -6730,7 +6749,7 @@ window.addEventListener('offline', updateOnlineStatus);
 // ============================================================
 // SERVICE WORKER — REGISTRATIE & UPDATE MANAGEMENT
 // ============================================================
-const APP_VERSION_CLIENT = '8.36';
+const APP_VERSION_CLIENT = '8.37';
 
 let _swRegistration  = null;   // actieve SW registratie
 let _updateCheckTimer = null;  // interval ID voor periodieke check
