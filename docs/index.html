@@ -753,7 +753,7 @@
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em; display:flex; align-items:baseline; gap:6px;">
           SpuitLogger
-          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.30</span>
+          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.31</span>
         </div>
         <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">SPUITACTIVITEITEN DOSSIER</div>
       </div>
@@ -4530,7 +4530,8 @@ function updateFormMarkerWindPopup() {
     </g>
     <circle cx="18" cy="18" r="2.5" fill="#00d4aa"/>
   </svg>`;
-  const html = `<div style="font-family:'JetBrains Mono',monospace;font-size:11px;text-align:center;min-width:110px;">
+  const html = `<div style="font-family:'JetBrains Mono',monospace;font-size:11px;text-align:center;min-width:110px;position:relative;">
+    <div onclick="if(window.formMarker)formMarker.closePopup()" style="position:absolute;top:-4px;right:-4px;width:18px;height:18px;background:rgba(100,116,139,0.25);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;color:#94a3b8;line-height:1;" title="Sluiten">×</div>
     ${arrowSvg}
     <div style="font-weight:700;color:#00d4aa;">${label} · ${deg}°</div>
     <div style="color:#7a90b0;margin-top:2px;">${speed} km/h · vlagen ${gusts}</div>
@@ -6106,8 +6107,33 @@ async function exportPDF() {
     toonSyncBalk(`PDF samenstellen (${meldingen.length} meldingen)…`);
   }
 
-  // Perceelfrequentie statistieken
-  const perceelStats = perceelStatistieken();
+  // Fonts inline laden als base64 voor blob: URL compatibiliteit
+  async function fontToBase64(url) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const buf = await res.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+      return btoa(binary);
+    } catch (e) { return null; }
+  }
+
+  // Syne en JetBrains Mono woff2 direct van Google Fonts CDN
+  const [syneB64, syneB64Bold, jbB64, jbB64Bold] = await Promise.all([
+    fontToBase64('https://fonts.gstatic.com/s/syne/v22/8vIS7w4qzmVxsWxjBZRjr0FKM_04uQ.woff2'),
+    fontToBase64('https://fonts.gstatic.com/s/syne/v22/8vIS7w4qzmVxsWxjBZRjr0FKM_0muQ.woff2'),
+    fontToBase64('https://fonts.gstatic.com/s/jetbrainsmono/v18/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKxjOVmNog.woff2'),
+    fontToBase64('https://fonts.gstatic.com/s/jetbrainsmono/v18/tDbX2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8SKxjOVmNog.woff2'),
+  ]);
+
+  const fontFaceCSS = `
+    ${syneB64 ? `@font-face { font-family: 'Syne'; font-style: normal; font-weight: 400 600; src: url('data:font/woff2;base64,${syneB64}') format('woff2'); }` : ''}
+    ${syneB64Bold ? `@font-face { font-family: 'Syne'; font-style: normal; font-weight: 700 800; src: url('data:font/woff2;base64,${syneB64Bold}') format('woff2'); }` : ''}
+    ${jbB64 ? `@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 300 400; src: url('data:font/woff2;base64,${jbB64}') format('woff2'); }` : ''}
+    ${jbB64Bold ? `@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 700; src: url('data:font/woff2;base64,${jbB64Bold}') format('woff2'); }` : ''}
+  `;
 
   try {
 
@@ -6130,19 +6156,20 @@ async function exportPDF() {
 <head>
   <meta charset="UTF-8">
   <title>SpuitLogger — Juridisch Dossier</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
+    ${fontFaceCSS}
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Syne', sans-serif; background: white; color: #1a1a2e; font-size: 11pt; line-height: 1.6; }
     p, li, td, th { font-family: 'Syne', sans-serif; }
     .mono { font-family: 'JetBrains Mono', monospace; }
     .page-break { page-break-before: always; }
-    .header { background: #0a0e17; color: white; padding: 24px 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-    .header-left { display: flex; align-items: center; gap: 16px; }
-    .header-title { font-family: 'Syne', sans-serif; font-size: 22pt; font-weight: 800; letter-spacing: -0.02em; color: #00d4aa; }
-    .header-sub { font-family: 'JetBrains Mono', monospace; font-size: 7.5pt; color: #7a90b0; margin-top: 3px; }
+    .header { background: #0a0e17; color: white; padding: 0 32px; display: flex; align-items: stretch; justify-content: space-between; gap: 16px; min-height: 88px; }
+    .header-left { display: flex; align-items: center; gap: 20px; padding: 20px 0; }
+    .header-logo { height: 56px; width: 56px; border-radius: 8px; object-fit: contain; flex-shrink: 0; display: block; }
+    .header-title { font-family: 'Syne', sans-serif; font-size: 26pt; font-weight: 800; letter-spacing: -0.02em; color: #00d4aa; line-height: 1; }
+    .header-sub { font-family: 'JetBrains Mono', monospace; font-size: 7.5pt; color: #7a90b0; margin-top: 5px; }
+    .header-right { display: flex; align-items: center; padding: 20px 0; }
+    .print-btn { font-family: 'JetBrains Mono', monospace; font-size: 8pt; background: rgba(0,212,170,0.15); border: 1px solid #00d4aa; color: #00d4aa; border-radius: 6px; padding: 8px 16px; cursor: pointer; white-space: nowrap; }
     .print-btn { font-family: 'JetBrains Mono', monospace; font-size: 8pt; background: rgba(0,212,170,0.15); border: 1px solid #00d4aa; color: #00d4aa; border-radius: 6px; padding: 8px 16px; cursor: pointer; white-space: nowrap; }
     .print-btn:hover { background: rgba(0,212,170,0.25); }
     .content { padding: 24px; }
@@ -6198,13 +6225,15 @@ async function exportPDF() {
   <!-- Header -->
   <div class="header">
     <div class="header-left">
-      ${logoDataUrl ? `<img src="${logoDataUrl}" width="48" height="48" style="border-radius:6px;flex-shrink:0;" alt="SpuitLogger logo">` : ''}
+      ${logoDataUrl ? `<img src="${logoDataUrl}" class="header-logo" alt="SpuitLogger logo">` : ''}
       <div>
         <div class="header-title">SpuitLogger</div>
         <div class="header-sub">JURIDISCH DOSSIER — SPUITACTIVITEITEN REGISTRATIE</div>
       </div>
     </div>
-    <button class="print-btn" onclick="window.print()">🖨️ Afdrukken / PDF opslaan</button>
+    <div class="header-right">
+      <button class="print-btn" onclick="window.print()">🖨️ Afdrukken / PDF opslaan</button>
+    </div>
   </div>
 
   <div class="content">
@@ -6504,7 +6533,7 @@ window.addEventListener('offline', updateOnlineStatus);
 // ============================================================
 // SERVICE WORKER — REGISTRATIE & UPDATE MANAGEMENT
 // ============================================================
-const APP_VERSION_CLIENT = '8.30';
+const APP_VERSION_CLIENT = '8.31';
 
 let _swRegistration  = null;   // actieve SW registratie
 let _updateCheckTimer = null;  // interval ID voor periodieke check
