@@ -785,7 +785,7 @@
       </div>
 
       <!-- Stats + maandgrafiek naast elkaar -->
-      <div class="flex gap-3 mb-4" style="align-items:flex-start;">
+      <div class="flex gap-3 mb-4" style="align-items:stretch;">
         <!-- Stats kolom: vaste breedte, vaste hoogte per kaart -->
         <div class="flex flex-col gap-1" style="width:90px;flex-shrink:0;">
           <div class="card p-2">
@@ -805,13 +805,13 @@
             <div class="stat-label">Meest wind</div>
           </div>
         </div>
-        <!-- Maandgrafiek rechts -->
-        <div class="card flex-1" style="min-width:0;">
+        <!-- Maandgrafiek rechts — vult volledige hoogte van stats-kolom -->
+        <div class="card flex-1" style="min-width:0;display:flex;flex-direction:column;">
           <div class="p-2 border-b" style="border-color:var(--border);">
             <div class="section-label" style="font-size:0.6rem;">Meldingen per maand</div>
           </div>
-          <div class="p-2">
-            <canvas id="chart-monthly" height="50"></canvas>
+          <div class="p-2" style="flex:1;position:relative;">
+            <canvas id="chart-monthly" style="position:absolute;inset:8px;width:calc(100% - 16px) !important;height:calc(100% - 16px) !important;"></canvas>
           </div>
         </div>
       </div>
@@ -1080,36 +1080,6 @@
           </div>
         </div>
 
-        <!-- Windrichting waarneming (kompas) -->
-        <div>
-          <label class="section-label block mb-2">Richting Waarneming: <span id="compass-val" style="color:var(--accent);">N</span></label>
-          <div class="flex justify-center my-2">
-            <svg id="compass-svg" width="160" height="160" viewBox="0 0 160 160" onclick="compassClick(event)" class="compass-ring cursor-pointer">
-              <circle cx="80" cy="80" r="75" fill="var(--bg-secondary)" stroke="var(--border)" stroke-width="2"/>
-              <circle cx="80" cy="80" r="55" fill="none" stroke="var(--border)" stroke-width="1"/>
-              <!-- Cardinal marks -->
-              <text x="80" y="18" text-anchor="middle" fill="var(--text-secondary)" font-size="12" font-family="var(--mono)" font-weight="700">N</text>
-              <text x="148" y="85" text-anchor="middle" fill="var(--text-secondary)" font-size="12" font-family="var(--mono)">O</text>
-              <text x="80" y="150" text-anchor="middle" fill="var(--text-secondary)" font-size="12" font-family="var(--mono)">Z</text>
-              <text x="12" y="85" text-anchor="middle" fill="var(--text-secondary)" font-size="12" font-family="var(--mono)">W</text>
-              <!-- Tick marks -->
-              <g stroke="var(--border)" stroke-width="1">
-                <line x1="80" y1="7" x2="80" y2="18"/>
-                <line x1="80" y1="142" x2="80" y2="153"/>
-                <line x1="7" y1="80" x2="18" y2="80"/>
-                <line x1="142" y1="80" x2="153" y2="80"/>
-              </g>
-              <!-- Arrow -->
-              <g id="compass-arrow" transform="rotate(0, 80, 80)">
-                <polygon points="80,28 75,80 85,80" fill="var(--accent)" opacity="0.9"/>
-                <polygon points="80,132 75,80 85,80" fill="var(--text-muted)" opacity="0.6"/>
-              </g>
-              <circle cx="80" cy="80" r="5" fill="var(--accent)"/>
-            </svg>
-          </div>
-          <input type="hidden" id="f-direction" value="0">
-        </div>
-
         <!-- Gezondheidsklachten -->
         <div>
           <button type="button" onclick="toggleGezondheid(this)" class="w-full flex items-center justify-between section-label py-2" style="background:none;border:none;cursor:pointer;text-align:left;">
@@ -1215,6 +1185,7 @@
             </button>
           </div>
           <div id="form-map" style="height:270px;border-radius:8px;overflow:hidden;"></div>
+          <input type="hidden" id="f-direction" value="0">
           <div class="flex items-center gap-2 mt-2">
             <input type="text" id="f-lat" class="form-input px-2 py-2 text-xs mono flex-1" placeholder="Breedtegraad" readonly>
             <input type="text" id="f-lng" class="form-input px-2 py-2 text-xs mono flex-1" placeholder="Lengtegraad" readonly>
@@ -4301,6 +4272,33 @@ function setCompassDegrees(deg) {
   if (arrow) arrow.setAttribute('transform', `rotate(${deg}, 80, 80)`);
   if (valEl) valEl.textContent = `${deg}° ${degToCompass(deg)}`;
   if (hidden) hidden.value = deg;
+  // Ververs windpijl op pin zodra windrichting beschikbaar is
+  updateFormMarkerWindPopup();
+}
+
+// Windpijl-popup op de meldingpin — toont actuele windrichting en -snelheid
+function updateFormMarkerWindPopup() {
+  if (!formMarker || !currentWeather) return;
+  const deg    = currentWeather.wind_dir ?? 0;
+  const speed  = currentWeather.wind_speed ?? '?';
+  const gusts  = currentWeather.wind_gusts ?? '?';
+  const label  = degToCompass(deg);
+  // SVG pijl: roteren op windrichting (waarheen de wind waait)
+  const arrowSvg = `<svg width="36" height="36" viewBox="0 0 36 36" style="display:block;margin:0 auto 4px;">
+    <circle cx="18" cy="18" r="16" fill="rgba(0,212,170,0.12)" stroke="rgba(0,212,170,0.5)" stroke-width="1.5"/>
+    <g transform="rotate(${deg},18,18)">
+      <polygon points="18,5 14,22 18,19 22,22" fill="#00d4aa"/>
+      <polygon points="18,31 14,14 18,17 22,14" fill="rgba(0,212,170,0.3)"/>
+    </g>
+    <circle cx="18" cy="18" r="2.5" fill="#00d4aa"/>
+  </svg>`;
+  const html = `<div style="font-family:'JetBrains Mono',monospace;font-size:11px;text-align:center;min-width:110px;">
+    ${arrowSvg}
+    <div style="font-weight:700;color:#00d4aa;">${label} · ${deg}°</div>
+    <div style="color:#7a90b0;margin-top:2px;">${speed} km/h · vlagen ${gusts}</div>
+    <div style="color:#4a5568;font-size:9px;margin-top:2px;">windrichting nu</div>
+  </div>`;
+  formMarker.bindPopup(L.popup({ closeButton: false, offset: [0, -8] }).setContent(html)).openPopup();
 }
 
 // ============================================================
@@ -4330,21 +4328,10 @@ function kopieerOmschrijving() {
 }
 
 // ============================================================
-// COMPASS
+// COMPASS (geen UI meer, alleen dataopslag)
 // ============================================================
 function compassClick(e) {
-  const svg = document.getElementById('compass-svg');
-  const rect = svg.getBoundingClientRect();
-  const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height / 2;
-  const dx = e.clientX - cx;
-  const dy = e.clientY - cy;
-  let angle = Math.atan2(dx, -dy) * (180 / Math.PI);
-  if (angle < 0) angle += 360;
-  compassDeg = Math.round(angle);
-  document.getElementById('compass-arrow').setAttribute('transform', `rotate(${compassDeg}, 80, 80)`);
-  document.getElementById('f-direction').value = compassDeg;
-  document.getElementById('compass-val').textContent = `${compassDeg}° ${degToCompass(compassDeg)}`;
+  // Windroos UI verwijderd — richting wordt automatisch ingesteld via weerdata
 }
 
 // ============================================================
@@ -4880,6 +4867,7 @@ function initFormMap() {
       document.getElementById('f-lng').value = p.lng.toFixed(6);
       detecteerPerceel();
       detecteerAfstandEnNatura2000(p.lat, p.lng);
+      updateFormMarkerWindPopup();
     });
     formMap.on('click', (e) => {
       formMarker.setLatLng(e.latlng);
@@ -4887,6 +4875,7 @@ function initFormMap() {
       document.getElementById('f-lng').value = e.latlng.lng.toFixed(6);
       detecteerPerceel();
       detecteerAfstandEnNatura2000(e.latlng.lat, e.latlng.lng);
+      updateFormMarkerWindPopup();
     });
   }, 100);
 }
@@ -5140,6 +5129,7 @@ function renderCharts(meldingen) {
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
         x: { ticks: { color: '#7a90b0', font: { family: 'JetBrains Mono', size: 10 } }, grid: { color: '#1e2d45' } },
