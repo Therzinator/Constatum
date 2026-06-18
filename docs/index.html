@@ -6103,61 +6103,88 @@ async function exportPDF() {
     return { ...m, bestanden };
   }));
 
+  const pdfGemeente = localStorage.getItem('spuitlog_gemeente') || '';
+  const pdfLocatie  = HOME_NAME + (pdfGemeente ? `, gemeente ${pdfGemeente}` : '');
+
   const html = `
 <!DOCTYPE html>
 <html lang="nl">
 <head>
   <meta charset="UTF-8">
-  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <title>SpuitLogger — Juridisch Dossier</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Syne:wght@400;600;700;800&display=swap');
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Syne', sans-serif; background: white; color: #1a1a2e; font-size: 11pt; line-height: 1.6; }
-    p, .description-text, .omschrijving { font-family: 'Syne', sans-serif; font-size: 10pt; line-height: 1.7; color: #1e293b; }
+    p, li, td, th { font-family: 'Syne', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
     .page-break { page-break-before: always; }
-    .header { background: #0a0e17; color: white; padding: 32px; display: flex; align-items: center; gap: 16px; }
-    .header-title { font-size: 24pt; font-weight: 800; letter-spacing: -0.02em; color: #00d4aa; }
-    .header-sub { font-family: 'JetBrains Mono'; font-size: 8pt; color: #7a90b0; margin-top: 4px; }
+    .header { background: #0a0e17; color: white; padding: 24px 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .header-title { font-family: 'Syne', sans-serif; font-size: 22pt; font-weight: 800; letter-spacing: -0.02em; color: #00d4aa; }
+    .header-sub { font-family: 'JetBrains Mono', monospace; font-size: 7.5pt; color: #7a90b0; margin-top: 3px; }
+    .print-btn { font-family: 'JetBrains Mono', monospace; font-size: 8pt; background: rgba(0,212,170,0.15); border: 1px solid #00d4aa; color: #00d4aa; border-radius: 6px; padding: 8px 16px; cursor: pointer; white-space: nowrap; }
+    .print-btn:hover { background: rgba(0,212,170,0.25); }
     .content { padding: 24px; }
-    .section-title { font-family: 'JetBrains Mono'; font-size: 7pt; text-transform: uppercase; letter-spacing: 0.15em; color: #7a90b0; margin-bottom: 8px; }
+    .section-title { font-family: 'JetBrains Mono', monospace; font-size: 7pt; text-transform: uppercase; letter-spacing: 0.15em; color: #7a90b0; margin-bottom: 8px; }
     .card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
-    .badge { display: inline-block; font-family: 'JetBrains Mono'; font-size: 7pt; padding: 3px 10px; border-radius: 4px; font-weight: 500; }
+    .badge { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 7pt; padding: 3px 10px; border-radius: 4px; font-weight: 500; }
     .badge-warning { background: #fef3c7; color: #b45309; border: 1px solid #fbbf24; }
     .badge-info { background: #dbeafe; color: #1d4ed8; border: 1px solid #3b82f6; }
     .badge-danger { background: #fee2e2; color: #b91c1c; border: 1px solid #ef4444; }
     .badge-muted { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
-    .hash { font-family: 'JetBrains Mono'; font-size: 7pt; color: #94a3b8; word-break: break-all; background: #f8fafc; padding: 6px; border-radius: 4px; border: 1px solid #e2e8f0; margin-top: 8px; }
+    .hash { font-family: 'JetBrains Mono', monospace; font-size: 7pt; color: #94a3b8; word-break: break-all; background: #f8fafc; padding: 6px; border-radius: 4px; border: 1px solid #e2e8f0; margin-top: 8px; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .label { font-family: 'JetBrains Mono'; font-size: 7pt; color: #94a3b8; }
-    .value { font-family: 'JetBrains Mono'; font-size: 9pt; color: #1e293b; }
+    .label { font-family: 'JetBrains Mono', monospace; font-size: 7pt; color: #94a3b8; }
+    .value { font-family: 'JetBrains Mono', monospace; font-size: 9pt; color: #1e293b; }
     .entry-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-    .timestamp { font-family: 'JetBrains Mono'; font-size: 8pt; color: #64748b; }
-    .disclaimer { background: #fffbeb; border: 1px solid #fbbf24; border-radius: 8px; padding: 12px 16px; font-size: 9pt; color: #78350f; margin: 24px 0; }
-    img.evidence { max-width: 100%; max-height: 260px; border-radius: 8px; object-fit: contain; border: 1px solid #e2e8f0; display: block; margin: 0 auto; }
-    .toc-item { display: flex; justify-content: space-between; font-family: 'JetBrains Mono'; font-size: 9pt; padding: 4px 0; border-bottom: 1px dotted #e2e8f0; }
-    h1 { font-size: 18pt; font-weight: 800; margin-bottom: 4px; }
-    h2 { font-size: 13pt; font-weight: 700; margin-bottom: 12px; color: #0f172a; }
-    h3 { font-size: 11pt; font-weight: 700; margin-bottom: 8px; }
+    .timestamp { font-family: 'JetBrains Mono', monospace; font-size: 8pt; color: #64748b; }
+    .disclaimer { background: #fffbeb; border: 1px solid #fbbf24; border-radius: 8px; padding: 12px 16px; font-size: 9pt; color: #78350f; margin: 24px 0; font-family: 'Syne', sans-serif; }
+    .toc-item { display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 9pt; padding: 4px 0; border-bottom: 1px dotted #e2e8f0; }
+    h1 { font-family: 'Syne', sans-serif; font-size: 18pt; font-weight: 800; margin-bottom: 4px; }
+    h2 { font-family: 'Syne', sans-serif; font-size: 13pt; font-weight: 700; margin-bottom: 12px; color: #0f172a; }
+    h3 { font-family: 'Syne', sans-serif; font-size: 11pt; font-weight: 700; margin-bottom: 8px; }
+    /* Kaart + foto naast elkaar */
+    .media-row { display: flex; gap: 12px; margin-top: 8px; align-items: flex-start; }
+    .map-col { flex: 0 0 auto; max-width: 55%; }
+    .photo-col { flex: 1; min-width: 0; }
+    .photo-grid-pdf { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+    .photo-grid-pdf img { width: 100%; border-radius: 4px; border: 1px solid #e2e8f0; cursor: zoom-in; display: block; object-fit: cover; aspect-ratio: 4/3; }
+    .photo-single img { width: 100%; max-height: 300px; border-radius: 4px; border: 1px solid #e2e8f0; cursor: zoom-in; object-fit: contain; }
+    /* Lightbox */
+    #lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:9999; align-items:center; justify-content:center; cursor:zoom-out; }
+    #lightbox.open { display:flex; }
+    #lightbox img { max-width:94vw; max-height:94vh; border-radius:8px; object-fit:contain; }
+    @media print {
+      .print-btn { display: none; }
+      #lightbox { display: none !important; }
+      .photo-grid-pdf img, .photo-single img { cursor: default; }
+    }
   </style>
 </head>
 <body>
 
-  <!-- Cover -->
+  <!-- Lightbox -->
+  <div id="lightbox" onclick="this.classList.remove('open')">
+    <img id="lightbox-img" src="" alt="">
+  </div>
+  <script>
+    function openLightbox(src) {
+      document.getElementById('lightbox-img').src = src;
+      document.getElementById('lightbox').classList.add('open');
+    }
+  <\/script>
+
+  <!-- Header -->
   <div class="header">
-    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-      <circle cx="24" cy="24" r="22" stroke="#00d4aa" stroke-width="2"/>
-      <circle cx="24" cy="24" r="8" fill="#00d4aa"/>
-      <line x1="24" y1="4" x2="24" y2="14" stroke="#00d4aa" stroke-width="2"/>
-      <line x1="24" y1="34" x2="24" y2="44" stroke="#00d4aa" stroke-width="2"/>
-      <line x1="4" y1="24" x2="14" y2="24" stroke="#00d4aa" stroke-width="2"/>
-      <line x1="34" y1="24" x2="44" y2="24" stroke="#00d4aa" stroke-width="2"/>
-    </svg>
-    <div>
-      <div class="header-title">SpuitLogger</div>
-      <div class="header-sub">JURIDISCH DOSSIER — SPUITACTIVITEITEN REGISTRATIE</div>
+    <div class="header-left">
+      <img src="icons/header-logo.png" width="48" height="48" style="border-radius:6px;flex-shrink:0;" alt="SpuitLogger logo" onerror="this.style.display='none'">
+      <div>
+        <div class="header-title">SpuitLogger</div>
+        <div class="header-sub">JURIDISCH DOSSIER — SPUITACTIVITEITEN REGISTRATIE</div>
+      </div>
     </div>
+    <button class="print-btn" onclick="window.print()">🖨️ Afdrukken / PDF opslaan</button>
   </div>
 
   <div class="content">
@@ -6170,10 +6197,11 @@ async function exportPDF() {
       <h2>Dossier Informatie</h2>
       <div class="grid-2">
         <div><div class="label">Locatie</div><div class="value">${HOME_NAME}</div></div>
+        ${pdfGemeente ? `<div><div class="label">Gemeente</div><div class="value">${pdfGemeente}</div></div>` : '<div></div>'}
         <div><div class="label">Export datum</div><div class="value">${new Date().toLocaleDateString('nl-NL', { timeZone: 'Europe/Amsterdam' })}</div></div>
         <div><div class="label">Totaal meldingen</div><div class="value">${verrijkt.length}</div></div>
         <div><div class="label">Periode</div><div class="value">${verrijkt.length ? new Date(verrijkt[verrijkt.length-1].timestamp_local).toLocaleDateString('nl-NL', { timeZone: 'Europe/Amsterdam' }) + ' — ' + new Date(verrijkt[0].timestamp_local).toLocaleDateString('nl-NL', { timeZone: 'Europe/Amsterdam' }) : '—'}</div></div>
-        <div><div class="label">Dossier versie</div><div class="value">SpuitLogger v1.0.0</div></div>
+        <div><div class="label">Dossier versie</div><div class="value">SpuitLogger v${APP_VERSION_CLIENT}</div></div>
       </div>
     </div>
 
@@ -6182,16 +6210,64 @@ async function exportPDF() {
 
     ${verrijkt.map((m, i) => {
       const typeBadge = { spuitactiviteit:'badge-warning', drift:'badge-info', geur:'badge-muted', gezondheid:'badge-danger', geluid:'badge-muted', overig:'badge-muted' }[m.type] || 'badge-muted';
+      const fotos = (m.bestanden || []).filter(f => f.type?.startsWith('image/') && f.dataUrl);
+      const mapHtml = m.gps?.lat && m.gps?.lng ? (() => {
+        const lat  = m.gps.lat;
+        const lng  = m.gps.lng;
+        const zoom = 15;
+        const zoom2 = Math.pow(2, zoom);
+        const tileXf = (lng + 180) / 360 * zoom2;
+        const tileYf = (1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * zoom2;
+        const tileX  = Math.floor(tileXf);
+        const tileY  = Math.floor(tileYf);
+        const pinPixelX = Math.round(((tileXf - tileX) + 1) * 256);
+        const pinPixelY = Math.round(((tileYf - tileY) + 1) * 256);
+        const windInfo = m.weather?.wind_dir != null
+          ? `Wind: ${m.weather.wind_speed ?? '?'} km/h uit ${degToCompass(m.weather.wind_dir)} (${m.weather.wind_dir}°)`
+          : 'Winddata niet beschikbaar';
+        const zones = m.weather?.wind_dir != null ? driftZones(m.weather.wind_speed || 5) : [];
+        const zonesText = zones.map(z => `${z.naam} ≤${z.reikwijdteM}m`).join(' · ');
+        const rows = [-1,0,1].map(dy =>
+          [-1,0,1].map(dx =>
+            `<img src="https://tile.openstreetmap.org/${zoom}/${tileX+dx}/${tileY+dy}.png" style="width:256px;height:256px;display:block;float:left;" crossorigin="anonymous">`
+          ).join('')
+        ).join('<div style="clear:both;"></div>');
+        return `<div class="map-col">
+          <div class="label" style="margin-bottom:6px;">Locatiekaart & Driftzone</div>
+          <div style="position:relative;width:384px;max-width:100%;height:384px;overflow:hidden;border-radius:4px;border:1px solid #e2e8f0;">
+            <div style="position:absolute;top:0;left:0;width:768px;height:768px;transform:scale(0.5);transform-origin:top left;">
+              ${rows}
+            </div>
+            <div style="position:absolute;left:${pinPixelX/2}px;top:${pinPixelY/2}px;transform:translate(-50%,-100%);pointer-events:none;">
+              <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:14px solid #ef4444;margin:0 auto;"></div>
+              <div style="width:9px;height:9px;border-radius:50%;background:#ef4444;border:2px solid #fff;margin:-3px auto 0;"></div>
+            </div>
+            <div style="position:absolute;left:${pinPixelX/2}px;top:${pinPixelY/2 - 7}px;width:1px;height:14px;background:rgba(239,68,68,0.5);transform:translateX(-50%);"></div>
+            <div style="position:absolute;left:${pinPixelX/2 - 7}px;top:${pinPixelY/2}px;width:14px;height:1px;background:rgba(239,68,68,0.5);transform:translateY(-50%);"></div>
+          </div>
+          <div class="mono" style="font-size:7pt;color:#374151;margin-top:4px;">📍 ${lat.toFixed(6)}°N · ${lng.toFixed(6)}°E · ${windInfo}</div>
+          ${zones.length ? `<div class="mono" style="font-size:6.5pt;color:#6b7280;margin-top:2px;">FOCUS STEP: ${zonesText}</div>` : ''}
+        </div>`;
+      })() : '';
+
+      const fotoHtml = fotos.length ? `<div class="photo-col">
+        <div class="label" style="margin-bottom:6px;">Fotobewijs (${fotos.length})</div>
+        ${fotos.length === 1
+          ? `<div class="photo-single"><img src="${fotos[0].dataUrl}" alt="${fotos[0].name}" onclick="openLightbox('${fotos[0].dataUrl.replace(/'/g,"\\'")}')"></div>`
+          : `<div class="photo-grid-pdf">${fotos.map(f => `<img src="${f.dataUrl}" alt="${f.name}" onclick="openLightbox('${f.dataUrl.replace(/'/g,"\\'")}')"`+`>`).join('')}</div>`
+        }
+      </div>` : '';
+
       return `
       <div class="card ${i > 0 && i % 3 === 0 ? 'page-break' : ''}">
         <div class="entry-header">
           <div>
             <span class="badge ${typeBadge}">${typeLabel(m.type)}</span>
-            <span style="font-family:JetBrains Mono;font-size:8pt;color:#64748b;margin-left:8px;">${m.id}</span>
+            <span class="mono" style="font-size:8pt;color:#64748b;margin-left:8px;">${m.id}</span>
           </div>
           <div class="timestamp">${m.date} ${m.time}</div>
         </div>
-        ${m.melder_email ? `<div style="font-family:JetBrains Mono;font-size:7.5pt;color:#64748b;margin-bottom:6px;">${melderCode(m.melder_email)}</div>` : ''}
+        ${m.melder_email ? `<div class="mono" style="font-size:7.5pt;color:#64748b;margin-bottom:6px;">${melderCode(m.melder_email)}</div>` : ''}
 
         <p style="margin-bottom:12px;">${m.description}</p>
 
@@ -6204,17 +6280,16 @@ async function exportPDF() {
           <div><div class="label">Wind (subjectief)</div><div class="value">${m.wind_subjectief}</div></div>
         </div>
 
-        ${m.gezondheidsklachten?.length ? `<div style="margin-bottom:8px;"><div class="label">Gezondheidsklachten</div><div style="color:#b91c1c;font-size:9pt;">${m.gezondheidsklachten.join(', ')}</div></div>` : ''}
-        ${m.activiteiten?.length ? `<div style="margin-bottom:8px;"><div class="label">Activiteiten</div><div style="color:#b45309;font-size:9pt;">${m.activiteiten.join(', ')}</div></div>` : ''}
+        ${m.gezondheidsklachten?.length ? `<div style="margin-bottom:8px;"><div class="label">Gezondheidsklachten</div><div style="color:#b91c1c;font-size:9pt;font-family:'Syne',sans-serif;">${m.gezondheidsklachten.join(', ')}</div></div>` : ''}
+        ${m.activiteiten?.length ? `<div style="margin-bottom:8px;"><div class="label">Activiteiten</div><div style="color:#b45309;font-size:9pt;font-family:'Syne',sans-serif;">${m.activiteiten.join(', ')}</div></div>` : ''}
         ${(m.bedrijfsnaam || m.perceelnummer || m.gewas || m.afstand_woning != null) ? `
         <div style="margin-bottom:8px;padding:6px 8px;background:#f0fdf4;border:1px solid #86efac;border-radius:4px;">
           <div class="label">Teler & Gewas</div>
-          ${m.bedrijfsnaam  ? `<div style="font-size:9pt;">🏢 ${m.bedrijfsnaam}</div>` : ''}
-          ${m.gewas         ? `<div style="font-size:9pt;">🌱 Gewas: ${m.gewas}${m.brp ? ` <span style="color:#16a34a;">(BRP/RVO ${m.brp.jaar || ''})</span>` : ''}</div>` : ''}
-          ${m.brp?.gewascode ? `<div style="font-size:8pt;color:#374151;">Gewascode: ${m.brp.gewascode} · ${m.brp.category || ''}${m.brp.opp_ha ? ` · ${parseFloat(m.brp.opp_ha).toFixed(2)} ha` : ''} · ${m.brp.bron}</div>` : ''}
-          ${m.perceelnummer ? `<div style="font-size:9pt;font-family:JetBrains Mono;">📋 Perceelnummer: ${m.perceelnummer}</div>` : ''}
-          ${m.afstand_woning != null ? `<div style="font-size:9pt;color:${m.afstand_woning < 50 ? '#dc2626' : m.afstand_woning < 100 ? '#d97706' : '#16a34a'};">📏 Afstand dichtstbijzijnde woning: ${m.afstand_woning}m${m.afstand_woning < 50 ? ' — ONDER DE 50m NORM (ABRvS vuistregel)' : ''}</div>` : ''}
-          ${m.wind_naar_woning?.waait ? `<div style="font-size:9pt;color:#dc2626;font-weight:bold;">💨 WIND WAAIT NAAR WONING — windrichting ${m.wind_naar_woning.windDeg}° richting woning op ${m.wind_naar_woning.hoekNaarWoning}°, afstand ${m.wind_naar_woning.afstandM}m. Directe blootstelling aan drift aannemelijk.</div>` : ''}
+          ${m.bedrijfsnaam  ? `<div style="font-size:9pt;font-family:'Syne',sans-serif;">🏢 ${m.bedrijfsnaam}</div>` : ''}
+          ${m.gewas         ? `<div style="font-size:9pt;font-family:'Syne',sans-serif;">🌱 Gewas: ${m.gewas}</div>` : ''}
+          ${m.perceelnummer ? `<div class="mono" style="font-size:9pt;">📋 Perceelnummer: ${m.perceelnummer}</div>` : ''}
+          ${m.afstand_woning != null ? `<div style="font-size:9pt;font-family:'Syne',sans-serif;color:${m.afstand_woning < 50 ? '#dc2626' : m.afstand_woning < 100 ? '#d97706' : '#16a34a'};">📏 Afstand dichtstbijzijnde woning: ${m.afstand_woning}m${m.afstand_woning < 50 ? ' — ONDER DE 50m NORM (ABRvS vuistregel)' : ''}</div>` : ''}
+          ${m.wind_naar_woning?.waait ? `<div style="font-size:9pt;color:#dc2626;font-weight:bold;font-family:'Syne',sans-serif;">💨 WIND WAAIT NAAR WONING — windrichting ${m.wind_naar_woning.windDeg}° richting woning op ${m.wind_naar_woning.hoekNaarWoning}°, afstand ${m.wind_naar_woning.afstandM}m.</div>` : ''}
         </div>` : ''}
 
         ${perceelSamenvattingPDF(m.perceelnummer, m.id)}
@@ -6223,19 +6298,19 @@ async function exportPDF() {
         ${(() => {
           const kd = knmiData[m.id];
           if (!kd) return '';
-          return `
-          <div style="margin:8px 0;padding:8px 10px;background:#f0fdf4;border:2px solid #16a34a;border-radius:4px;font-size:8.5pt;">
-            <div style="font-weight:bold;color:#14532d;margin-bottom:4px;">🌦️ KNMI WEERSTATION DATA (officieel)</div>
+          return `<div style="margin:8px 0;padding:8px 10px;background:#f0fdf4;border:2px solid #16a34a;border-radius:4px;font-size:8.5pt;font-family:'Syne',sans-serif;">
+            <div style="font-weight:bold;color:#14532d;margin-bottom:4px;font-family:'Syne',sans-serif;">🌦️ KNMI WEERSTATION DATA (officieel)</div>
             <div>Station: ${kd.station} (${kd.afstand_km} km)</div>
             ${kd.windsnelheid != null ? `<div>Wind: ${(kd.windsnelheid * 3.6).toFixed(1)} km/h uit ${kd.windrichting}°</div>` : ''}
             ${kd.temperatuur != null ? `<div>Temperatuur: ${kd.temperatuur}°C</div>` : ''}
             ${kd.luchtvochtigheid != null ? `<div>Luchtvochtigheid: ${kd.luchtvochtigheid}%</div>` : ''}
-            <div style="color:#14532d;font-size:7.5pt;margin-top:4px;">${kd.bron} — ${new Date(kd.tijdstip).toLocaleString('nl-NL', {timeZone:'Europe/Amsterdam'})}</div>
+            <div class="mono" style="color:#14532d;font-size:7.5pt;margin-top:4px;">${kd.bron} — ${new Date(kd.tijdstip).toLocaleString('nl-NL', {timeZone:'Europe/Amsterdam'})}</div>
           </div>`;
         })()}
+
         ${m.drift_waarneming?.length ? (() => {
           const labels = { nevel_zichtbaar: '🌫️ Nevel/drift zichtbaar in de lucht', druppels_voelbaar: '💦 Druppels/nevel voelbaar', drift_ver: '📏 Drift zichtbaar op >10m', geur_direct: '👃 Geur direct waargenomen', ogen_keel: '👁️ Ogen/keel irritatie' };
-          return `<div style="margin-bottom:8px;padding:6px 8px;background:#fee2e2;border:1px solid #fca5a5;border-radius:4px;"><div class="label" style="color:#b91c1c;">Drift & Overlast Waarneming</div><div style="font-size:9pt;color:#b91c1c;">${m.drift_waarneming.map(v=>labels[v]||v).join(' · ')}</div></div>`;
+          return `<div style="margin-bottom:8px;padding:6px 8px;background:#fee2e2;border:1px solid #fca5a5;border-radius:4px;"><div class="label" style="color:#b91c1c;">Drift & Overlast Waarneming</div><div style="font-size:9pt;color:#b91c1c;font-family:'Syne',sans-serif;">${m.drift_waarneming.map(v=>labels[v]||v).join(' · ')}</div></div>`;
         })() : ''}
 
         ${m.weather ? `
@@ -6253,66 +6328,11 @@ async function exportPDF() {
             const o = spuitWindOordeel(m.weather.wind_speed, m.weather.wind_gusts, m.drift_waarneming);
             const bg = o.kleur === '#ef4444' ? '#fee2e2' : o.kleur === '#f59e0b' ? '#fef3c7' : '#d1fae5';
             const border = o.kleur === '#ef4444' ? '#fca5a5' : o.kleur === '#f59e0b' ? '#fcd34d' : '#6ee7b7';
-            return `<div style="margin-top:8px;padding:5px 8px;border-radius:4px;background:${bg};border:1px solid ${border};font-family:JetBrains Mono;font-size:8pt;color:#1e293b;">${o.icoon} Spuitrichtlijn: ${o.tekst}</div>`;
+            return `<div style="margin-top:8px;padding:5px 8px;border-radius:4px;background:${bg};border:1px solid ${border};font-family:'JetBrains Mono',monospace;font-size:8pt;color:#1e293b;">${o.icoon} Spuitrichtlijn: ${o.tekst}</div>`;
           })() : ''}
         </div>` : ''}
 
-        ${m.gps?.lat && m.gps?.lng ? (() => {
-          const lat  = m.gps.lat;
-          const lng  = m.gps.lng;
-          const zoom = 15; // Zoom 15: buurt zichtbaar met percelen
-          const zoom2 = Math.pow(2, zoom);
-          // Exacte tile-coördinaten van de GPS-pin
-          const tileXf = (lng + 180) / 360 * zoom2;
-          const tileYf = (1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * zoom2;
-          const tileX  = Math.floor(tileXf);
-          const tileY  = Math.floor(tileYf);
-          // Pixel-offset van de pin binnen het 3×3 grid (elke tile = 256px)
-          const pinPixelX = Math.round(((tileXf - tileX) + 1) * 256); // +1 omdat center-tile kolom 1 is (0-indexed)
-          const pinPixelY = Math.round(((tileYf - tileY) + 1) * 256);
-          const windInfo = m.weather?.wind_dir != null
-            ? `Wind: ${m.weather.wind_speed ?? '?'} km/h uit ${degToCompass(m.weather.wind_dir)} (${m.weather.wind_dir}°)`
-            : 'Winddata niet beschikbaar';
-          const zones = m.weather?.wind_dir != null ? driftZones(m.weather.wind_speed || 5) : [];
-          const zonesText = zones.map(z => `${z.naam} ≤${z.reikwijdteM}m`).join(' · ');
-          // 3×3 grid van tiles rondom GPS-locatie
-          const rows = [-1,0,1].map(dy =>
-            [-1,0,1].map(dx =>
-              `<img src="https://tile.openstreetmap.org/${zoom}/${tileX+dx}/${tileY+dy}.png" style="width:256px;height:256px;display:block;float:left;" crossorigin="anonymous">`
-            ).join('')
-          ).join('<div style="clear:both;"></div>');
-          return `
-          <div style="border-top:1px solid #e2e8f0;padding-top:8px;margin-top:8px;page-break-inside:avoid;">
-            <div class="label" style="margin-bottom:6px;">Locatiekaart & Driftzone</div>
-            <div style="position:relative;width:768px;max-width:100%;height:768px;overflow:hidden;border-radius:4px;border:1px solid #e2e8f0;display:inline-block;">
-              <div style="position:absolute;top:0;left:0;width:768px;height:768px;">
-                ${rows}
-              </div>
-              <!-- GPS pin overlay -->
-              <div style="position:absolute;left:${pinPixelX}px;top:${pinPixelY}px;transform:translate(-50%,-100%);pointer-events:none;">
-                <div style="width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:18px solid #ef4444;margin:0 auto;"></div>
-                <div style="width:12px;height:12px;border-radius:50%;background:#ef4444;border:2px solid #fff;margin:-4px auto 0;box-shadow:0 1px 4px rgba(0,0,0,0.4);"></div>
-              </div>
-              <!-- Kruishaar op pin-centrum -->
-              <div style="position:absolute;left:${pinPixelX}px;top:${pinPixelY - 9}px;width:1px;height:18px;background:rgba(239,68,68,0.5);transform:translateX(-50%);"></div>
-              <div style="position:absolute;left:${pinPixelX - 9}px;top:${pinPixelY}px;width:18px;height:1px;background:rgba(239,68,68,0.5);transform:translateY(-50%);"></div>
-            </div>
-            <div style="font-family:JetBrains Mono;font-size:7.5pt;color:#374151;margin-top:4px;">
-              📍 ${lat.toFixed(6)}°N · ${lng.toFixed(6)}°E · ${windInfo}
-            </div>
-            ${zones.length ? `<div style="font-family:JetBrains Mono;font-size:7pt;color:#6b7280;margin-top:2px;">FOCUS STEP driftbereik: ${zonesText}</div>` : ''}
-          </div>`;
-        })() : ''}
-
-        ${m.bestanden?.filter(f => f.type?.startsWith('image/') && f.dataUrl).length ? `
-        <div style="border-top:1px solid #e2e8f0;padding-top:8px;margin-top:8px;">
-          ${m.bestanden.filter(f => f.type?.startsWith('image/') && f.dataUrl).map((f, fi, arr) => `
-            <div style="page-break-inside:avoid;margin-bottom:16px;">
-              <div class="label" style="margin-bottom:8px;">Fotobewijs ${fi+1}/${arr.length} — ${f.name}</div>
-              <img class="evidence" src="${f.dataUrl}" alt="${f.name}">
-            </div>
-          `).join('')}
-        </div>` : ''}
+        ${(mapHtml || fotoHtml) ? `<div class="media-row">${mapHtml}${fotoHtml}</div>` : ''}
 
         <div class="hash">SHA-256: ${m.hash}</div>
       </div>`;
@@ -6326,7 +6346,7 @@ async function exportPDF() {
   const url = URL.createObjectURL(blob);
   const win = window.open(url, '_blank');
   if (win) {
-    win.addEventListener('load', () => setTimeout(() => win.print(), 500));
+    // Geen automatisch afdrukken — gebruiker kan zelf afdrukken via knop in de header
   }
   toast('✓ PDF-rapport geopend (gebruik Afdrukken → Opslaan als PDF)', 'success');
   sluitSyncBalk(true, 'PDF klaar');
