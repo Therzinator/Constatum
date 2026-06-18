@@ -505,14 +505,17 @@
 
     /* ── [WIJZIGING 6] STICKY SAVE BUTTON ── */
     .sticky-save-wrapper {
-      position: sticky;
-      bottom: 0;
+      position: fixed;
+      bottom: calc(64px + env(safe-area-inset-bottom, 0px));
       left: 0;
       right: 0;
-      padding: 12px 0 6px;
-      background: linear-gradient(to top, var(--bg-primary) 70%, transparent);
-      z-index: 50;
-      margin-top: 20px;
+      padding: 8px 16px;
+      background: linear-gradient(to top, var(--bg-primary) 60%, transparent);
+      z-index: 800;
+      display: none;
+    }
+    #page-melding {
+      padding-bottom: 90px;
     }
 
     /* ── [WIJZIGING 6] VERBETERD TOUCH TARGETS ── */
@@ -750,7 +753,7 @@
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em; display:flex; align-items:baseline; gap:6px;">
           SpuitLogger
-          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.16</span>
+          <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.28</span>
         </div>
         <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">SPUITACTIVITEITEN DOSSIER</div>
       </div>
@@ -946,13 +949,13 @@
 
         <!-- Type waarneming — multi-checkbox dropdown -->
         <div style="position:relative;z-index:600;">
-          <label class="section-label block mb-2">Type Waarneming *</label>
+          <label class="section-label block mb-2">Type Waarneming * <span style="font-family:var(--mono);font-size:0.6rem;color:var(--text-primary);font-weight:400;">Tik voor meer opties</span></label>
           <button type="button" id="type-dropdown-btn" onclick="toggleTypeDropdown()" class="form-select px-3 py-3 text-sm w-full flex items-center justify-between" style="cursor:pointer;text-align:left;">
-            <span id="type-dropdown-label" style="color:var(--text-muted);">Selecteer type(s)...</span>
+            <span id="type-dropdown-label" style="color:var(--text-primary);">🚜 Spuitactiviteit</span>
             <span style="font-size:0.75rem;color:var(--text-muted);">▼</span>
           </button>
           <div id="type-dropdown-panel" style="display:none;position:absolute;left:0;right:0;z-index:1400;background:var(--bg-card);border:1px solid var(--border-bright);border-radius:10px;margin-top:4px;padding:8px 0;box-shadow:0 8px 24px rgba(0,0,0,0.4);">
-            <label class="flex items-center gap-3 px-4 py-2 text-sm cursor-pointer" style="transition:background 0.1s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''"><input type="checkbox" class="type-check" value="spuitactiviteit" onchange="updateTypeLabel()"> 🚜 Spuitactiviteit</label>
+            <label class="flex items-center gap-3 px-4 py-2 text-sm cursor-pointer" style="transition:background 0.1s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''"><input type="checkbox" class="type-check" value="spuitactiviteit" onchange="updateTypeLabel()" checked> 🚜 Spuitactiviteit</label>
             <label class="flex items-center gap-3 px-4 py-2 text-sm cursor-pointer" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''"><input type="checkbox" class="type-check" value="drift" onchange="updateTypeLabel()"> 🌫 Drift / nevel zichtbaar</label>
             <label class="flex items-center gap-3 px-4 py-2 text-sm cursor-pointer" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''"><input type="checkbox" class="type-check" value="geur" onchange="updateTypeLabel()"> 👃 Chemische geur</label>
             <label class="flex items-center gap-3 px-4 py-2 text-sm cursor-pointer" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''"><input type="checkbox" class="type-check" value="nachtelijk" onchange="updateTypeLabel()"> 🌙 Nachtelijke activiteit</label>
@@ -963,7 +966,7 @@
 
         <!-- Activiteit Waargenomen — multi-checkbox dropdown -->
         <div style="position:relative;z-index:500;">
-          <label class="section-label block mb-2">Activiteit Waargenomen</label>
+          <label class="section-label block mb-2">Activiteit Waargenomen <span style="font-family:var(--mono);font-size:0.6rem;color:var(--text-primary);font-weight:400;">Tik voor meer opties</span></label>
           <button type="button" id="activiteit-dropdown-btn" onclick="toggleActiviteitDropdown()" class="form-select px-3 py-3 text-sm w-full flex items-center justify-between" style="cursor:pointer;text-align:left;">
             <span id="activiteit-dropdown-label" style="color:var(--text-primary);">🚜 Tractor · 💦 Spuitmachine</span>
             <span style="font-size:0.75rem;color:var(--text-muted);">▼</span>
@@ -984,10 +987,17 @@
         <div>
           <div class="flex items-center justify-between mb-2">
             <label class="section-label">Locatie Melding</label>
-            <button type="button" id="kaart-toggle-btn" onclick="toggleFormKaartLaag()"
-              style="font-family:var(--mono);font-size:0.6rem;background:var(--bg-secondary);border:1px solid var(--border-bright);color:var(--text-muted);border-radius:6px;padding:4px 8px;cursor:pointer;">
-              🛰️ Luchtfoto
-            </button>
+            <div class="flex items-center gap-2">
+              <div style="display:flex;border:1px solid var(--border-bright);border-radius:6px;overflow:hidden;">
+                <button type="button" onclick="if(window.formMap)formMap.zoomIn()" style="font-family:var(--mono);font-size:0.9rem;background:var(--bg-secondary);border:none;color:var(--text-secondary);padding:3px 9px;cursor:pointer;line-height:1;" title="Inzoomen">+</button>
+                <div style="width:1px;background:var(--border-bright);"></div>
+                <button type="button" onclick="if(window.formMap)formMap.zoomOut()" style="font-family:var(--mono);font-size:0.9rem;background:var(--bg-secondary);border:none;color:var(--text-secondary);padding:3px 9px;cursor:pointer;line-height:1;" title="Uitzoomen">−</button>
+              </div>
+              <button type="button" id="kaart-toggle-btn" onclick="toggleFormKaartLaag()"
+                style="font-family:var(--mono);font-size:0.6rem;background:var(--bg-secondary);border:1px solid var(--border-bright);color:var(--text-muted);border-radius:6px;padding:4px 8px;cursor:pointer;">
+                🛰️ Luchtfoto
+              </button>
+            </div>
           </div>
           <div id="form-map" style="height:270px;border-radius:8px;overflow:hidden;"></div>
           <input type="hidden" id="f-direction" value="0">
@@ -1215,14 +1225,6 @@
           </div>
         </div>
 
-      </div>
-
-      <!-- [WIJZIGING 6] Sticky save knop -->
-      <div class="sticky-save-wrapper">
-        <button type="button" onclick="submitMelding()" class="btn-primary w-full py-4 text-base flex items-center justify-center gap-3" id="submit-btn">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm1 5a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z"/></svg>
-          Melding Opslaan
-        </button>
       </div>
 
       <div class="disclaimer mt-4 rounded-lg">
@@ -1598,6 +1600,14 @@
     </div>
 
   </div><!-- end main-content -->
+
+  <!-- Melding opslaan knop — fixed boven navigatie, alleen zichtbaar op meldingpagina -->
+  <div class="sticky-save-wrapper" id="melding-save-wrapper">
+    <button type="button" onclick="submitMelding()" class="btn-primary w-full py-4 text-base flex items-center justify-center gap-3" id="submit-btn">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm1 5a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z"/></svg>
+      Melding Opslaan
+    </button>
+  </div>
 
   <!-- Bottom Nav -->
   <nav class="bottom-nav flex-shrink-0" style="background:var(--bg-secondary);border-top:1px solid var(--border);">
@@ -4918,6 +4928,8 @@ async function submitMelding() {
 
     // ── Reset formulier ────────────────────────────────────────
     document.querySelectorAll('.type-check').forEach(el => el.checked = false);
+    const defaultType = document.querySelector('.type-check[value="spuitactiviteit"]');
+    if (defaultType) defaultType.checked = true;
     updateTypeLabel();
     document.getElementById('f-desc').value = '';
     document.getElementById('f-geur').value = 0;
@@ -4984,6 +4996,10 @@ function showPage(name) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   document.getElementById('tab-' + name).classList.add('active');
+
+  // Toon/verberg opslaan knop — alleen op meldingpagina
+  const saveWrapper = document.getElementById('melding-save-wrapper');
+  if (saveWrapper) saveWrapper.style.display = name === 'melding' ? 'block' : 'none';
 
   // Voeg history entry toe zodat de terug-knop op mobiel werkt
   if (name !== 'dashboard') {
@@ -5064,7 +5080,7 @@ function initFormDateTime() {
 function initFormMap() {
   if (formMap) return;
   setTimeout(() => {
-    formMap = L.map('form-map').setView([DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng], 15);
+    formMap = L.map('form-map', { zoomControl: false }).setView([DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng], 15);
 
     // Twee lagen: stratenkaart + PDOK luchtfoto actueel
     window._formLayerOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -6099,6 +6115,7 @@ async function exportPDF() {
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Syne:wght@400;600;700;800&display=swap');
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Syne', sans-serif; background: white; color: #1a1a2e; font-size: 11pt; line-height: 1.6; }
+    p, .description-text, .omschrijving { font-family: 'Syne', sans-serif; font-size: 10pt; line-height: 1.7; color: #1e293b; }
     .page-break { page-break-before: always; }
     .header { background: #0a0e17; color: white; padding: 32px; display: flex; align-items: center; gap: 16px; }
     .header-title { font-size: 24pt; font-weight: 800; letter-spacing: -0.02em; color: #00d4aa; }
@@ -6443,7 +6460,7 @@ window.addEventListener('offline', updateOnlineStatus);
 // ============================================================
 // SERVICE WORKER — REGISTRATIE & UPDATE MANAGEMENT
 // ============================================================
-const APP_VERSION_CLIENT = '8.16';
+const APP_VERSION_CLIENT = '8.28';
 
 let _swRegistration  = null;   // actieve SW registratie
 let _updateCheckTimer = null;  // interval ID voor periodieke check
