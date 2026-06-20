@@ -117,7 +117,7 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
   const descRef = useRef(null);
   const telerRef = useRef(null);
   const fotosRef = useRef(null);
-  const [telerOpen, setTelerOpen] = useState(false);
+  const [telerOpen, setTelerOpen] = useState(true);
   const [bedrijfSuggestiesZichtbaar, setBedrijfSuggestiesZichtbaar] = useState(false);
   const suggesties = bedrijfSuggesties(veld.bedrijfsnaam, meldingenApi.meldingen);
 
