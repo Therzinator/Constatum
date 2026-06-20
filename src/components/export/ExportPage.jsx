@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { meldingenNaarCSV } from '../../lib/export/csv.js';
 import { meldingenNaarJSONBackup } from '../../lib/export/json.js';
+import { genereerDossierHTML, openDossierPDF } from '../../lib/export/pdf.js';
 import { downloadFile } from '../../lib/export/download.js';
 import { getStorageSize } from '../../lib/storage/localStorage.js';
 import { idbCountBijlagen, idbVerwijderVerweesdeBijlagen } from '../../lib/storage/indexedDB.js';
 import { Toast } from '../ui/Toast.jsx';
 import { PrullenbakCard } from './PrullenbakCard.jsx';
+import { NotificatieInstellingen } from '../notificaties/NotificatieInstellingen.jsx';
+import { KNMIInstellingen } from './KNMIInstellingen.jsx';
 import './ExportPage.css';
 
 // Komt overeen met de pagina 'export' (CSV/JSON/dossier-info, bron regel
@@ -13,7 +16,7 @@ import './ExportPage.css';
 // de Instellingen-pagina staan (regel 1569-1602) — die pagina bestaat in
 // deze app nog niet (Fase G), dus opslagbeheer staat hier alvast bij de
 // rest van "data-beheer". PDF-export is een latere, eigen stap.
-export function ExportPage({ meldingenApi, thuislocatie, gebruikerRol, user, laadVanCloud }) {
+export function ExportPage({ meldingenApi, thuislocatie, gebruikerRol, user, laadVanCloud, notificatieApi }) {
   const { meldingen, importeerMeldingen, verwijderAlleMeldingenLokaal } = meldingenApi;
   const [idbCount, setIdbCount] = useState(null);
   const [melding, setMelding] = useState(null);
@@ -30,6 +33,18 @@ export function ExportPage({ meldingenApi, thuislocatie, gebruikerRol, user, laa
     const csv = meldingenNaarCSV(meldingen);
     downloadFile(csv, `spuitlog_export_${new Date().toISOString().split('T')[0]}.csv`, 'text/csv');
     toon('✓ CSV gedownload', 'success');
+  };
+
+  const handleExportPDF = async () => {
+    if (!meldingen.length) { toon('Geen meldingen om te exporteren', 'error'); return; }
+    toon('PDF-dossier voorbereiden...', 'success');
+    try {
+      const html = await genereerDossierHTML(meldingen, thuislocatie?.label);
+      openDossierPDF(html);
+      toon('✓ Dossier geopend — gebruik "Afdrukken als PDF"', 'success');
+    } catch (err) {
+      toon(err.message, 'error');
+    }
   };
 
   const handleExportJSON = async () => {
@@ -83,6 +98,17 @@ export function ExportPage({ meldingenApi, thuislocatie, gebruikerRol, user, laa
       <div>
         <div className="export-titel">Export &amp; Backup</div>
         <div className="export-subtitel">Juridisch dossier exporteren</div>
+      </div>
+
+      <div className="card p-4 export-card">
+        <div className="export-card-icoon">📄</div>
+        <div className="flex-1">
+          <div className="export-card-titel">PDF Dossier</div>
+          <div className="export-card-beschrijving">Juridisch dossier met hash, RFC 3161, weerdata en foto's — printbaar/opslaan als PDF</div>
+          <button type="button" className="btn-outline px-4 py-2 mt-3" onClick={handleExportPDF}>
+            📄 Open PDF-dossier
+          </button>
+        </div>
       </div>
 
       <div className="card p-4 export-card">
@@ -146,6 +172,10 @@ export function ExportPage({ meldingenApi, thuislocatie, gebruikerRol, user, laa
           🗑️ Alle data verwijderen
         </button>
       </div>
+
+      <NotificatieInstellingen notificatieApi={notificatieApi} />
+
+      <KNMIInstellingen />
 
       <PrullenbakCard gebruikerRol={gebruikerRol} user={user} laadVanCloud={laadVanCloud} />
 

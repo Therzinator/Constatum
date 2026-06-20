@@ -1,5 +1,7 @@
+import { melderCode } from '../../utils/format.js';
+
 const HEADERS = [
-  'ID', 'Datum', 'Tijd', 'UTC', 'Type', 'Omschrijving', 'Geur Intensiteit', 'Wind Subjectief',
+  'ID', 'Melder', 'Datum', 'Tijd', 'UTC', 'Type', 'Omschrijving', 'Geur Intensiteit', 'Wind Subjectief',
   'Richting (deg)', 'Richting (kompas)', 'Gezondheidsklachten', 'Activiteiten', 'GPS Lat', 'GPS Lng',
   'GPS Accuracy', 'Wind (km/h)', 'Windrichting (deg)', 'Windstoten (km/h)', 'Temperatuur (C)',
   'Luchtvochtigheid (%)', 'Neerslag (mm)', 'Luchtdruk (hPa)', 'Weerdata Bron', 'Aantal Bestanden', 'Hash SHA256'
@@ -9,7 +11,7 @@ const HEADERS = [
 // CSV-string teruggeeft (geen DOM/download).
 export function meldingenNaarCSV(meldingen) {
   const rows = meldingen.map((m) => [
-    m.id, m.date, m.time, m.timestamp_utc, m.type,
+    m.id, m.melder_email ? melderCode(m.melder_email) : '', m.date, m.time, m.timestamp_utc, m.type,
     `"${(m.description || '').replace(/"/g, '""')}"`,
     m.geur_intensiteit, m.wind_subjectief, m.richting_deg, m.richting_compass,
     `"${(m.gezondheidsklachten || []).join(';')}"`,
