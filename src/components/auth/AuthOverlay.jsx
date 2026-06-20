@@ -1,12 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { haalBuurtTelling } from '../../lib/supabase/deeltokens.js';
 import './AuthOverlay.css';
 
 // React-versie van het #auth-overlay blok + authTab/authSubmit/authSkip uit
 // docs/index.html. `auth` is het object dat hooks/useAuth.js teruggeeft.
-export function AuthOverlay({ auth }) {
+// `uitnodiging` (optioneel, zie useUitnodigingToken.js) zet de tab
+// geforceerd op registreren en toont een teaser-telling — bewust nooit
+// perceel- of meldingdata, zie migratie 0007.
+export function AuthOverlay({ auth, uitnodiging }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [signupInfo, setSignupInfo] = useState(null);
+  const [buurtTelling, setBuurtTelling] = useState(null);
 
   const {
     authOverlayVisible,
@@ -18,6 +23,14 @@ export function AuthOverlay({ auth }) {
     signup,
     skip
   } = auth;
+
+  useEffect(() => {
+    if (uitnodiging) setAuthMode('signup');
+  }, [uitnodiging, setAuthMode]);
+
+  useEffect(() => {
+    if (uitnodiging?.postcode) haalBuurtTelling(uitnodiging.postcode).then(setBuurtTelling);
+  }, [uitnodiging]);
 
   if (!authOverlayVisible) return null;
 
@@ -44,6 +57,15 @@ export function AuthOverlay({ auth }) {
       <div className="auth-card">
         <div className="auth-title">SpuitLogger</div>
         <div className="auth-sub">SPUITACTIVITEITEN DOSSIER — INLOGGEN</div>
+
+        {uitnodiging && (
+          <div className="auth-info">
+            👋 Je bent uitgenodigd door een buurtgenoot.
+            {buurtTelling != null && buurtTelling > 0
+              ? ` ${buurtTelling} buren in jouw postcodegebied melden al mee.`
+              : ' Maak een account om mee te doen.'}
+          </div>
+        )}
 
         <div className="auth-tabs">
           <button

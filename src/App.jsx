@@ -4,6 +4,7 @@ import { useMeldingen } from './hooks/useMeldingen.js'
 import { useSupabaseSync } from './hooks/useSupabaseSync.js'
 import { useThuislocatie } from './hooks/useThuislocatie.js'
 import { useBuurtNotificaties } from './hooks/useBuurtNotificaties.js'
+import { useUitnodigingToken } from './hooks/useUitnodigingToken.js'
 import { AppHeader } from './components/layout/AppHeader.jsx'
 import { AuthOverlay } from './components/auth/AuthOverlay.jsx'
 import { SyncStatusBar } from './components/sync/SyncStatusBar.jsx'
@@ -26,11 +27,12 @@ function App() {
   const thuislocatieApi = useThuislocatie(auth.user)
   const notificatieApi = useBuurtNotificaties(thuislocatieApi.thuislocatie, auth.user)
   const sync = useSupabaseSync(auth.user, meldingenApi, notificatieApi.verwerkNieuweEntry)
+  const uitnodiging = useUitnodigingToken(auth.user)
 
   return (
     <>
       <AppHeader />
-      <AuthOverlay auth={auth} />
+      <AuthOverlay auth={auth} uitnodiging={uitnodiging} />
       <OnlineIndicator />
       <SyncStatusBar syncBezig={sync.syncBezig} syncStatus={sync.syncStatus} />
       <NotificatieBanner banner={notificatieApi.banner} onSluiten={notificatieApi.sluitBanner} />
@@ -77,6 +79,7 @@ function App() {
           user={auth.user}
           laadVanCloud={sync.laadVanCloud}
           notificatieApi={notificatieApi}
+          thuislocatie={thuislocatieApi.thuislocatie}
         />
       )}
 
