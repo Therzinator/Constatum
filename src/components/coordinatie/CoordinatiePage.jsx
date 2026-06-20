@@ -109,7 +109,7 @@ export function CoordinatiePage() {
           <div key={m.userId} className="coordinatie-melder-rij">
             <div className="export-info-rij">
               <span>{melderCode(m.melderEmail) || m.userId.slice(0, 8)}</span>
-              <span>{m.aantalMeldingen} melding{m.aantalMeldingen === 1 ? '' : 'en'}{m.aantalUnderReview ? ` · ${m.aantalUnderReview} under review` : ''}</span>
+              <span>{m.aantalMeldingen} melding{m.aantalMeldingen === 1 ? '' : 'en'}{m.aantalUnderReview ? ` · ${m.aantalUnderReview} under review` : ''}{m.aantalShadow ? ` · ${m.aantalShadow} shadow` : ''}</span>
             </div>
             <div className="export-info-rij">
               <span>Trust score</span>
@@ -131,11 +131,11 @@ export function CoordinatiePage() {
       </div>
 
       <div className="card p-4">
-        <div className="section-label mb-3" style={{ color: 'var(--danger)' }}>🚩 Onder review</div>
-        {onderReview.length === 0 && <div className="export-card-beschrijving">Geen meldingen onder review.</div>}
+        <div className="section-label mb-3" style={{ color: 'var(--danger)' }}>🚩 Onder review / shadow</div>
+        {onderReview.length === 0 && <div className="export-card-beschrijving">Geen meldingen onder review of shadow.</div>}
         {onderReview.map((e) => (
           <div key={e.id} className="export-info-rij">
-            <span>{melderCode(e.melder_email) || '—'} · {e.type} · {new Date(e.timestamp_local).toLocaleDateString('nl-NL')}</span>
+            <span>{melderCode(e.melder_email) || '—'} · {e.type} · {e.visibility} · {new Date(e.timestamp_local).toLocaleDateString('nl-NL')}</span>
             <button
               type="button"
               className="btn-outline px-2 py-1"

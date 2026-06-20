@@ -50,18 +50,20 @@ export function meldersOverzicht(entries, profielen) {
         melderEmail: e.melder_email,
         aantalMeldingen: 0,
         aantalUnderReview: 0,
+        aantalShadow: 0,
         trustScore: profielMap.get(e.user_id)?.trust_score ?? null
       };
     }
     perMelder[e.user_id].aantalMeldingen++;
     if (e.visibility === 'under_review') perMelder[e.user_id].aantalUnderReview++;
+    if (e.visibility === 'shadow') perMelder[e.user_id].aantalShadow++;
   });
 
   return Object.values(perMelder).sort((a, b) => b.aantalMeldingen - a.aantalMeldingen);
 }
 
-// Meldingen die momenteel onder review staan (Fase 2-trigger of
-// handmatige moderatie) — input voor de misbruikdetectie-weergave.
+// Meldingen die momenteel onder review of shadow staan (Fase 2/5-triggers
+// of handmatige moderatie) — input voor de misbruikdetectie-weergave.
 export function meldingenOnderReview(entries) {
-  return entries.filter((e) => e.visibility === 'under_review');
+  return entries.filter((e) => e.visibility === 'under_review' || e.visibility === 'shadow');
 }
