@@ -184,8 +184,10 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
           weather={veld.weather}
           onLocatieGewijzigd={form.zetLocatie}
         />
+        <label className="section-label" htmlFor="mf-perceelnummer">Kadastraal perceelnummer</label>
         <div className="locatie-kaart-perceel-row">
           <input
+            id="mf-perceelnummer"
             type="text"
             className="form-input"
             readOnly

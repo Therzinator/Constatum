@@ -2,6 +2,17 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  /* Plakt direct onder .app-header (zelfde sticky-truc, zie AppHeader.css)
+     zodat de melder tijdens het invullen altijd snel naar een ontbrekend
+     onderdeel kan springen zonder terug te scrollen. */
+  position: sticky;
+  top: var(--header-hoogte);
+  z-index: 1900;
+  padding: 8px 0;
+  /* Zelfde achtergrond als .card (de melding-form zelf) — anders ontstaat
+     een visuele naad tijdens scrollen. */
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
 }
 
 .voortgang-balk-track {
