@@ -47,7 +47,7 @@ function windPopupHtml(weather) {
     <circle cx="18" cy="18" r="2.5" fill="#00d4aa"/>
   </svg>`;
   return `<div style="font-family:'JetBrains Mono',monospace;font-size:11px;text-align:center;min-width:110px;position:relative;">
-    <div class="wind-popup-close" style="position:absolute;top:-4px;right:-4px;width:18px;height:18px;background:rgba(100,116,139,0.25);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;color:#94a3b8;line-height:1;" title="Sluiten">×</div>
+    <div class="wind-popup-close" style="position:absolute;top:-4px;right:-4px;width:18px;height:18px;background:rgba(100,116,139,0.18);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;color:#475569;line-height:1;" title="Sluiten">×</div>
     ${arrowSvg}
     <div style="font-weight:700;color:#00d4aa;">${label} · ${deg}°</div>
     <div style="color:#7a90b0;margin-top:2px;">${speed} km/h · vlagen ${gusts} km/h</div>
@@ -62,7 +62,7 @@ function windPopupHtml(weather) {
 // staat. `lat`/`lng` zijn de huidige meldingscoördinaten, `weather` (optioneel)
 // toont windrichting/-kracht als popup bij de meldingspin,
 // `onLocatieGewijzigd(lat, lng)` wordt aangeroepen bij klikken/verschuiven van die pin.
-export function LocatieKaart({ lat, lng, homeLocatie, weather, onLocatieGewijzigd }) {
+export function LocatieKaart({ lat, lng, kaartCentrum, homeLocatie, weather, onLocatieGewijzigd }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
@@ -77,7 +77,11 @@ export function LocatieKaart({ lat, lng, homeLocatie, weather, onLocatieGewijzig
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const map = L.map(containerRef.current, { zoomControl: false }).setView([lat, lng], 15);
+    // Zonder geplaatste pin start de kaart gecentreerd op de thuislocatie
+    // (of NL-centrum) — dat punt is alleen het kaartmidden, geen meldpunt.
+    const startLat = lat ?? kaartCentrum?.lat ?? 52.3676;
+    const startLng = lng ?? kaartCentrum?.lng ?? 5.2006;
+    const map = L.map(containerRef.current, { zoomControl: false }).setView([startLat, startLng], lat == null ? 13 : 15);
     const osmLaag = L.tileLayer(OSM_URL, { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(map);
     const luchtLaag = L.tileLayer(LUCHTFOTO_URL, { attribution: '© PDOK Luchtfoto', maxZoom: 19, tileSize: 256 });
     osmLaagRef.current = osmLaag;
@@ -89,41 +93,57 @@ export function LocatieKaart({ lat, lng, homeLocatie, weather, onLocatieGewijzig
         .bindPopup('🏠 ' + (homeLocatie.label || 'Thuislocatie'));
     }
 
-    const marker = L.marker([lat, lng], { icon: meldIcon, draggable: true }).addTo(map);
     const popup = L.popup({ closeButton: false, offset: [0, -8] });
-    marker.bindPopup(popup);
 
     // Wiring van het eigen sluit-kruisje — popup-element kan na elke setContent
     // hetzelfde blijven, dus we koppelen de click-handler opnieuw bij elke opening
-    marker.on('popupopen', () => {
-      const el = popup.getElement();
-      const closeBtn = el?.querySelector('.wind-popup-close');
-      if (closeBtn) {
-        closeBtn.onclick = (ev) => {
-          ev.stopPropagation();
-          marker.closePopup();
-        };
-      }
-    });
+    const koppelPopupSluitKnop = (marker) => {
+      marker.on('popupopen', () => {
+        const el = popup.getElement();
+        const closeBtn = el?.querySelector('.wind-popup-close');
+        if (closeBtn) {
+          closeBtn.onclick = (ev) => {
+            ev.stopPropagation();
+            marker.closePopup();
+          };
+        }
+      });
+    };
 
-    // Alleen het zelf prikken/verslepen van de pin triggert de windpopup —
-    // de GPS-positie van de melder (verversGPS) doet dat bewust niet.
-    marker.on('dragend', (e) => {
-      const p = e.target.getLatLng();
-      onLocatieGewijzigd(p.lat, p.lng, { metWeer: true });
-    });
+    // De pin wordt alleen aangemaakt zodra de gebruiker zelf op de kaart
+    // klikt (geen automatische plaatsing op thuislocatie/GPS bij het laden).
+    if (lat != null && lng != null) {
+      const marker = L.marker([lat, lng], { icon: meldIcon, draggable: true }).addTo(map);
+      marker.bindPopup(popup);
+      koppelPopupSluitKnop(marker);
+      marker.on('dragend', (e) => {
+        const p = e.target.getLatLng();
+        onLocatieGewijzigd(p.lat, p.lng, { metWeer: true });
+      });
+      markerRef.current = marker;
+      if (weather) {
+        popup.setContent(windPopupHtml(weather));
+        marker.openPopup();
+      }
+    }
+
     map.on('click', (e) => {
-      marker.setLatLng(e.latlng);
+      if (!markerRef.current) {
+        const marker = L.marker([e.latlng.lat, e.latlng.lng], { icon: meldIcon, draggable: true }).addTo(map);
+        marker.bindPopup(popup);
+        koppelPopupSluitKnop(marker);
+        marker.on('dragend', (ev) => {
+          const p = ev.target.getLatLng();
+          onLocatieGewijzigd(p.lat, p.lng, { metWeer: true });
+        });
+        markerRef.current = marker;
+      } else {
+        markerRef.current.setLatLng(e.latlng);
+      }
       onLocatieGewijzigd(e.latlng.lat, e.latlng.lng, { metWeer: true });
     });
 
-    if (weather) {
-      popup.setContent(windPopupHtml(weather));
-      marker.openPopup();
-    }
-
     mapRef.current = map;
-    markerRef.current = marker;
     popupRef.current = popup;
 
     setTimeout(() => map.invalidateSize(), 100);

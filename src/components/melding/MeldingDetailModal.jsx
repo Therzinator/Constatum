@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { degToCompass, spuitWindOordeel } from '../../lib/drift/oordeel.js';
 import { idbGetBijlagen } from '../../lib/storage/indexedDB.js';
+import { melderCode } from '../../utils/format.js';
+import { laadKNMIKey, haalKNMIWeerdata } from '../../lib/weather/knmi.js';
 import { perceelStatistieken } from '../../lib/meldingen/statistieken.js';
 import { analyseerSpuitpatroon } from '../../lib/meldingen/spuitpatroon.js';
 import { DriftZoneKaart } from './DriftZoneKaart.jsx';
@@ -44,6 +46,20 @@ export function MeldingDetailModal({ melding, alleMeldingen, onClose }) {
   const [bestanden, setBestanden] = useState(melding.bestanden || []);
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [driftZoneOpen, setDriftZoneOpen] = useState(false);
+  const [knmiData, setKnmiData] = useState(null);
+  const [knmiBezig, setKnmiBezig] = useState(false);
+  const knmiKey = laadKNMIKey();
+
+  const haalKNMIOp = async () => {
+    if (!melding.gps?.lat || !melding.gps?.lng) return;
+    setKnmiBezig(true);
+    try {
+      const data = await haalKNMIWeerdata(melding.gps.lat, melding.gps.lng, melding.timestamp_local, knmiKey);
+      setKnmiData(data || { leeg: true });
+    } finally {
+      setKnmiBezig(false);
+    }
+  };
 
   const perceelStats = melding.perceelnummer ? perceelStatistieken(alleMeldingen || [])[melding.perceelnummer] : null;
   const spuitpatroon = analyseerSpuitpatroon(melding).indicaties.filter((i) => i.score > 0);
@@ -70,6 +86,7 @@ export function MeldingDetailModal({ melding, alleMeldingen, onClose }) {
         <div className="detail-modal-badges">
           <span className={`badge ${TYPE_BADGE[melding.type] || 'badge-muted'}`}>{TYPE_LABEL[melding.type] || melding.type}</span>
           <span className="badge badge-muted">{melding.id}</span>
+          {melding.melder_email && <span className="badge badge-muted">{melderCode(melding.melder_email)}</span>}
         </div>
 
         <div className="card p-3">
@@ -200,6 +217,9 @@ export function MeldingDetailModal({ melding, alleMeldingen, onClose }) {
               <div>💧 {melding.weather.humidity}%</div>
               <div>🌂 {melding.weather.precipitation} mm</div>
               <div>📊 {melding.weather.pressure} hPa</div>
+              {melding.weather.pasquill && (
+                <div>📈 Pasquill: {melding.weather.pasquill.klasse} ({melding.weather.pasquill.label})</div>
+              )}
             </div>
             {(() => {
               const o = spuitWindOordeel(melding.weather.wind_speed, melding.weather.wind_gusts, melding.drift_waarneming);
@@ -209,6 +229,25 @@ export function MeldingDetailModal({ melding, alleMeldingen, onClose }) {
                 </div>
               );
             })()}
+
+            {knmiKey && (
+              <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+                {!knmiData ? (
+                  <button type="button" className="btn-outline px-2 py-1" style={{ fontSize: '0.6rem' }} onClick={haalKNMIOp} disabled={knmiBezig}>
+                    {knmiBezig ? '⏳ Ophalen...' : '🌦️ Officiële KNMI-data ophalen'}
+                  </button>
+                ) : knmiData.leeg ? (
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Geen KNMI-stationsdata gevonden voor dit tijdstip/locatie</div>
+                ) : (
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontFamily: 'var(--mono)' }}>
+                    <div style={{ color: 'var(--accent)', fontWeight: 700, marginBottom: 4 }}>✓ KNMI station: {knmiData.station} ({knmiData.afstand_km} km)</div>
+                    <div>Wind: {knmiData.windsnelheid} m/s · {knmiData.windrichting}°</div>
+                    <div>Temperatuur: {knmiData.temperatuur}°C · Vochtigheid: {knmiData.luchtvochtigheid}%</div>
+                    <div style={{ color: 'var(--text-muted)', marginTop: 2 }}>{knmiData.bron}</div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

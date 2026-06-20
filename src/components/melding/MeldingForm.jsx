@@ -1,13 +1,16 @@
 import { useRef, useState } from 'react';
 import { useNieuweMeldingForm } from '../../hooks/useNieuweMeldingForm.js';
 import { spuitWindOordeel, degToCompass } from '../../lib/drift/oordeel.js';
+import { berekenPasquillKlasse } from '../../lib/weather/pasquill.js';
 import { bedrijfSuggesties } from '../../lib/meldingen/bedrijf.js';
 import { LocatieKaart } from './LocatieKaart.jsx';
 import { CheckboxDropdown } from './CheckboxDropdown.jsx';
+import { VoortgangBalk } from './VoortgangBalk.jsx';
 import { Toast } from '../ui/Toast.jsx';
 import './MeldingForm.css';
 
 const WEER_STATUS_LABEL = {
+  geen_locatie: 'Plaats eerst de pin op de kaart',
   laden: 'Laden...',
   actueel: 'Actueel',
   fout: 'Fout bij ophalen',
@@ -76,6 +79,20 @@ const WIND_SUBJ_OPTIES = [
   ['vlagerig', '🌪️ Wisselend — onregelmatige windstoten aanwezig']
 ];
 
+const STANDAARD_ZINNEN = [
+  ['🚜', 'Spuitactiviteit waargenomen op aangrenzend/nabijgelegen perceel.'],
+  ['🔭', 'Spuitactiviteit op afstand waargenomen, geen directe blootstelling.'],
+  ['⏱️', 'Spuitactiviteit gedurende langere periode waargenomen.'],
+  ['🌫', 'Spuitnevel zichtbaar driftend richting de woning.'],
+  ['👃', 'Sterke, ongewone chemische geur waargenomen.'],
+  ['📏', 'Spuitactiviteit op minder dan 50 meter van de woning.'],
+  ['🚪', 'Ramen en deuren gesloten vanwege geur/nevel.'],
+  ['🧒', 'Kinderen/huisdieren naar binnen gehaald vanwege blootstelling.'],
+  ['💨', 'Spuitactiviteit bij verhoogde windsnelheid/windvlagen.'],
+  ['🌙', 'Nachtelijke spuitactiviteit, buiten reguliere werktijden.'],
+  ['🚧', 'Geen spuitvrije zone aangehouden richting de woning.']
+];
+
 const GEWAS_OPTGROUPS = [
   ['Sierteelt (hoog risico)', [
     ['Lelie', '🌸 Lelies'], ['Tulp', '🌷 Tulpen'], ['Hyacint', '🌺 Hyacinten'], ['Narcis', '🌼 Narcissen'],
@@ -95,8 +112,11 @@ const GEWAS_OPTGROUPS = [
 export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgeslagen }) {
   const form = useNieuweMeldingForm({ user, thuislocatie, meldingenApi, syncNu });
   const { veld } = form;
+  const kaartRef = useRef(null);
   const typeDropdownRef = useRef(null);
   const descRef = useRef(null);
+  const telerRef = useRef(null);
+  const fotosRef = useRef(null);
   const [telerOpen, setTelerOpen] = useState(false);
   const [bedrijfSuggestiesZichtbaar, setBedrijfSuggestiesZichtbaar] = useState(false);
   const suggesties = bedrijfSuggesties(veld.bedrijfsnaam, meldingenApi.meldingen);
@@ -107,6 +127,20 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
     el?.focus();
   };
 
+  // Navigatie vanuit de voortgangsbalk-stappen (VoortgangBalk.jsx) naar het
+  // bijbehorende formulieronderdeel.
+  const STAP_REFS = {
+    locatie: kaartRef,
+    type: typeDropdownRef,
+    omschrijving: descRef,
+    fotos: fotosRef,
+    teler: telerRef
+  };
+  const handleStapKlik = (key) => {
+    if (key === 'teler') setTelerOpen(true);
+    scrollNaarFout(STAP_REFS[key]?.current);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const ok = await form.submit();
@@ -114,11 +148,21 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
       onOpgeslagen?.();
       return;
     }
-    if (!veld.types.length) {
+    if (veld.lat == null || veld.lng == null) {
+      scrollNaarFout(kaartRef.current);
+    } else if (!veld.types.length) {
       scrollNaarFout(typeDropdownRef.current);
     } else if (!veld.description.trim()) {
       scrollNaarFout(descRef.current);
     }
+  };
+
+  // Voegt een standaardzin toe aan de omschrijving — i.p.v. te vervangen,
+  // zodat de melder eigen details kan blijven toevoegen/combineren.
+  const voegStandaardZinToe = (zin) => {
+    const huidige = veld.description.trim();
+    form.zetVeld('description', huidige ? `${huidige} ${zin}` : zin);
+    descRef.current?.focus();
   };
 
   const handleFotoChange = (e) => {
@@ -128,11 +172,14 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
 
   return (
     <form className="card melding-form" onSubmit={handleSubmit}>
-      <div className="mf-field">
-        <label className="section-label">Locatie</label>
+      <VoortgangBalk veld={veld} onStapKlik={handleStapKlik} />
+
+      <div className="mf-field" ref={kaartRef}>
+        <label className="section-label">Locatie {!veld.lat && <span style={{ color: 'var(--danger)' }}>— plaats de pin op de kaart *</span>}</label>
         <LocatieKaart
           lat={veld.lat}
           lng={veld.lng}
+          kaartCentrum={veld.kaartCentrum}
           homeLocatie={thuislocatie}
           weather={veld.weather}
           onLocatieGewijzigd={form.zetLocatie}
@@ -208,6 +255,12 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
           </div>
         ) : null}
         {veld.weather?.wind_speed != null && (() => {
+          const pasquill = berekenPasquillKlasse(veld.weather.wind_speed, veld.weather.cloud_cover, veld.weather.is_day);
+          return pasquill ? (
+            <div className="mf-weer-pasquill">📊 Pasquill stabiliteitsklasse: <strong>{pasquill.klasse}</strong> ({pasquill.label})</div>
+          ) : null;
+        })()}
+        {veld.weather?.wind_speed != null && (() => {
           const oordeel = spuitWindOordeel(veld.weather.wind_speed, veld.weather.wind_gusts, veld.driftWaarneming);
           return (
             <div className="mf-weer-oordeel" style={{ color: oordeel.kleur, borderColor: `${oordeel.kleur}44`, background: `${oordeel.kleur}18` }}>
@@ -215,7 +268,12 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
             </div>
           );
         })()}
-        <button type="button" className="btn-outline px-3 py-1 mf-weer-refresh" onClick={() => form.haalWeer(veld.lat, veld.lng)}>
+        <button
+          type="button"
+          className="btn-outline px-3 py-1 mf-weer-refresh"
+          disabled={veld.lat == null}
+          onClick={() => form.haalWeer(veld.lat, veld.lng)}
+        >
           ↻ Weerdata vernieuwen
         </button>
       </div>
@@ -238,7 +296,14 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
       />
 
       <div className="mf-field">
-        <label className="section-label" htmlFor="mf-desc">Omschrijving &amp; notities *</label>
+        <div className="mf-desc-header">
+          <label className="section-label" htmlFor="mf-desc">Omschrijving &amp; notities *</label>
+          {veld.description.length > 0 && (
+            <button type="button" className="mf-wis-knop" onClick={() => form.zetVeld('description', '')}>
+              🗑️ Wis alles
+            </button>
+          )}
+        </div>
         <textarea
           id="mf-desc"
           ref={descRef}
@@ -249,6 +314,20 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
           onChange={(e) => form.zetVeld('description', e.target.value)}
           style={Boolean(form.fout) && !veld.description.trim() ? { borderColor: 'var(--danger)', boxShadow: '0 0 0 2px rgba(239,68,68,0.2)' } : undefined}
         />
+        <div className="mf-standaardzinnen">
+          {STANDAARD_ZINNEN.map(([emoji, zin]) => (
+            <button
+              key={zin}
+              type="button"
+              className="mf-standaardzin-chip"
+              title={zin}
+              onClick={() => voegStandaardZinToe(zin)}
+            >
+              <span className="mf-standaardzin-chip-emoji">{emoji}</span>
+              <span>{zin}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="mf-field">
@@ -286,16 +365,9 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
         onToggle={form.toggleDrift}
       />
 
-      <CheckboxDropdown
-        label="Gezondheidsklachten (optioneel)"
-        opties={GEZONDHEID_OPTIES}
-        geselecteerd={veld.gezondheidsklachten}
-        onToggle={(w) => form.toggleInLijst('gezondheidsklachten', w)}
-      />
-
-      <div className="mf-field">
+      <div className="mf-field" ref={telerRef}>
         <button type="button" className="mf-teler-toggle" onClick={() => setTelerOpen((o) => !o)}>
-          <span>Teler &amp; Gewas <span className="mf-teler-optioneel">(Optioneel, tik voor meer opties)</span></span>
+          <span>Teler &amp; Gewas</span>
           <span className="mf-teler-chevron" style={{ transform: telerOpen ? 'rotate(180deg)' : '' }}>▼</span>
         </button>
         {telerOpen && (
@@ -338,7 +410,41 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
         )}
       </div>
 
-      <div className="mf-field">
+      <div className="mf-field mf-gezondheid-toestemming">
+        <label className="mf-checkbox-label">
+          <input
+            type="checkbox"
+            checked={veld.gezondheidToestemming}
+            onChange={(e) => form.zetGezondheidToestemming(e.target.checked)}
+          />
+          Ik geef uitdrukkelijk toestemming voor het registreren van gezondheidsgegevens
+          (bijzondere persoonsgegevens, AVG art. 9). Zonder toestemming kunnen geen
+          gezondheidsklachten worden geregistreerd bij deze melding.
+        </label>
+      </div>
+
+      {veld.gezondheidToestemming && (
+        <CheckboxDropdown
+          label="Gezondheidsklachten (optioneel)"
+          opties={GEZONDHEID_OPTIES}
+          geselecteerd={veld.gezondheidsklachten}
+          onToggle={(w) => form.toggleInLijst('gezondheidsklachten', w)}
+        />
+      )}
+
+      <div className="mf-field mf-buurt-opt-in">
+        <label className="mf-checkbox-label">
+          <input
+            type="checkbox"
+            checked={veld.optInBuurt}
+            onChange={(e) => form.zetVeld('optInBuurt', e.target.checked)}
+          />
+          Deel deze melding met andere melders in de buurt (zij kunnen een
+          notificatie ontvangen als deze melding binnen hun ingestelde bereik valt)
+        </label>
+      </div>
+
+      <div className="mf-field" ref={fotosRef}>
         <label className="section-label">Foto's / video's (bewijsmateriaal)</label>
         <div className="mf-foto-buttons">
           <label className="btn-outline px-3 py-2" style={{ cursor: 'pointer', textAlign: 'center', flex: 1 }}>

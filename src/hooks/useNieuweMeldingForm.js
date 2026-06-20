@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { generateId } from '../utils/format.js';
 import { degToCompass } from '../lib/drift/oordeel.js';
 import { sha256, hashFile } from '../lib/bewijsmateriaal/hash.js';
@@ -13,6 +13,7 @@ import { zoekNatura2000InDeBuurt } from '../lib/pdok/natura2000.js';
 import { zoekKwetsbareLocaties } from '../lib/pdok/kwetsbareLocaties.js';
 import { windWaaitNaarWoning } from '../lib/drift/oordeel.js';
 import { haalWeerdata, windSubjectiefVanSnelheid } from '../lib/weather/openMeteo.js';
+import { berekenPasquillKlasse } from '../lib/weather/pasquill.js';
 import { APP_VERSION_CLIENT } from '../lib/version.js';
 import { SUPABASE_ENABLED } from '../lib/supabase/client.js';
 
@@ -27,12 +28,18 @@ function leegFormulier(thuislocatie) {
     driftWaarneming: ['nvt'],
     richtingDeg: 0,
     gezondheidsklachten: [],
+    gezondheidToestemming: false,
+    optInBuurt: false,
     activiteiten: [...STANDAARD_ACTIVITEITEN],
     bestanden: [],
-    lat: thuislocatie?.lat ?? 52.3676,
-    lng: thuislocatie?.lng ?? 5.2006,
+    // Geen standaard meldpunt — de gebruiker moet de pin zelf op de kaart
+    // plaatsen (klikken/slepen). `kaartCentrum` is alleen waar de kaart
+    // (zonder pin) op start staat, niet de meldingslocatie zelf.
+    lat: null,
+    lng: null,
+    kaartCentrum: { lat: thuislocatie?.lat ?? 52.3676, lng: thuislocatie?.lng ?? 5.2006 },
     gpsAccuracy: null,
-    gpsStatus: 'standaard locatie',
+    gpsStatus: 'nog niet geplaatst',
     perceelnummer: null,
     perceelStatus: null,
     afstandWoning: null,
@@ -44,7 +51,7 @@ function leegFormulier(thuislocatie) {
     bedrijfsnaam: '',
     gewas: '',
     weather: null,
-    weatherStatus: 'laden'
+    weatherStatus: 'geen_locatie'
   };
 }
 
@@ -72,6 +79,16 @@ export function useNieuweMeldingForm({ user, thuislocatie, meldingenApi, syncNu 
         : [...lijst, waarde];
       return { ...v, [naam]: next };
     });
+  }, []);
+
+  // AVG art. 9: gezondheidsgegevens zijn bijzondere persoonsgegevens — vereisen
+  // uitdrukkelijke toestemming. Intrekken wist meteen de al gekozen klachten.
+  const zetGezondheidToestemming = useCallback((toestemming) => {
+    setVeld((v) => ({
+      ...v,
+      gezondheidToestemming: toestemming,
+      gezondheidsklachten: toestemming ? v.gezondheidsklachten : []
+    }));
   }, []);
 
   // Drift-checkbox 'nvt' is exclusief met de overige drift-opties
@@ -137,6 +154,14 @@ export function useNieuweMeldingForm({ user, thuislocatie, meldingenApi, syncNu 
       })
       .catch(() => setVeld((v) => ({ ...v, perceelStatus: 'Opvragen mislukt' })));
 
+    zoekNatura2000InDeBuurt(lat, lng)
+      .then((natura2000) => setVeld((v) => ({ ...v, natura2000 })))
+      .catch(() => setVeld((v) => ({ ...v, natura2000: null })));
+
+    // Woningafstand staat al apart vermeld (zie afstandWoning hieronder) —
+    // hier alleen de óvérige kwetsbare locaties (speeltuin, school, zorg,
+    // ...), op afstand gesorteerd. Afstand wordt berekend tot de rand van
+    // het gebouw, niet het centroïde (zie lib/geo/polygonAfstand.js).
     zoekDichtstbijzijndeWoning(lat, lng)
       .then((woning) => {
         setVeld((v) => ({
@@ -148,10 +173,6 @@ export function useNieuweMeldingForm({ user, thuislocatie, meldingenApi, syncNu 
         }));
       })
       .catch(() => setVeld((v) => ({ ...v, afstandStatus: 'Afstand berekenen mislukt' })));
-
-    zoekNatura2000InDeBuurt(lat, lng)
-      .then((natura2000) => setVeld((v) => ({ ...v, natura2000 })))
-      .catch(() => setVeld((v) => ({ ...v, natura2000: null })));
 
     zoekKwetsbareLocaties(lat, lng)
       .then((kwetsbareLocaties) => setVeld((v) => ({ ...v, kwetsbareLocaties })))
@@ -172,14 +193,6 @@ export function useNieuweMeldingForm({ user, thuislocatie, meldingenApi, syncNu 
       ? { waait: true, windDeg, hoekNaarWoning: analyse.hoekNaarWoning, afstandM: veld.afstandWoning }
       : null;
   }, [veld.weather?.wind_dir, veld.afstandWoningLat, veld.afstandWoningLng, veld.lat, veld.lng, veld.afstandWoning]);
-
-  // Eerste weerdata ophalen voor de startlocatie (de pin staat bij het laden
-  // van het formulier al op de thuislocatie/standaardlocatie)
-  useEffect(() => {
-    const timer = setTimeout(() => haalWeer(veld.lat, veld.lng), 0);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const voegBestandenToe = useCallback(async (files) => {
     for (const file of Array.from(files)) {
@@ -221,6 +234,10 @@ export function useNieuweMeldingForm({ user, thuislocatie, meldingenApi, syncNu 
   const submit = useCallback(async () => {
     setFout(null);
 
+    if (veld.lat == null || veld.lng == null) {
+      setFout('Plaats de meldingspin op de kaart — klik op de juiste locatie');
+      return false;
+    }
     if (!veld.types.length) {
       setFout('Selecteer minstens één type waarneming');
       return false;
@@ -271,8 +288,12 @@ export function useNieuweMeldingForm({ user, thuislocatie, meldingenApi, syncNu 
         richting_deg: richtingDeg,
         richting_compass: degToCompass(richtingDeg),
         gezondheidsklachten: veld.gezondheidsklachten,
+        gezondheid_toestemming: veld.gezondheidToestemming,
+        opt_in_buurt: veld.optInBuurt,
         activiteiten: veld.activiteiten,
-        weather: veld.weather || { status: 'niet beschikbaar' },
+        weather: veld.weather
+          ? { ...veld.weather, pasquill: berekenPasquillKlasse(veld.weather.wind_speed, veld.weather.cloud_cover, veld.weather.is_day) }
+          : { status: 'niet beschikbaar' },
         bestanden: veld.bestanden.map((f) => ({
           name: f.name,
           type: f.type,
@@ -346,6 +367,7 @@ export function useNieuweMeldingForm({ user, thuislocatie, meldingenApi, syncNu 
     weerMelding,
     zetVeld,
     toggleInLijst,
+    zetGezondheidToestemming,
     toggleDrift,
     zetLocatie,
     haalWeer,

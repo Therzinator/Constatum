@@ -26,8 +26,12 @@
 
 .locatie-kaart .leaflet-popup-content-wrapper,
 .locatie-kaart .leaflet-popup-tip {
-  background: var(--bg-card);
-  color: var(--text-primary);
+  background: #ffffff;
+  color: #1a1a2e;
+}
+.locatie-kaart .leaflet-popup-content-wrapper {
+  border: 1px solid var(--border-bright);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 .locatie-kaart .wind-popup-close:hover {
   color: var(--danger) !important;

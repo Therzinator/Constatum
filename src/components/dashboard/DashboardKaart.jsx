@@ -79,9 +79,10 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
     driftLaagRef.current = L.layerGroup();
 
     mapRef.current = map;
-    setTimeout(() => map.invalidateSize(), 100);
+    const invalidateTimer = setTimeout(() => map.invalidateSize(), 100);
 
     return () => {
+      clearTimeout(invalidateTimer);
       map.remove();
       mapRef.current = null;
       markersLaagRef.current = null;
