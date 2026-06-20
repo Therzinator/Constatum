@@ -14,6 +14,7 @@ import { MeldingForm } from './components/melding/MeldingForm.jsx'
 import { DashboardPage } from './components/dashboard/DashboardPage.jsx'
 import { TijdlijnPage } from './components/meldingen/TijdlijnPage.jsx'
 import { ExportPage } from './components/export/ExportPage.jsx'
+import { InstellingenPage } from './components/instellingen/InstellingenPage.jsx'
 import { CoordinatiePage } from './components/coordinatie/CoordinatiePage.jsx'
 import { BottomNav } from './components/nav/BottomNav.jsx'
 import { isAdmin } from './lib/rollen.js'
@@ -66,6 +67,12 @@ function App() {
         <ExportPage
           meldingenApi={meldingenApi}
           thuislocatie={thuislocatieApi.thuislocatie}
+        />
+      )}
+
+      {pagina === 'instellingen' && (
+        <InstellingenPage
+          meldingenApi={meldingenApi}
           gebruikerRol={auth.gebruikerRol}
           user={auth.user}
           laadVanCloud={sync.laadVanCloud}

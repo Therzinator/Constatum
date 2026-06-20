@@ -5,14 +5,14 @@ const TABS = [
   ['dashboard', '📊', 'Dashboard'],
   ['melding', '📝', 'Melding'],
   ['tijdlijn', '🕐', 'Tijdlijn'],
-  ['export', '💾', 'Export']
+  ['export', '💾', 'Export'],
+  ['instellingen', '⚙️', 'Instellingen']
 ];
 
 // Komt overeen met de bottom-tab-navigatie uit docs/index.html
-// (showPage/tab-dashboard/tab-melding/tab-tijdlijn/tab-export). Instellingen
-// volgt als eigen tab in een latere fase. "Coördinatie" (Fase 4) is alleen
-// zichtbaar voor admins — de echte afscherming gebeurt via RLS, dit is
-// puur UI.
+// (showPage/tab-dashboard/tab-melding/tab-tijdlijn/tab-export/
+// tab-instellingen, Fase G). "Coördinatie" (Fase 4) is alleen zichtbaar
+// voor admins — de echte afscherming gebeurt via RLS, dit is puur UI.
 export function BottomNav({ pagina, onPaginaChange, gebruikerRol }) {
   const tabs = isAdmin(gebruikerRol) ? [...TABS, ['coordinatie', '🛡️', 'Coördinatie']] : TABS;
   return (

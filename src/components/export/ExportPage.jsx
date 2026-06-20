@@ -4,27 +4,19 @@ import { meldingenNaarJSONBackup } from '../../lib/export/json.js';
 import { genereerDossierHTML, openDossierPDF } from '../../lib/export/pdf.js';
 import { downloadFile } from '../../lib/export/download.js';
 import { getStorageSize } from '../../lib/storage/localStorage.js';
-import { idbCountBijlagen, idbVerwijderVerweesdeBijlagen } from '../../lib/storage/indexedDB.js';
+import { idbCountBijlagen } from '../../lib/storage/indexedDB.js';
 import { Toast } from '../ui/Toast.jsx';
-import { PrullenbakCard } from './PrullenbakCard.jsx';
-import { NotificatieInstellingen } from '../notificaties/NotificatieInstellingen.jsx';
-import { DeelVoorkeurInstelling } from '../notificaties/DeelVoorkeurInstelling.jsx';
-import { KNMIInstellingen } from './KNMIInstellingen.jsx';
-import { TrustIndicator } from './TrustIndicator.jsx';
-import { useGebruikersProfiel } from '../../hooks/useGebruikersProfiel.js';
 import './ExportPage.css';
 
-// Komt overeen met de pagina 'export' (CSV/JSON/dossier-info, bron regel
-// 1299-1419) plus de opslag-opschonen/gevaarzone-kaarten die in de bron op
-// de Instellingen-pagina staan (regel 1569-1602) — die pagina bestaat in
-// deze app nog niet (Fase G), dus opslagbeheer staat hier alvast bij de
-// rest van "data-beheer". PDF-export is een latere, eigen stap.
-export function ExportPage({ meldingenApi, thuislocatie, gebruikerRol, user, laadVanCloud, notificatieApi }) {
-  const { meldingen, importeerMeldingen, verwijderAlleMeldingenLokaal } = meldingenApi;
+// Komt overeen met de pagina 'export' uit docs/index.html (CSV/JSON/
+// dossier-info, bron regel 1299-1419). Opslagbeheer, gevaarzone en
+// account-/notificatie-instellingen staan sinds Fase G op hun eigen
+// Instellingen-pagina (zie InstellingenPage.jsx).
+export function ExportPage({ meldingenApi, thuislocatie }) {
+  const { meldingen, importeerMeldingen } = meldingenApi;
   const [idbCount, setIdbCount] = useState(null);
   const [melding, setMelding] = useState(null);
   const importInputRef = useRef(null);
-  const profiel = useGebruikersProfiel(user);
 
   useEffect(() => {
     idbCountBijlagen().then(setIdbCount);
@@ -77,21 +69,6 @@ export function ExportPage({ meldingenApi, thuislocatie, gebruikerRol, user, laa
       }
     };
     reader.readAsText(file);
-  };
-
-  const handleOpslagOpschonen = async () => {
-    const geldigeIds = new Set(meldingen.map((m) => m.id));
-    const aantal = await idbVerwijderVerweesdeBijlagen(geldigeIds);
-    if (aantal === 0) toon('Geen verouderde bijlagen gevonden', 'success');
-    else toon(`✓ ${aantal} verouderde bijlagen verwijderd`, 'success');
-    idbCountBijlagen().then(setIdbCount);
-  };
-
-  const handleAllesVerwijderen = async () => {
-    if (!confirm('⚠️ WAARSCHUWING: Alle meldingen worden permanent verwijderd. Maak eerst een backup!\n\nDoorgaan?')) return;
-    if (!confirm('Weet u het zeker? Dit kan NIET ongedaan worden gemaakt.')) return;
-    await verwijderAlleMeldingenLokaal();
-    toon('Alle data verwijderd (localStorage + IndexedDB)', 'error');
   };
 
   const dates = meldingen.map((m) => new Date(m.timestamp_local)).sort((a, b) => a - b);
@@ -158,34 +135,6 @@ export function ExportPage({ meldingenApi, thuislocatie, gebruikerRol, user, laa
         <div className="export-info-rij"><span>Bijlagen (totaal):</span><span className="export-info-waarde-info">{totaalBijlagen}</span></div>
         <div className="export-info-rij"><span>Bijlagen in IndexedDB:</span><span className="export-info-waarde-accent">{idbCount ?? '—'}</span></div>
       </div>
-
-      <div className="card p-4 export-opschonen">
-        <div className="section-label mb-2" style={{ color: 'var(--info)' }}>🧹 Opslag Opschonen</div>
-        <div className="export-card-beschrijving mb-3">
-          Verwijdert tijdelijke cache en oude previews uit IndexedDB. <strong>Meldingen blijven behouden.</strong>
-        </div>
-        <button type="button" className="btn-outline px-4 py-2" style={{ borderColor: 'var(--info)', color: 'var(--info)' }} onClick={handleOpslagOpschonen}>
-          🧹 Verwijder bijlagen zonder melding
-        </button>
-      </div>
-
-      <div className="card p-4 export-gevaarzone">
-        <div className="section-label mb-2" style={{ color: 'var(--danger)' }}>⚠️ Gevaarzone</div>
-        <div className="export-card-beschrijving mb-3">Verwijder alle lokaal opgeslagen meldingen. Dit kan niet ongedaan worden gemaakt.</div>
-        <button type="button" className="btn-outline px-4 py-2" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }} onClick={handleAllesVerwijderen}>
-          🗑️ Alle data verwijderen
-        </button>
-      </div>
-
-      <TrustIndicator profiel={profiel} />
-
-      <NotificatieInstellingen notificatieApi={notificatieApi} />
-
-      <DeelVoorkeurInstelling />
-
-      <KNMIInstellingen />
-
-      <PrullenbakCard gebruikerRol={gebruikerRol} user={user} laadVanCloud={laadVanCloud} />
 
       <Toast melding={melding} />
     </div>
