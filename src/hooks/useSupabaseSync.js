@@ -17,6 +17,7 @@ export function useSupabaseSync(user, meldingenApi, onNieuweEntry) {
   const [syncBezig, setSyncBezig] = useState(false);
   const [syncStatus, setSyncStatus] = useState('idle'); // idle | bezig | ok | fout | offline
   const realtimeChannelRef = useRef(null);
+  const reloadTimerRef = useRef(null);
 
   const {
     offlineQueue,
@@ -135,12 +136,16 @@ export function useSupabaseSync(user, meldingenApi, onNieuweEntry) {
         schema: 'public',
         table: 'entries',
       }, payload => {
-        console.log('[Realtime] Wijziging ontvangen:', payload.eventType, payload.new?.id);
         if (payload.eventType === 'INSERT' && onNieuweEntry) {
           onNieuweEntry(payload.new);
         }
-        // Kleine vertraging zodat Supabase REST ook bijgewerkt is
-        setTimeout(() => { laadVanCloud(); }, 500);
+        // Gedebounced i.p.v. een setTimeout per event — bij een burst van
+        // wijzigingen (bv. de admin-postcode-backfill die tientallen rijen
+        // achter elkaar update) joeg elk event een eigen volledige reload
+        // van alle meldingen (incl. N+1 bijlagen-queries) los, wat de app
+        // tijdens/na zo'n actie onbruikbaar traag maakte.
+        clearTimeout(reloadTimerRef.current);
+        reloadTimerRef.current = setTimeout(() => { laadVanCloud(); }, 800);
       })
       .subscribe(status => {
         console.log('[Realtime] Status:', status);
@@ -148,6 +153,7 @@ export function useSupabaseSync(user, meldingenApi, onNieuweEntry) {
   }, [user, laadVanCloud, onNieuweEntry]);
 
   const stopRealtime = useCallback(() => {
+    clearTimeout(reloadTimerRef.current);
     if (realtimeChannelRef.current) {
       realtimeChannelRef.current.unsubscribe();
       realtimeChannelRef.current = null;
