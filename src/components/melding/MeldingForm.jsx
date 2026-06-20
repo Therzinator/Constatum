@@ -431,7 +431,7 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
 
       {veld.gezondheidToestemming && (
         <CheckboxDropdown
-          label="Gezondheidsklachten (optioneel)"
+          label="Welke klachten ervaar je?"
           opties={GEZONDHEID_OPTIES}
           geselecteerd={veld.gezondheidsklachten}
           onToggle={(w) => form.toggleInLijst('gezondheidsklachten', w)}
