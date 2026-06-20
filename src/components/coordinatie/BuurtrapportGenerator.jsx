@@ -110,7 +110,15 @@ export function BuurtrapportGenerator({ user }) {
 
       <label className="export-info-rij">
         <span>Postcodegebied (4 cijfers)</span>
-        <input type="text" maxLength={4} value={postcodegebied} onChange={(e) => setPostcodegebied(e.target.value)} placeholder="1234" />
+        <input
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={4}
+          value={postcodegebied}
+          onChange={(e) => setPostcodegebied(e.target.value)}
+          placeholder="1234"
+        />
       </label>
       <label className="export-info-rij">
         <span>Periode van</span>

@@ -119,6 +119,10 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
   const fotosRef = useRef(null);
   const [telerOpen, setTelerOpen] = useState(true);
   const [bedrijfSuggestiesZichtbaar, setBedrijfSuggestiesZichtbaar] = useState(false);
+  // Baymard: valideer zodra een gebruiker een veld verlaat, niet pas bij
+  // submit — toont de foutstaat dus al eerder dan form.fout (die alleen
+  // gezet wordt na een submit-poging).
+  const [aangeraakt, setAangeraakt] = useState({ type: false, omschrijving: false });
   const suggesties = bedrijfSuggesties(veld.bedrijfsnaam, meldingenApi.meldingen);
 
   // Komt overeen met scrollNaarEersteFout() — springt naar het eerste ongeldige veld
@@ -290,7 +294,8 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
         geselecteerd={veld.types}
         onToggle={(w) => form.toggleInLijst('types', w)}
         placeholder="Selecteer type(s)..."
-        fout={Boolean(form.fout) && !veld.types.length}
+        fout={(Boolean(form.fout) || aangeraakt.type) && !veld.types.length}
+        onClose={() => setAangeraakt((a) => ({ ...a, type: true }))}
       />
 
       <CheckboxDropdown
@@ -317,7 +322,8 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
           placeholder="Beschrijf wat je waarneemt: tijd, locatie, activiteit, omstandigheden..."
           value={veld.description}
           onChange={(e) => form.zetVeld('description', e.target.value)}
-          style={Boolean(form.fout) && !veld.description.trim() ? { borderColor: 'var(--danger)', boxShadow: '0 0 0 2px rgba(239,68,68,0.2)' } : undefined}
+          onBlur={() => setAangeraakt((a) => ({ ...a, omschrijving: true }))}
+          style={(Boolean(form.fout) || aangeraakt.omschrijving) && !veld.description.trim() ? { borderColor: 'var(--danger)', boxShadow: '0 0 0 2px rgba(239,68,68,0.2)' } : undefined}
         />
         <div className="mf-standaardzinnen">
           {STANDAARD_ZINNEN.map(([emoji, zin]) => (

@@ -5,7 +5,7 @@ import './CheckboxDropdown.css';
 // (toggleDriftDropdown/toggleActiviteitDropdown/toggleGezondheid e.d.):
 // een knop met samenvatting die, ingeklapt, een paneel met checkboxes toont.
 export const CheckboxDropdown = forwardRef(function CheckboxDropdown(
-  { label, opties, geselecteerd, onToggle, placeholder = 'Niets geselecteerd', fout, labelMap },
+  { label, opties, geselecteerd, onToggle, placeholder = 'Niets geselecteerd', fout, labelMap, onClose },
   ref
 ) {
   const [open, setOpen] = useState(false);
@@ -14,6 +14,15 @@ export const CheckboxDropdown = forwardRef(function CheckboxDropdown(
     ? geselecteerd.map((w) => (labelMap ? labelMap[w] : opties.find(([v]) => v === w)?.[1]) || w).join(' · ')
     : placeholder;
 
+  // Sluiten van de dropdown geldt als "veld verlaten" — Baymard-richtlijn:
+  // valideer zodra een gebruiker een veld verlaat, niet pas bij submit.
+  const handleToggle = () => {
+    setOpen((huidig) => {
+      if (huidig) onClose?.();
+      return !huidig;
+    });
+  };
+
   return (
     <div className="cd-field">
       <label className="section-label">{label}</label>
@@ -21,7 +30,7 @@ export const CheckboxDropdown = forwardRef(function CheckboxDropdown(
         ref={ref}
         type="button"
         className={`cd-trigger ${fout ? 'cd-trigger-fout' : ''}`}
-        onClick={() => setOpen((o) => !o)}
+        onClick={handleToggle}
       >
         <span style={{ color: geselecteerd.length ? 'var(--text-primary)' : 'var(--text-muted)' }}>{samenvatting}</span>
         <span className="cd-chevron">{open ? '▲' : '▼'}</span>
