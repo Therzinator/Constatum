@@ -1,0 +1,13 @@
+.coordinatie-melder-rij {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+.coordinatie-melder-rij:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+.coordinatie-trust-input {
+  width: 60px;
+  text-align: right;
+}

@@ -1,3 +1,4 @@
+import { isAdmin } from '../../lib/rollen.js';
 import './BottomNav.css';
 
 const TABS = [
@@ -9,11 +10,14 @@ const TABS = [
 
 // Komt overeen met de bottom-tab-navigatie uit docs/index.html
 // (showPage/tab-dashboard/tab-melding/tab-tijdlijn/tab-export). Instellingen
-// volgt als eigen tab in een latere fase.
-export function BottomNav({ pagina, onPaginaChange }) {
+// volgt als eigen tab in een latere fase. "Coördinatie" (Fase 4) is alleen
+// zichtbaar voor admins — de echte afscherming gebeurt via RLS, dit is
+// puur UI.
+export function BottomNav({ pagina, onPaginaChange, gebruikerRol }) {
+  const tabs = isAdmin(gebruikerRol) ? [...TABS, ['coordinatie', '🛡️', 'Coördinatie']] : TABS;
   return (
     <nav className="bottom-nav">
-      {TABS.map(([naam, icoon, label]) => (
+      {tabs.map(([naam, icoon, label]) => (
         <button
           key={naam}
           type="button"

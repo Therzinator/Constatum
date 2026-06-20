@@ -50,6 +50,7 @@ export async function sbSyncMelding(melding, user) {
     melder_email:         melderEmailHash,          // SHA-256 hash, niet plaintext
     bedrijfsnaam:         melding.bedrijfsnaam     || null,
     perceelnummer:        melding.perceelnummer    || null,
+    postcode:             melding.postcode         || null,
     gewas:                melding.gewas            || null,
     sync_status:          'synced',
     warnings:             melding.warnings         || [],
@@ -125,6 +126,7 @@ export async function laadVanSupabase(user, force = false) {
       wind_subjectief:     entry.wind_subjectief  || null,
       bedrijfsnaam:        entry.bedrijfsnaam || null,
       perceelnummer:       entry.perceelnummer || null,
+      postcode:            entry.postcode || null,
       gewas:               entry.gewas || null,
       afstand_woning:      entry.afstand_woning || null,
       gezondheidsklachten: entry.gezondheidsklachten || [],

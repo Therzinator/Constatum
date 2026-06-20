@@ -14,7 +14,9 @@ import { MeldingForm } from './components/melding/MeldingForm.jsx'
 import { DashboardPage } from './components/dashboard/DashboardPage.jsx'
 import { TijdlijnPage } from './components/meldingen/TijdlijnPage.jsx'
 import { ExportPage } from './components/export/ExportPage.jsx'
+import { CoordinatiePage } from './components/coordinatie/CoordinatiePage.jsx'
 import { BottomNav } from './components/nav/BottomNav.jsx'
+import { isAdmin } from './lib/rollen.js'
 
 function App() {
   const [pagina, setPagina] = useState('dashboard')
@@ -71,7 +73,11 @@ function App() {
         />
       )}
 
-      <BottomNav pagina={pagina} onPaginaChange={setPagina} />
+      {pagina === 'coordinatie' && isAdmin(auth.gebruikerRol) && (
+        <CoordinatiePage />
+      )}
+
+      <BottomNav pagina={pagina} onPaginaChange={setPagina} gebruikerRol={auth.gebruikerRol} />
     </>
   )
 }
