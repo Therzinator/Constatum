@@ -140,8 +140,10 @@ export function MeldingDetailModal({ melding, alleMeldingen, onClose }) {
             </div>
           )}
 
-          {(melding.perceelnummer || melding.afstand_woning != null) && (
+          {(melding.bedrijfsnaam || melding.gewas || melding.perceelnummer || melding.afstand_woning != null) && (
             <div className="detail-teler-block">
+              {melding.bedrijfsnaam && <div>🏢 {melding.bedrijfsnaam}</div>}
+              {melding.gewas && <div>🌱 {melding.gewas}</div>}
               {melding.perceelnummer && <div style={{ fontFamily: 'var(--mono)' }}>📋 {melding.perceelnummer}</div>}
               {melding.afstand_woning != null && (
                 <div style={{ color: melding.afstand_woning < 50 ? 'var(--danger)' : melding.afstand_woning < 100 ? 'var(--warning)' : 'var(--accent)' }}>

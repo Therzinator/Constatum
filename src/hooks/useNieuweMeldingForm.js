@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { generateId } from '../utils/format.js';
 import { degToCompass } from '../lib/drift/oordeel.js';
 import { sha256, hashFile } from '../lib/bewijsmateriaal/hash.js';
@@ -41,7 +41,8 @@ function leegFormulier(thuislocatie) {
     afstandStatus: null,
     natura2000: null,
     kwetsbareLocaties: [],
-    windNaarWoning: null,
+    bedrijfsnaam: '',
+    gewas: '',
     weather: null,
     weatherStatus: 'laden'
   };
@@ -159,21 +160,18 @@ export function useNieuweMeldingForm({ user, thuislocatie, meldingenApi, syncNu 
     if (metWeer) haalWeer(lat, lng);
   }, [haalWeer]);
 
-  // Wind-naar-woning-analyse: kan pas berekend worden zodra zowel de
-  // woninglocatie (zetLocatie) als de windrichting (haalWeer, async en later)
-  // bekend zijn — komt overeen met het windanalyse-deel van
-  // detecteerAfstandEnNatura2000() uit docs/index.html.
-  useEffect(() => {
+  // Wind-naar-woning-analyse: afgeleide waarde (geen state) — kan pas
+  // berekend worden zodra zowel de woninglocatie (zetLocatie) als de
+  // windrichting (haalWeer, async en later) bekend zijn. Komt overeen met
+  // het windanalyse-deel van detecteerAfstandEnNatura2000() uit docs/index.html.
+  const windNaarWoning = useMemo(() => {
     const windDeg = veld.weather?.wind_dir;
-    if (windDeg == null || veld.afstandWoningLat == null || veld.afstandWoningLng == null) return;
+    if (windDeg == null || veld.afstandWoningLat == null || veld.afstandWoningLng == null) return null;
     const analyse = windWaaitNaarWoning(windDeg, veld.lat, veld.lng, veld.afstandWoningLat, veld.afstandWoningLng);
-    setVeld((v) => ({
-      ...v,
-      windNaarWoning: analyse?.waait
-        ? { waait: true, windDeg, hoekNaarWoning: analyse.hoekNaarWoning, afstandM: v.afstandWoning }
-        : null
-    }));
-  }, [veld.weather?.wind_dir, veld.afstandWoningLat, veld.afstandWoningLng, veld.lat, veld.lng]);
+    return analyse?.waait
+      ? { waait: true, windDeg, hoekNaarWoning: analyse.hoekNaarWoning, afstandM: veld.afstandWoning }
+      : null;
+  }, [veld.weather?.wind_dir, veld.afstandWoningLat, veld.afstandWoningLng, veld.lat, veld.lng, veld.afstandWoning]);
 
   // Eerste weerdata ophalen voor de startlocatie (de pin staat bij het laden
   // van het formulier al op de thuislocatie/standaardlocatie)
@@ -262,9 +260,11 @@ export function useNieuweMeldingForm({ user, thuislocatie, meldingenApi, syncNu 
         melder_email: user?.email ? await sha256(user.email) : null,
         perceelnummer: veld.perceelnummer || null,
         afstand_woning: veld.afstandWoning ?? null,
-        wind_naar_woning: veld.windNaarWoning,
+        wind_naar_woning: windNaarWoning,
         natura2000: veld.natura2000,
         kwetsbare_locaties: veld.kwetsbareLocaties,
+        bedrijfsnaam: veld.bedrijfsnaam.trim() || null,
+        gewas: veld.gewas || null,
         geur_intensiteit: veld.geurIntensiteit,
         wind_subjectief: veld.windSubjectief,
         drift_waarneming: veld.driftWaarneming.filter((d) => d !== 'nvt'),
@@ -335,10 +335,11 @@ export function useNieuweMeldingForm({ user, thuislocatie, meldingenApi, syncNu 
       setBusy(false);
       setStap(null);
     }
-  }, [veld, user, meldingenApi, syncNu, reset]);
+  }, [veld, user, meldingenApi, syncNu, reset, windNaarWoning]);
 
   return {
     veld,
+    windNaarWoning,
     busy,
     stap,
     fout,

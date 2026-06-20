@@ -1,6 +1,7 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useNieuweMeldingForm } from '../../hooks/useNieuweMeldingForm.js';
 import { spuitWindOordeel, degToCompass } from '../../lib/drift/oordeel.js';
+import { bedrijfSuggesties } from '../../lib/meldingen/bedrijf.js';
 import { LocatieKaart } from './LocatieKaart.jsx';
 import { CheckboxDropdown } from './CheckboxDropdown.jsx';
 import { Toast } from '../ui/Toast.jsx';
@@ -75,6 +76,20 @@ const WIND_SUBJ_OPTIES = [
   ['vlagerig', '🌪️ Wisselend — onregelmatige windstoten aanwezig']
 ];
 
+const GEWAS_OPTGROUPS = [
+  ['Sierteelt (hoog risico)', [
+    ['Lelie', '🌸 Lelies'], ['Tulp', '🌷 Tulpen'], ['Hyacint', '🌺 Hyacinten'], ['Narcis', '🌼 Narcissen'],
+    ['Gladiool', '🌻 Gladiolen'], ['Pioenroos', '🌹 Pioenrozen'], ['Dahlia', '🌸 Dahlia'], ['Overige sierteelt', '🌿 Overige sierteelt']
+  ]],
+  ['Akkerbouw', [
+    ['Aardappel', '🥔 Aardappelen'], ['Suikerbiet', '🌱 Suikerbieten'], ['Tarwe', '🌾 Tarwe/Granen'],
+    ['Mais', '🌽 Maïs'], ['Ui', '🧅 Uien'], ['Prei', '🥬 Prei'], ['Overige akkerbouw', '🌱 Overige akkerbouw']
+  ]],
+  ['Overig', [
+    ['Grasland', '🌿 Grasland'], ['Fruitteelt', '🍎 Fruitteelt'], ['Boomkwekerij', '🌳 Boomkwekerij'], ['Overig', '📝 Overig']
+  ]]
+];
+
 // Komt overeen met het basisformulier-gedeelte van het meldingsformulier uit
 // docs/index.html (zonder kaart/PDOK-perceel/weerdata — zie useNieuweMeldingForm.js).
 export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgeslagen }) {
@@ -82,6 +97,9 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
   const { veld } = form;
   const typeDropdownRef = useRef(null);
   const descRef = useRef(null);
+  const [telerOpen, setTelerOpen] = useState(false);
+  const [bedrijfSuggestiesZichtbaar, setBedrijfSuggestiesZichtbaar] = useState(false);
+  const suggesties = bedrijfSuggesties(veld.bedrijfsnaam, meldingenApi.meldingen);
 
   // Komt overeen met scrollNaarEersteFout() — springt naar het eerste ongeldige veld
   const scrollNaarFout = (el) => {
@@ -147,9 +165,9 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
             veld.afstandStatus || 'Wordt berekend na plaatsen pin op perceel'
           )}
         </div>
-        {veld.windNaarWoning?.waait && (
+        {form.windNaarWoning?.waait && (
           <div className="locatie-kaart-wind-woning">
-            💨 Wind waait naar woning ({veld.windNaarWoning.windDeg}° → {veld.windNaarWoning.hoekNaarWoning}°)
+            💨 Wind waait naar woning ({form.windNaarWoning.windDeg}° → {form.windNaarWoning.hoekNaarWoning}°)
           </div>
         )}
         {veld.natura2000 && (
@@ -274,6 +292,51 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
         geselecteerd={veld.gezondheidsklachten}
         onToggle={(w) => form.toggleInLijst('gezondheidsklachten', w)}
       />
+
+      <div className="mf-field">
+        <button type="button" className="mf-teler-toggle" onClick={() => setTelerOpen((o) => !o)}>
+          <span>Teler &amp; Gewas <span className="mf-teler-optioneel">(Optioneel, tik voor meer opties)</span></span>
+          <span className="mf-teler-chevron" style={{ transform: telerOpen ? 'rotate(180deg)' : '' }}>▼</span>
+        </button>
+        {telerOpen && (
+          <div className="mf-teler-panel">
+            <div className="mf-teler-bedrijf-wrap">
+              <label className="section-label" htmlFor="mf-bedrijfsnaam">Bedrijfsnaam teler</label>
+              <input
+                id="mf-bedrijfsnaam"
+                type="text"
+                className="form-input"
+                autoComplete="off"
+                placeholder="bijv. Loonbedrijf Jansen"
+                value={veld.bedrijfsnaam}
+                onChange={(e) => { form.zetVeld('bedrijfsnaam', e.target.value); setBedrijfSuggestiesZichtbaar(true); }}
+                onBlur={() => setTimeout(() => setBedrijfSuggestiesZichtbaar(false), 200)}
+              />
+              {bedrijfSuggestiesZichtbaar && suggesties.length > 0 && (
+                <div className="mf-teler-suggesties">
+                  {suggesties.map((naam) => (
+                    <div key={naam} className="mf-teler-suggestie" onClick={() => { form.zetVeld('bedrijfsnaam', naam); setBedrijfSuggestiesZichtbaar(false); }}>
+                      🏢 {naam}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="mf-field">
+              <label className="section-label" htmlFor="mf-gewas">Gewas</label>
+              <select id="mf-gewas" className="mf-select" value={veld.gewas} onChange={(e) => form.zetVeld('gewas', e.target.value)}>
+                <option value="">— Onbekend gewas —</option>
+                {GEWAS_OPTGROUPS.map(([groep, opties]) => (
+                  <optgroup key={groep} label={groep}>
+                    {opties.map(([waarde, label]) => <option key={waarde} value={waarde}>{label}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="mf-field">
         <label className="section-label">Foto's / video's (bewijsmateriaal)</label>
