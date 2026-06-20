@@ -5,7 +5,7 @@ export async function haalWeerdata(lat, lng) {
   const timeoutId = setTimeout(() => controller.abort(), 8000);
 
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,precipitation,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=kmh&timezone=auto`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,precipitation,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,cloud_cover,is_day&wind_speed_unit=kmh&timezone=auto`;
     const res = await fetch(url, { signal: controller.signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
@@ -23,6 +23,8 @@ export async function haalWeerdata(lat, lng) {
       humidity: c.relative_humidity_2m,
       precipitation: c.precipitation,
       pressure: c.surface_pressure,
+      cloud_cover: c.cloud_cover ?? null,
+      is_day: c.is_day === 1,
       source: 'Open-Meteo API',
       timestamp: new Date().toISOString(),
       lat,
