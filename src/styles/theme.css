@@ -1,0 +1,153 @@
+/* Design tokens overgenomen uit docs/index.html (:root, .btn-primary, .form-input) */
+:root {
+  --bg-primary: #0a0e17;
+  --bg-secondary: #0f1523;
+  --bg-card: #131927;
+  --bg-card-hover: #1a2133;
+  --border: #1e2d45;
+  --border-bright: #2a3f5f;
+  --accent: #00d4aa;
+  --accent-dim: #00a882;
+  --accent-glow: rgba(0, 212, 170, 0.15);
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
+  --text-primary: #e8edf5;
+  --text-secondary: #7a90b0;
+  --text-muted: #4a5d78;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--bg-primary);
+  font-family: var(--sans);
+  font-weight: 700;
+  border-radius: 10px;
+  transition: all 0.2s;
+  letter-spacing: 0.03em;
+  border: none;
+  cursor: pointer;
+}
+.btn-primary:active { transform: scale(0.97); }
+.btn-primary:disabled { opacity: 0.6; cursor: default; transform: none; }
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border-bright);
+  color: var(--text-secondary);
+  border-radius: 10px;
+  transition: all 0.2s;
+}
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+.form-input {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  border-radius: 8px;
+  font-family: var(--sans);
+  transition: border-color 0.2s;
+  width: 100%;
+  min-height: 48px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.form-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.section-label {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.badge {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+.badge-accent  { background: var(--accent-glow);          color: var(--accent);         border: 1px solid var(--accent-dim); }
+.badge-warning { background: rgba(245, 158, 11, 0.1);     color: var(--warning);        border: 1px solid rgba(245, 158, 11, 0.3); }
+.badge-danger  { background: rgba(239, 68, 68, 0.1);      color: var(--danger);         border: 1px solid rgba(239, 68, 68, 0.3); }
+.badge-info    { background: rgba(59, 130, 246, 0.1);     color: var(--info);           border: 1px solid rgba(59, 130, 246, 0.3); }
+.badge-muted   { background: rgba(74, 93, 120, 0.2);      color: var(--text-secondary); border: 1px solid var(--border); }
+
+.sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.sync-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.sync-lokaal   { background: rgba(74, 93, 120, 0.25); color: var(--text-muted);  border: 1px solid var(--border); }
+.sync-synced   { background: rgba(0, 212, 170, 0.12); color: var(--accent);      border: 1px solid var(--accent-dim); }
+.sync-pending  { background: rgba(245, 158, 11, 0.12); color: var(--warning);    border: 1px solid rgba(245, 158, 11, 0.35); }
+.sync-error    { background: rgba(239, 68, 68, 0.1);  color: var(--danger);      border: 1px solid rgba(239, 68, 68, 0.35); }
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+.photo-grid-item {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: transform 0.18s, border-color 0.18s;
+  aspect-ratio: 1 / 1;
+}
+.photo-grid-item:active { transform: scale(0.95); }
+.photo-grid-item:hover { border-color: var(--accent); }
+.photo-grid-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-grid-video {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  min-height: 140px;
+}
+.photo-hash-badge {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  font-family: var(--mono);
+  font-size: 0.5rem;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: rgba(0, 212, 170, 0.2);
+  color: var(--accent);
+}
+
+.hash-display {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  word-break: break-all;
+  letter-spacing: 0.03em;
+}
