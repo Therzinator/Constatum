@@ -31,6 +31,7 @@ export function TijdlijnPage({ meldingenApi, user, gebruikerRol }) {
   const [filterType, setFilterType] = useState('');
   const [filterMaand, setFilterMaand] = useState('');
   const [filterJaar, setFilterJaar] = useState('');
+  const [alleenBuurt, setAlleenBuurt] = useState(false);
   const [modus, setModus] = useState('los');
   const [geselecteerdId, setGeselecteerdId] = useState(null);
 
@@ -43,6 +44,7 @@ export function TijdlijnPage({ meldingenApi, user, gebruikerRol }) {
     const zoekLower = zoek.trim().toLowerCase();
     return meldingen
       .filter((m) => {
+        if (alleenBuurt && !(m.opt_in_buurt && m.user_id && m.user_id !== user?.id)) return false;
         if (filterType) {
           const matchType = m.type === filterType;
           const matchTypes = Array.isArray(m.types) && m.types.includes(filterType);
@@ -59,7 +61,7 @@ export function TijdlijnPage({ meldingenApi, user, gebruikerRol }) {
         return true;
       })
       .sort((a, b) => new Date(b.timestamp_local) - new Date(a.timestamp_local));
-  }, [meldingen, zoek, filterType, filterMaand, filterJaar]);
+  }, [meldingen, zoek, filterType, filterMaand, filterJaar, alleenBuurt, user?.id]);
 
   const clusters = useMemo(
     () => (modus === 'cluster' ? clusterMeldingen(gefiltered) : null),
@@ -111,6 +113,10 @@ export function TijdlijnPage({ meldingenApi, user, gebruikerRol }) {
           <option value="">Alle jaren</option>
           {jaren.map((j) => <option key={j} value={j}>{j}</option>)}
         </select>
+        <label className="mf-checkbox-label">
+          <input type="checkbox" checked={alleenBuurt} onChange={(e) => setAlleenBuurt(e.target.checked)} />
+          Gedeelde meldingen in jouw buurt
+        </label>
       </div>
 
       {gefiltered.length === 0 ? (
