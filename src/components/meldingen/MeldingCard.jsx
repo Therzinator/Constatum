@@ -31,13 +31,17 @@ const SYNC_BADGE = {
 // Komt overeen met renderMeldingCard (niet-compacte variant) uit docs/index.html.
 // `user`/`gebruikerRol` komen uit hooks/useAuth.js. Klikken op de kaart opent
 // de detail-modal via onSelecteren (showMeldingDetail-equivalent).
-export function MeldingCard({ melding, user, gebruikerRol, onVerwijderen, onSelecteren }) {
+export function MeldingCard({ melding, user, gebruikerRol, onVerwijderen, onSelecteren, compact = false }) {
   const d = new Date(melding.timestamp_local);
   const dateStr = d.toLocaleDateString('nl-NL', { day: '2-digit', month: 'short', year: 'numeric' });
   const timeStr = d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
   const syncStatus = melding.sync_status || (melding.supabase_id ? 'synced' : 'lokaal');
   const [syncCls, syncLabel] = SYNC_BADGE[syncStatus] || SYNC_BADGE.lokaal;
   const magVerwijderenDeze = magVerwijderen(gebruikerRol, user, melding.melder_email, melding.user_id);
+  const maxLengte = compact ? 80 : 120;
+  const omschrijving = melding.description.length > maxLengte
+    ? `${melding.description.substring(0, maxLengte)}...`
+    : melding.description;
 
   return (
     <div className="card melding-card">
@@ -57,7 +61,7 @@ export function MeldingCard({ melding, user, gebruikerRol, onVerwijderen, onSele
           <span className="melding-card-date">{dateStr} {timeStr}</span>
         </div>
 
-        <div className="melding-card-desc">{melding.description}</div>
+        <div className="melding-card-desc">{omschrijving}</div>
 
         <div className="melding-card-meta">
           {melding.weather?.wind_speed != null && (
@@ -83,15 +87,19 @@ export function MeldingCard({ melding, user, gebruikerRol, onVerwijderen, onSele
           <span className="melding-id">{melding.id}</span>
         </div>
 
-        <div className="hash-display" style={{ marginTop: 8 }}>{melding.hash}</div>
-        <div className={`melding-card-rfc3161 ${melding.rfc3161 ? 'ok' : 'geen'}`}>
-          {melding.rfc3161
-            ? `✓ RFC 3161 · ${new Date(melding.rfc3161.timestamp).toLocaleString('nl-NL', { timeZone: 'Europe/Amsterdam' })}`
-            : '⚠️ Geen RFC 3161 tijdstempel'}
-        </div>
+        {!compact && (
+          <>
+            <div className="hash-display" style={{ marginTop: 8 }}>{melding.hash}</div>
+            <div className={`melding-card-rfc3161 ${melding.rfc3161 ? 'ok' : 'geen'}`}>
+              {melding.rfc3161
+                ? `✓ RFC 3161 · ${new Date(melding.rfc3161.timestamp).toLocaleString('nl-NL', { timeZone: 'Europe/Amsterdam' })}`
+                : '⚠️ Geen RFC 3161 tijdstempel'}
+            </div>
+          </>
+        )}
       </div>
 
-      {magVerwijderenDeze && (
+      {!compact && magVerwijderenDeze && (
         <div className="melding-card-footer">
           <button
             type="button"

@@ -1,0 +1,148 @@
+.cluster-card {
+  border-left: 3px solid var(--warning);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.cluster-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.cluster-card-titel {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.cluster-card-tijd {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.cluster-card-badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.cluster-card-badge {
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--warning);
+}
+
+.cluster-card-badge-melders {
+  background: rgba(0, 212, 170, 0.15);
+  color: var(--accent);
+  font-weight: 400;
+}
+
+.cluster-card-meta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  align-items: center;
+}
+
+.cluster-card-meta-duur {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--warning);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.cluster-card-meta-perceel {
+  color: var(--text-muted);
+}
+
+.cluster-card-meta-wind {
+  color: var(--text-muted);
+}
+
+.cluster-card-meta-klachten {
+  color: var(--danger);
+}
+
+.cluster-card-tijdlijn {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-bottom: 8px;
+}
+
+.cluster-card-tijdlijn-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.cluster-card-tijdlijn-rij {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  overflow-x: auto;
+}
+
+.cluster-card-tijdlijn-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 48px;
+}
+
+.cluster-card-tijdlijn-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-card);
+  z-index: 1;
+}
+
+.cluster-card-tijdlijn-tijd {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+.cluster-card-tijdlijn-wind {
+  font-family: var(--mono);
+  font-size: 0.5rem;
+}
+
+.cluster-card-tijdlijn-lijn {
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+  min-width: 16px;
+  margin-bottom: 14px;
+}
+
+.cluster-card-toggle {
+  width: 100%;
+  text-align: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 6px;
+  padding: 5px;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  cursor: pointer;
+}
+
+.cluster-card-detail {
+  margin-top: 8px;
+}

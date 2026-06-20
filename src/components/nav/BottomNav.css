@@ -1,0 +1,30 @@
+.bottom-nav {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+}
+
+.bottom-nav-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--text-muted);
+}
+
+.bottom-nav-tab.actief {
+  color: var(--accent);
+}
+
+.bottom-nav-icoon {
+  font-size: 1.1rem;
+}

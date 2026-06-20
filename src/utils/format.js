@@ -27,3 +27,17 @@ export function melderCode(email) {
   }
   return `Melder#${code}`;
 }
+
+// Vast kleurenpalet per gebruiker (email → kleur), voor markers/legenda op de
+// dashboardkaart en de cluster-tijdlijn.
+const KLEUR_PALET = ['#f59e0b', '#3b82f6', '#ec4899', '#10b981', '#8b5cf6', '#f97316', '#06b6d4', '#84cc16', '#ef4444', '#a855f7'];
+const gebruikerKleuren = {};
+
+export function gebruikerKleur(email) {
+  if (!email) return '#ffffff';
+  if (!gebruikerKleuren[email]) {
+    const idx = Object.keys(gebruikerKleuren).length % KLEUR_PALET.length;
+    gebruikerKleuren[email] = KLEUR_PALET[idx];
+  }
+  return gebruikerKleuren[email];
+}
