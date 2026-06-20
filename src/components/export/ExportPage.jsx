@@ -5,6 +5,7 @@ import { downloadFile } from '../../lib/export/download.js';
 import { getStorageSize } from '../../lib/storage/localStorage.js';
 import { idbCountBijlagen, idbVerwijderVerweesdeBijlagen } from '../../lib/storage/indexedDB.js';
 import { Toast } from '../ui/Toast.jsx';
+import { PrullenbakCard } from './PrullenbakCard.jsx';
 import './ExportPage.css';
 
 // Komt overeen met de pagina 'export' (CSV/JSON/dossier-info, bron regel
@@ -12,7 +13,7 @@ import './ExportPage.css';
 // de Instellingen-pagina staan (regel 1569-1602) — die pagina bestaat in
 // deze app nog niet (Fase G), dus opslagbeheer staat hier alvast bij de
 // rest van "data-beheer". PDF-export is een latere, eigen stap.
-export function ExportPage({ meldingenApi, thuislocatie }) {
+export function ExportPage({ meldingenApi, thuislocatie, gebruikerRol, user, laadVanCloud }) {
   const { meldingen, importeerMeldingen, verwijderAlleMeldingenLokaal } = meldingenApi;
   const [idbCount, setIdbCount] = useState(null);
   const [melding, setMelding] = useState(null);
@@ -145,6 +146,8 @@ export function ExportPage({ meldingenApi, thuislocatie }) {
           🗑️ Alle data verwijderen
         </button>
       </div>
+
+      <PrullenbakCard gebruikerRol={gebruikerRol} user={user} laadVanCloud={laadVanCloud} />
 
       <Toast melding={melding} />
     </div>

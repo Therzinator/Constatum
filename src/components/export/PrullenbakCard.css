@@ -1,0 +1,80 @@
+.prullenbak-card {
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.prullenbak-titel {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--warning);
+}
+
+.prullenbak-label {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.prullenbak-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.prullenbak-select {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  border-radius: 8px;
+  font-family: var(--sans);
+  padding: 8px;
+  font-size: 0.85rem;
+  flex: 1;
+}
+
+.prullenbak-item {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.prullenbak-item-body { flex: 1; min-width: 0; }
+
+.prullenbak-item-tijd {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--accent);
+}
+
+.prullenbak-item-omschrijving {
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  margin: 4px 0;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.prullenbak-item-melder {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--text-muted);
+}
+
+.prullenbak-leeg {
+  text-align: center;
+  padding: 20px;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.prullenbak-info {
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--text-muted);
+}

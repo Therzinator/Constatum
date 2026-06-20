@@ -52,7 +52,13 @@ function App() {
       )}
 
       {pagina === 'export' && (
-        <ExportPage meldingenApi={meldingenApi} thuislocatie={thuislocatieApi.thuislocatie} />
+        <ExportPage
+          meldingenApi={meldingenApi}
+          thuislocatie={thuislocatieApi.thuislocatie}
+          gebruikerRol={auth.gebruikerRol}
+          user={auth.user}
+          laadVanCloud={sync.laadVanCloud}
+        />
       )}
 
       <BottomNav pagina={pagina} onPaginaChange={setPagina} />
