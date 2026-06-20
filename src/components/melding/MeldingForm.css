@@ -7,6 +7,13 @@
 
 .mf-field { display: flex; flex-direction: column; gap: 6px; }
 
+/* Witte kop i.p.v. de standaard .section-label-kleur — alleen voor deze
+   twee toestemmings-secties, niet voor section-label elders in de app. */
+.mf-gezondheid-toestemming .section-label,
+.mf-buurt-opt-in .section-label {
+  color: #fff;
+}
+
 .mf-checkbox-label {
   display: flex;
   align-items: flex-start;
