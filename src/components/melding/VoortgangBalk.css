@@ -25,9 +25,9 @@
      uitlijnt. */
   padding: 8px 32px;
   box-sizing: border-box;
-  /* Zelfde achtergrond als .card (de melding-form zelf) — anders ontstaat
-     een visuele naad tijdens scrollen. */
-  background: var(--bg-card);
+  /* Zelfde achtergrondkleur als .app-header (zie AppHeader.css) — sluit zo
+     naadloos op de header aan i.p.v. op de kaartkleur van het formulier. */
+  background: #010510;
   border-bottom: 1px solid var(--border);
 }
 
