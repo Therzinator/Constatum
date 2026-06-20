@@ -14,6 +14,7 @@ import { zoekKwetsbareLocaties } from '../lib/pdok/kwetsbareLocaties.js';
 import { windWaaitNaarWoning } from '../lib/drift/oordeel.js';
 import { haalWeerdata, windSubjectiefVanSnelheid } from '../lib/weather/openMeteo.js';
 import { berekenPasquillKlasse } from '../lib/weather/pasquill.js';
+import { laadDeelVoorkeur } from '../lib/notificaties/deelvoorkeur.js';
 import { APP_VERSION_CLIENT } from '../lib/version.js';
 import { SUPABASE_ENABLED } from '../lib/supabase/client.js';
 
@@ -29,7 +30,9 @@ function leegFormulier(thuislocatie) {
     richtingDeg: 0,
     gezondheidsklachten: [],
     gezondheidToestemming: false,
-    optInBuurt: false,
+    // Vooringevuld met de bewaarde voorkeur (Instellingen) — per melding
+    // altijd nog aan/uit te zetten, zie checkbox in MeldingForm.jsx.
+    optInBuurt: laadDeelVoorkeur(),
     activiteiten: [...STANDAARD_ACTIVITEITEN],
     bestanden: [],
     // Geen standaard meldpunt — de gebruiker moet de pin zelf op de kaart

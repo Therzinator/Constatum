@@ -8,7 +8,10 @@ import { idbCountBijlagen, idbVerwijderVerweesdeBijlagen } from '../../lib/stora
 import { Toast } from '../ui/Toast.jsx';
 import { PrullenbakCard } from './PrullenbakCard.jsx';
 import { NotificatieInstellingen } from '../notificaties/NotificatieInstellingen.jsx';
+import { DeelVoorkeurInstelling } from '../notificaties/DeelVoorkeurInstelling.jsx';
 import { KNMIInstellingen } from './KNMIInstellingen.jsx';
+import { TrustIndicator } from './TrustIndicator.jsx';
+import { useGebruikersProfiel } from '../../hooks/useGebruikersProfiel.js';
 import './ExportPage.css';
 
 // Komt overeen met de pagina 'export' (CSV/JSON/dossier-info, bron regel
@@ -21,6 +24,7 @@ export function ExportPage({ meldingenApi, thuislocatie, gebruikerRol, user, laa
   const [idbCount, setIdbCount] = useState(null);
   const [melding, setMelding] = useState(null);
   const importInputRef = useRef(null);
+  const profiel = useGebruikersProfiel(user);
 
   useEffect(() => {
     idbCountBijlagen().then(setIdbCount);
@@ -173,7 +177,11 @@ export function ExportPage({ meldingenApi, thuislocatie, gebruikerRol, user, laa
         </button>
       </div>
 
+      <TrustIndicator profiel={profiel} />
+
       <NotificatieInstellingen notificatieApi={notificatieApi} />
+
+      <DeelVoorkeurInstelling />
 
       <KNMIInstellingen />
 
