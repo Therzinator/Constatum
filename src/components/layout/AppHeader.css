@@ -1,0 +1,53 @@
+.app-header {
+  position: sticky;
+  top: 0;
+  /* Leaflet's eigen panes/zoom-controls gebruiken intern al z-index tot
+     1000+ (zie .leaflet-top/.leaflet-pane) — ruim daarboven nodig, anders
+     schuift de kaart tijdens scrollen over de header heen. */
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 32px;
+  /* Zelfde achtergrondkleur als het logo zelf (manifest background_color
+     in vite.config.js) — logo en headerbalk lopen zo naadloos in elkaar over. */
+  background: #010510;
+  border-bottom: 1px solid var(--border);
+}
+
+.app-header-logo {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+
+.app-header-tekst {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  min-width: 0;
+}
+
+.app-header-titel {
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: 1.9rem;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.app-header-subtitel {
+  font-family: var(--mono);
+  font-size: 1.2rem;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.app-header-versie {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 1.2rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}

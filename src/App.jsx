@@ -3,26 +3,35 @@ import { useAuth } from './hooks/useAuth.js'
 import { useMeldingen } from './hooks/useMeldingen.js'
 import { useSupabaseSync } from './hooks/useSupabaseSync.js'
 import { useThuislocatie } from './hooks/useThuislocatie.js'
+import { useBuurtNotificaties } from './hooks/useBuurtNotificaties.js'
+import { AppHeader } from './components/layout/AppHeader.jsx'
 import { AuthOverlay } from './components/auth/AuthOverlay.jsx'
 import { SyncStatusBar } from './components/sync/SyncStatusBar.jsx'
+import { OnlineIndicator } from './components/sync/OnlineIndicator.jsx'
+import { NotificatieBanner } from './components/notificaties/NotificatieBanner.jsx'
+import { UpdateBanner } from './components/pwa/UpdateBanner.jsx'
 import { MeldingForm } from './components/melding/MeldingForm.jsx'
 import { DashboardPage } from './components/dashboard/DashboardPage.jsx'
 import { TijdlijnPage } from './components/meldingen/TijdlijnPage.jsx'
 import { ExportPage } from './components/export/ExportPage.jsx'
 import { BottomNav } from './components/nav/BottomNav.jsx'
-import './App.css'
 
 function App() {
   const [pagina, setPagina] = useState('dashboard')
   const auth = useAuth()
   const meldingenApi = useMeldingen()
-  const sync = useSupabaseSync(auth.user, meldingenApi)
   const thuislocatieApi = useThuislocatie(auth.user)
+  const notificatieApi = useBuurtNotificaties(thuislocatieApi.thuislocatie, auth.user)
+  const sync = useSupabaseSync(auth.user, meldingenApi, notificatieApi.verwerkNieuweEntry)
 
   return (
     <>
+      <AppHeader />
       <AuthOverlay auth={auth} />
+      <OnlineIndicator />
       <SyncStatusBar syncBezig={sync.syncBezig} syncStatus={sync.syncStatus} />
+      <NotificatieBanner banner={notificatieApi.banner} onSluiten={notificatieApi.sluitBanner} />
+      <UpdateBanner />
 
       {pagina === 'dashboard' && (
         <DashboardPage
@@ -58,6 +67,7 @@ function App() {
           gebruikerRol={auth.gebruikerRol}
           user={auth.user}
           laadVanCloud={sync.laadVanCloud}
+          notificatieApi={notificatieApi}
         />
       )}
 
