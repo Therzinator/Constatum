@@ -37,6 +37,8 @@ export async function sbSyncMelding(melding, user) {
     richting_deg:         melding.richting_deg     ?? null,
     richting_compass:     melding.richting_compass || null,
     gezondheidsklachten:  melding.gezondheidsklachten || [],
+    gezondheid_toestemming: melding.gezondheid_toestemming || false,
+    opt_in_buurt:         melding.opt_in_buurt     || false,
     activiteiten:         melding.activiteiten     || [],
     drift_waarneming:     melding.drift_waarneming || [],
     wind_naar_woning:     melding.wind_naar_woning || null,
@@ -70,10 +72,15 @@ export async function laadVanSupabase(user, force = false) {
   if (!sb || !user) throw new Error('Niet ingelogd');
   if (!navigator.onLine) throw new Error('Offline');
 
+  // Privacy: alleen eigen meldingen + meldingen waarvan de melder zelf
+  // opt_in_buurt heeft aangezet komen binnen (client-side veiligheidsnet —
+  // de eigenlijke afdwinging hoort in de RLS-policy, zie
+  // supabase/migrations/0001_dpia_buurt_en_gezondheid.sql)
   const { data: entries, error } = await sb
     .from('entries')
     .select('*')
     .eq('deleted', false)
+    .or(`user_id.eq.${user.id},opt_in_buurt.eq.true`)
     .order('timestamp_local', { ascending: false });
 
   if (error) throw error;
@@ -121,6 +128,8 @@ export async function laadVanSupabase(user, force = false) {
       gewas:               entry.gewas || null,
       afstand_woning:      entry.afstand_woning || null,
       gezondheidsklachten: entry.gezondheidsklachten || [],
+      gezondheid_toestemming: entry.gezondheid_toestemming || false,
+      opt_in_buurt:        entry.opt_in_buurt || false,
       activiteiten:        entry.activiteiten        || [],
       drift_waarneming:    entry.drift_waarneming    || [],
       weather:             entry.weather    || null,

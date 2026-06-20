@@ -13,7 +13,7 @@ import { getMeldingen, saveMeldingen } from '../lib/storage/localStorage.js';
 // meldingenApi: het object dat hooks/useMeldingen.js teruggeeft
 // (offlineQueue, deleteQueue, voegToeAanQueue, voegToeAanDeleteQueue,
 // verwijderUitQueue, herlaadMeldingen).
-export function useSupabaseSync(user, meldingenApi) {
+export function useSupabaseSync(user, meldingenApi, onNieuweEntry) {
   const [syncBezig, setSyncBezig] = useState(false);
   const [syncStatus, setSyncStatus] = useState('idle'); // idle | bezig | ok | fout | offline
   const realtimeChannelRef = useRef(null);
@@ -52,6 +52,7 @@ export function useSupabaseSync(user, meldingenApi) {
         if (!error) {
           // count === 0: entry bestond niet in Supabase (nooit gesynchroniseerd) — lokaal verwijderen volstaat
           // count > 0: update geslaagd, bevestigd via count
+          await sbAuditLog(delId, 'deleted', { door: user.id }, user);
           verwijderUitQueue(delId);
         } else {
           console.warn('[Supabase] Delete queue mislukt voor:', delId, error.message);
@@ -135,13 +136,16 @@ export function useSupabaseSync(user, meldingenApi) {
         table: 'entries',
       }, payload => {
         console.log('[Realtime] Wijziging ontvangen:', payload.eventType, payload.new?.id);
+        if (payload.eventType === 'INSERT' && onNieuweEntry) {
+          onNieuweEntry(payload.new);
+        }
         // Kleine vertraging zodat Supabase REST ook bijgewerkt is
         setTimeout(() => { laadVanCloud(); }, 500);
       })
       .subscribe(status => {
         console.log('[Realtime] Status:', status);
       });
-  }, [user, laadVanCloud]);
+  }, [user, laadVanCloud, onNieuweEntry]);
 
   const stopRealtime = useCallback(() => {
     if (realtimeChannelRef.current) {
