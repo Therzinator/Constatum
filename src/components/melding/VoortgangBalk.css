@@ -13,7 +13,10 @@
   left: 0;
   width: 100%;
   z-index: 1900;
-  padding: 8px 16px;
+  /* Zelfde horizontale padding als .app-header (zie AppHeader.css) zodat
+     de inhoud (balk/stappen) precies onder de logo/tekst van de header
+     uitlijnt. */
+  padding: 8px 32px;
   box-sizing: border-box;
   /* Zelfde achtergrond als .card (de melding-form zelf) — anders ontstaat
      een visuele naad tijdens scrollen. */
