@@ -670,7 +670,12 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
         <button type="button" className={`dashboard-kaart-toggle ${heatmapAan ? 'actief-heatmap' : ''}`} onClick={wisselHeatmap}>
           🔥 Heatmap{heatmapAan ? ' aan' : ''}
         </button>
-        <button type="button" className={`dashboard-kaart-toggle ${radarAan ? 'actief-radar' : ''}`} onClick={wisselRadar}>
+        <button
+          type="button"
+          className={`dashboard-kaart-toggle ${radarAan ? 'actief-radar' : ''}`}
+          onClick={wisselRadar}
+          title="Toont de afgelopen 2 uur aan radarbeelden (terugkijkend) + een neerslagverwachting voor de komende 2 uur (vooruitkijkend)"
+        >
           🌧️ Neerslagradar{radarAan ? ' aan' : ''}
         </button>
       </div>
@@ -679,8 +684,8 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
         <div ref={containerRef} className="dashboard-kaart" />
         <span className="dashboard-kaart-zoom-badge">🔍 Zoom {huidigeZoom}</span>
         {radarAan && radarFrameTijd != null && (
-          <span className="dashboard-kaart-radar-tijd-badge">
-            {new Date(radarFrameTijd * 1000).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
+          <span className="dashboard-kaart-radar-tijd-badge" title="Radarbeeld uit het verleden — geen voorspelling">
+            ⏪ {new Date(radarFrameTijd * 1000).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
           </span>
         )}
         <button type="button" className="dashboard-kaart-gps-knop" onClick={navigeerNaarGps} title="Navigeer naar mijn huidige GPS-positie">
@@ -731,9 +736,10 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
                   >
                     {radarGepauzeerd ? '▶️' : '⏸️'}
                   </button>
-                  <span>📡 Radarbeeld: {new Date(radarFrameTijd * 1000).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span>📡 Radarbeeld (verleden): {new Date(radarFrameTijd * 1000).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
               )}
+              <div className="dashboard-kaart-regen-tijdlijn-titel">🔮 Verwachting komende 2 uur</div>
               <div className="dashboard-kaart-regen-tijdlijn-balken">
                 {radarVoorspelling.regenreeks.map((r, i) => (
                   <span
