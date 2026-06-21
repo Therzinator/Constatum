@@ -46,6 +46,35 @@ function puntFeature(coord, kleur, label) {
   return feature;
 }
 
+// Wacht tot alle lopende tegel-aanvragen van de gegeven bronnen klaar zijn
+// (geladen of mislukt) — een vers aangemaakte headless map (zie host-div
+// hieronder) heeft op het moment van de eerste render nog GEEN tegels
+// geladen. 'rendercomplete' vuurt al na die eerste render, ook al zijn de
+// tegels dan nog steeds aan het laden (ze worden in een VOLGENDE render
+// pas getekend) — zonder deze wacht-stap werd dus consequent een wit/leeg
+// canvas gecaptured, ondanks dat de tegelbron zelf prima laadt.
+function wachtTotTegelsGeladen(bronnen) {
+  return new Promise((resolve) => {
+    let bezig = 0;
+    let ooitGestart = false;
+    let stilTimer = null;
+
+    const meldEventueelKlaar = () => {
+      clearTimeout(stilTimer);
+      if (bezig <= 0) stilTimer = setTimeout(resolve, 80);
+    };
+
+    bronnen.forEach((bron) => {
+      bron.on('tileloadstart', () => { bezig++; ooitGestart = true; clearTimeout(stilTimer); });
+      bron.on('tileloadend', () => { bezig--; meldEventueelKlaar(); });
+      bron.on('tileloaderror', () => { bezig--; meldEventueelKlaar(); });
+    });
+
+    // Niets te laden (bv. alles al uit de browsercache) — niet blijven wachten.
+    setTimeout(() => { if (!ooitGestart) resolve(); }, 500);
+  });
+}
+
 // Standaard OL-recept om de huidige kaartweergave als PNG-dataURL te
 // exporteren (canvas-per-laag samenvoegen) — zie OL's "Export Map" voorbeeld.
 // Faalt de toDataURL-stap (bv. een tegelbron zonder crossOrigin/CORS die de
@@ -104,7 +133,6 @@ export async function genereerMeldingKaartAfbeelding(melding) {
     const driftLaag = maakDriftZoneLayer(melding);
 
     const puntenSource = new VectorSource();
-    const extentCoords = [centrum];
 
     if (!driftLaag) {
       puntenSource.addFeature(puntFeature(centrum, '#ef4444', '🚜 Spuitactiviteit'));
@@ -113,13 +141,11 @@ export async function genereerMeldingKaartAfbeelding(melding) {
     if (melding.natura2000?.lat != null && melding.natura2000?.lng != null) {
       const coord = fromLonLat([melding.natura2000.lng, melding.natura2000.lat]);
       puntenSource.addFeature(puntFeature(coord, '#22c55e', `🌳 ${melding.natura2000.naam}`));
-      extentCoords.push(coord);
     }
 
     if (melding.afstand_woning_lat != null && melding.afstand_woning_lng != null) {
       const coord = fromLonLat([melding.afstand_woning_lng, melding.afstand_woning_lat]);
       puntenSource.addFeature(puntFeature(coord, '#3b82f6', `🏠 Woning — ${melding.afstand_woning}m`));
-      extentCoords.push(coord);
     }
 
     (melding.kwetsbare_locaties || []).forEach((regel) => {
@@ -127,28 +153,25 @@ export async function genereerMeldingKaartAfbeelding(melding) {
       if (!item) return;
       const coord = fromLonLat([item.lng, item.lat]);
       puntenSource.addFeature(puntFeature(coord, '#f59e0b', `${item.titel} — ${item.afstandM}m`));
-      extentCoords.push(coord);
     });
 
+    const osmLaag = maakOsmLaag();
     const puntenLaag = new VectorLayer({ source: puntenSource });
     const map = new Map({
       target: host,
       controls: [],
       pixelRatio: 1,
-      layers: [maakOsmLaag(), ...(driftLaag ? [driftLaag] : []), puntenLaag],
+      layers: [osmLaag, ...(driftLaag ? [driftLaag] : []), puntenLaag],
+      // Vast op zoom 17 voor een overzichtelijke, consistente weergave —
+      // bewust GEEN view.fit() op de extent van Natura2000/woning/kwetsbare
+      // locaties meer: die kon bij een ver weg gelegen punt uitzoomen naar
+      // een veel kleiner, minder leesbaar schaalniveau dan 17.
       view: new View({ center: centrum, zoom: 17 })
     });
 
     map.setSize([BREEDTE, HOOGTE]);
-    if (extentCoords.length > 1) {
-      const xs = extentCoords.map((c) => c[0]);
-      const ys = extentCoords.map((c) => c[1]);
-      map.getView().fit([Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)], {
-        padding: [40, 40, 40, 40],
-        maxZoom: 18
-      });
-    }
 
+    await wachtTotTegelsGeladen([osmLaag.getSource()]);
     const dataUrl = await exporteerAlsDataURL(map);
     map.setTarget(null);
     return dataUrl;
