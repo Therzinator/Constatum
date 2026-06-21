@@ -322,6 +322,41 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
       />
 
       <div className="mf-field">
+        <label className="section-label" htmlFor="mf-geur">Geurintensiteit</label>
+        <select
+          id="mf-geur"
+          className="mf-select"
+          value={veld.geurIntensiteit}
+          onChange={(e) => form.zetVeld('geurIntensiteit', parseInt(e.target.value, 10))}
+        >
+          {GEUR_OPTIES.map(([waarde, label]) => (
+            <option key={waarde} value={waarde}>{label}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="mf-field">
+        <label className="section-label" htmlFor="mf-wind-subj">Wind subjectief ervaren</label>
+        <select
+          id="mf-wind-subj"
+          className="mf-select"
+          value={veld.windSubjectief}
+          onChange={(e) => form.zetVeld('windSubjectief', e.target.value)}
+        >
+          {WIND_SUBJ_OPTIES.map(([waarde, label]) => (
+            <option key={waarde} value={waarde}>{label}</option>
+          ))}
+        </select>
+      </div>
+
+      <CheckboxDropdown
+        label="Drift & overlast waarneming"
+        opties={DRIFT_OPTIES}
+        geselecteerd={veld.driftWaarneming}
+        onToggle={form.toggleDrift}
+      />
+
+      <div className="mf-field">
         <div className="mf-desc-header">
           <label className="section-label" htmlFor="mf-desc">Omschrijving &amp; notities *</label>
           {veld.description.length > 0 && (
@@ -356,41 +391,6 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
           ))}
         </div>
       </div>
-
-      <div className="mf-field">
-        <label className="section-label" htmlFor="mf-geur">Geurintensiteit</label>
-        <select
-          id="mf-geur"
-          className="mf-select"
-          value={veld.geurIntensiteit}
-          onChange={(e) => form.zetVeld('geurIntensiteit', parseInt(e.target.value, 10))}
-        >
-          {GEUR_OPTIES.map(([waarde, label]) => (
-            <option key={waarde} value={waarde}>{label}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="mf-field">
-        <label className="section-label" htmlFor="mf-wind-subj">Wind subjectief ervaren</label>
-        <select
-          id="mf-wind-subj"
-          className="mf-select"
-          value={veld.windSubjectief}
-          onChange={(e) => form.zetVeld('windSubjectief', e.target.value)}
-        >
-          {WIND_SUBJ_OPTIES.map(([waarde, label]) => (
-            <option key={waarde} value={waarde}>{label}</option>
-          ))}
-        </select>
-      </div>
-
-      <CheckboxDropdown
-        label="Drift & overlast waarneming"
-        opties={DRIFT_OPTIES}
-        geselecteerd={veld.driftWaarneming}
-        onToggle={form.toggleDrift}
-      />
 
       <div className="mf-field" ref={telerRef}>
         <button type="button" className="mf-teler-toggle" onClick={() => setTelerOpen((o) => !o)}>
