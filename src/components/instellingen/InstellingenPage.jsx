@@ -5,9 +5,12 @@ import { PrullenbakCard } from '../export/PrullenbakCard.jsx';
 import { NotificatieInstellingen } from '../notificaties/NotificatieInstellingen.jsx';
 import { DeelVoorkeurInstelling } from '../notificaties/DeelVoorkeurInstelling.jsx';
 import { DashboardGpsInstelling } from './DashboardGpsInstelling.jsx';
+import { GegevensPrivacyInstelling } from './GegevensPrivacyInstelling.jsx';
 import { DeeltokenGenerator } from '../notificaties/DeeltokenGenerator.jsx';
 import { KNMIInstellingen } from '../export/KNMIInstellingen.jsx';
 import { TrustIndicator } from '../export/TrustIndicator.jsx';
+import { PrivacyVerklaringModal } from '../onboarding/PrivacyVerklaringModal.jsx';
+import { AlgemeneVoorwaardenModal } from '../onboarding/AlgemeneVoorwaardenModal.jsx';
 import { useGebruikersProfiel } from '../../hooks/useGebruikersProfiel.js';
 import '../export/ExportPage.css';
 
@@ -16,10 +19,12 @@ import '../export/ExportPage.css';
 // docs/index.html (regel 1569-1602), plus de account-/notificatie-
 // instellingen die tot nu toe tijdelijk in ExportPage stonden (zie
 // historische comment daar). ExportPage blijft puur export/backup/import.
-export function InstellingenPage({ meldingenApi, gebruikerRol, user, laadVanCloud, notificatieApi, thuislocatie }) {
+export function InstellingenPage({ meldingenApi, gebruikerRol, user, laadVanCloud, notificatieApi, thuislocatie, onOpenHandleiding, onUitloggen }) {
   const { meldingen, verwijderAlleMeldingenLokaal } = meldingenApi;
   const [idbCount, setIdbCount] = useState(null);
   const [melding, setMelding] = useState(null);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [voorwaardenOpen, setVoorwaardenOpen] = useState(false);
   const profiel = useGebruikersProfiel(user);
 
   useEffect(() => {
@@ -50,6 +55,13 @@ export function InstellingenPage({ meldingenApi, gebruikerRol, user, laadVanClou
         <div className="export-subtitel">Account, notificaties en opslagbeheer</div>
       </div>
 
+      <div className="card p-4">
+        <div className="section-label mb-3">🌿 Over SpuitLogger</div>
+        <button type="button" className="btn-outline px-4 py-2" onClick={onOpenHandleiding}>
+          📖 Handleiding opnieuw bekijken
+        </button>
+      </div>
+
       <TrustIndicator profiel={profiel} />
 
       <NotificatieInstellingen notificatieApi={notificatieApi} />
@@ -57,6 +69,8 @@ export function InstellingenPage({ meldingenApi, gebruikerRol, user, laadVanClou
       <DeelVoorkeurInstelling />
 
       <DashboardGpsInstelling />
+
+      <GegevensPrivacyInstelling user={user} meldingenApi={meldingenApi} thuislocatie={thuislocatie} onUitloggen={onUitloggen} />
 
       <DeeltokenGenerator user={user} thuislocatie={thuislocatie} />
 
@@ -81,8 +95,22 @@ export function InstellingenPage({ meldingenApi, gebruikerRol, user, laadVanClou
         </button>
       </div>
 
+      <div className="card p-4">
+        <div className="section-label mb-3">⚖️ Juridisch</div>
+        <div className="flex gap-2" style={{ flexWrap: 'wrap' }}>
+          <button type="button" className="btn-outline px-4 py-2" onClick={() => setPrivacyOpen(true)}>
+            📄 Privacyverklaring
+          </button>
+          <button type="button" className="btn-outline px-4 py-2" onClick={() => setVoorwaardenOpen(true)}>
+            📜 Algemene Voorwaarden
+          </button>
+        </div>
+      </div>
+
       <PrullenbakCard gebruikerRol={gebruikerRol} user={user} laadVanCloud={laadVanCloud} />
 
+      {privacyOpen && <PrivacyVerklaringModal onSluiten={() => setPrivacyOpen(false)} />}
+      {voorwaardenOpen && <AlgemeneVoorwaardenModal onSluiten={() => setVoorwaardenOpen(false)} />}
       <Toast melding={melding} />
     </div>
   );

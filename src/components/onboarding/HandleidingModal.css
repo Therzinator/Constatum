@@ -1,0 +1,121 @@
+.handleiding-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30000;
+  background: rgba(5, 7, 12, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.handleiding-modal {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-bright);
+  border-radius: 14px;
+  max-width: 480px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 24px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+}
+
+.handleiding-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.3rem;
+  line-height: 1;
+  padding: 0;
+}
+.handleiding-close:hover { color: var(--text-primary); }
+
+.handleiding-icoon {
+  font-size: 2.5rem;
+  text-align: center;
+}
+
+.handleiding-titel {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.handleiding-tekst {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  white-space: pre-line;
+}
+
+.handleiding-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.handleiding-grid-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+}
+.handleiding-grid-icoon { font-size: 1.4rem; margin-bottom: 4px; }
+.handleiding-grid-label { font-size: 0.75rem; color: var(--text-secondary); }
+
+.handleiding-link-knop {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.8rem;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  align-self: center;
+}
+
+.handleiding-stippen {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.handleiding-stip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border-bright);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.handleiding-stip.actief { background: var(--accent); }
+
+.handleiding-navigatie {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.handleiding-cta {
+  width: 100%;
+  padding: 12px;
+  font-size: 0.95rem;
+}
+
+.handleiding-replay-link {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}

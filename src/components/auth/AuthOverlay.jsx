@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { haalBuurtTelling } from '../../lib/supabase/deeltokens.js';
+import { PrivacyVerklaringModal } from '../onboarding/PrivacyVerklaringModal.jsx';
+import { AlgemeneVoorwaardenModal } from '../onboarding/AlgemeneVoorwaardenModal.jsx';
 import './AuthOverlay.css';
 
 // React-versie van het #auth-overlay blok + authTab/authSubmit/authSkip uit
@@ -12,6 +14,8 @@ export function AuthOverlay({ auth, uitnodiging }) {
   const [password, setPassword] = useState('');
   const [signupInfo, setSignupInfo] = useState(null);
   const [buurtTelling, setBuurtTelling] = useState(null);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [voorwaardenOpen, setVoorwaardenOpen] = useState(false);
 
   const {
     authOverlayVisible,
@@ -122,12 +126,29 @@ export function AuthOverlay({ auth, uitnodiging }) {
               ? (authMode === 'login' ? 'Inloggen...' : 'Registreren...')
               : (authMode === 'login' ? 'Inloggen' : 'Registreren')}
           </button>
+
+          {authMode === 'signup' && (
+            <div className="auth-consent">
+              Door te registreren gaat u akkoord met de{' '}
+              <button type="button" className="auth-consent-link" onClick={(e) => { e.preventDefault(); setVoorwaardenOpen(true); }}>
+                Algemene Voorwaarden
+              </button>{' '}
+              en heeft u de{' '}
+              <button type="button" className="auth-consent-link" onClick={(e) => { e.preventDefault(); setPrivacyOpen(true); }}>
+                Privacyverklaring
+              </button>{' '}
+              gelezen.
+            </div>
+          )}
         </form>
 
         <button type="button" className="auth-skip" onClick={skip}>
           Overslaan — alleen lokaal werken (geen sync)
         </button>
       </div>
+
+      {privacyOpen && <PrivacyVerklaringModal onSluiten={() => setPrivacyOpen(false)} />}
+      {voorwaardenOpen && <AlgemeneVoorwaardenModal onSluiten={() => setVoorwaardenOpen(false)} />}
     </div>
   );
 }
