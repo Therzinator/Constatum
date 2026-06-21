@@ -47,7 +47,6 @@ function App() {
         onNavigeerInstellingen={() => setPagina('instellingen')}
         syncNu={sync.syncNu}
         syncBezig={sync.syncBezig}
-        syncStatus={sync.syncStatus}
         onUitloggen={auth.logout}
       />
       <AuthOverlay auth={auth} uitnodiging={uitnodiging} />

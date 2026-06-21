@@ -7,23 +7,11 @@ import './AccountMenu.css';
 // bestaande Instellingen-pagina (GegevensPrivacyInstelling.jsx e.a.), dit
 // menu is dus vooral een snelle ingang daarnaartoe + een directe
 // synchronisatie-knop, niet een dubbele set formuliervelden.
-export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, syncStatus, onUitloggen }) {
+export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, onUitloggen }) {
   const [open, setOpen] = useState(false);
+  const [lokaalBezig, setLokaalBezig] = useState(false);
   const [laatsteSyncResultaat, setLaatsteSyncResultaat] = useState(null); // 'ok' | 'fout' | null
-  const [vorigeSyncBezig, setVorigeSyncBezig] = useState(syncBezig);
   const menuRef = useRef(null);
-
-  // Toont kort een groene/rode markering op de syncknop zelf — los van de
-  // globale SyncStatusBar (die ook al verschijnt), als directe feedback
-  // ter plekke voor wie het menu open laat staan. State aanpassen tijdens
-  // render (i.p.v. in een effect) bij een props-wijziging, zelfde patroon
-  // als SyncStatusBar.jsx — voorkomt een overbodige extra render-cyclus.
-  if (syncBezig !== vorigeSyncBezig) {
-    setVorigeSyncBezig(syncBezig);
-    if (!syncBezig && (syncStatus === 'ok' || syncStatus === 'fout')) {
-      setLaatsteSyncResultaat(syncStatus);
-    }
-  }
 
   // Sluiten bij een klik buiten het menu of bij Escape — zelfde patroon
   // als JuridischModal.jsx (Escape), aangevuld met outside-click omdat dit
@@ -46,6 +34,26 @@ export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, s
     const timer = setTimeout(() => setLaatsteSyncResultaat(null), 2500);
     return () => clearTimeout(timer);
   }, [laatsteSyncResultaat]);
+
+  // Direct gekoppeld aan het resultaat van de syncNu()-aanroep zelf i.p.v.
+  // het volgen van syncBezig/syncStatus-props: als er niets te
+  // synchroniseren is, voltooit syncNu() zo snel (geen await raakt een
+  // echte netwerkwachttijd) dat React de bezig:true->false-overgang in
+  // ÉÉN render batcht — een effect dat op die props-overgang luisterde
+  // zag de tussenstap dan nooit en toonde dus nooit feedback ("de sync
+  // doet niks"). Door zelf op de promise te wachten is dit onafhankelijk
+  // van hoe/of de bovenliggende hook tussentijds rendert.
+  const handleSync = async () => {
+    if (!syncNu || lokaalBezig) return;
+    setLokaalBezig(true);
+    setLaatsteSyncResultaat(null);
+    try {
+      const resultaat = await syncNu();
+      setLaatsteSyncResultaat(resultaat ? (resultaat.mislukt > 0 ? 'fout' : 'ok') : null);
+    } finally {
+      setLokaalBezig(false);
+    }
+  };
 
   const handleInstellingen = () => {
     setOpen(false);
@@ -80,10 +88,10 @@ export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, s
             <button
               type="button"
               className={`account-menu-item account-menu-sync ${laatsteSyncResultaat ? `account-menu-sync-${laatsteSyncResultaat}` : ''}`}
-              onClick={() => syncNu?.()}
-              disabled={syncBezig}
+              onClick={handleSync}
+              disabled={lokaalBezig || syncBezig}
             >
-              {syncBezig
+              {lokaalBezig || syncBezig
                 ? '⏳ Synchroniseren...'
                 : laatsteSyncResultaat === 'ok'
                   ? '✓ Synchronisatie gelukt'
