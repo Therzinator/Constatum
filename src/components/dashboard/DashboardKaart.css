@@ -35,7 +35,7 @@
 
 .dashboard-kaart-zoom-badge {
   position: absolute;
-  left: 8px;
+  right: 8px;
   top: 8px;
   z-index: 10;
   font-family: var(--mono);
