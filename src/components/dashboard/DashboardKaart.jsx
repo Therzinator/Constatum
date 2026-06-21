@@ -26,10 +26,9 @@ import {
   maakRadarLaag,
   vulRadarLaag,
   haalLaatsteRadarFrame,
-  leesNeerslagTijdlijn,
-  beschrijfNeerslagTijdlijn,
   RADAR_ZOOM
 } from '../../lib/weather/radarLaag.js';
+import { haalBuienradarRegenverwachting, beschrijfRegenverwachting } from '../../lib/weather/buienradarNowcast.js';
 import { gebruikerKleur, melderCode } from '../../utils/format.js';
 import './DashboardKaart.css';
 
@@ -440,8 +439,11 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
       setRadarVoorspelling({ status: 'fout', tekst: 'Geen locatie beschikbaar voor neerslagverwachting.' });
       return;
     }
-    leesNeerslagTijdlijn(locatie.lat, locatie.lng)
-      .then((resultaten) => setRadarVoorspelling({ status: 'klaar', tekst: beschrijfNeerslagTijdlijn(resultaten) }))
+    haalBuienradarRegenverwachting(locatie.lat, locatie.lng)
+      .then((reeks) => {
+        const tekst = beschrijfRegenverwachting(reeks);
+        setRadarVoorspelling({ status: tekst ? 'klaar' : 'fout', tekst: tekst || 'Geen neerslagverwachting beschikbaar voor deze locatie.' });
+      })
       .catch((err) => setRadarVoorspelling({ status: 'fout', tekst: `Kon neerslagverwachting niet ophalen: ${err.message}` }));
   };
 

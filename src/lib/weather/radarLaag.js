@@ -6,20 +6,24 @@ import XYZ from 'ol/source/XYZ.js';
 // uitspoelingsbeoordeling beïnvloeden. Geen KNMI-key nodig (die wordt
 // elders alleen gebruikt voor gecertificeerde station-historie, zie
 // KNMIInstellingen.jsx); dit is een aparte, losse databron.
+//
+// Sinds RainViewer's API-transitie van 1 januari 2026 (gratis publieke tier,
+// zie rainviewer.com/api/transition-faq.html) is het maximale tegel-
+// zoomniveau verlaagd naar 7 (was hoger) én is nowcast/voorspellingsdata
+// volledig komen te vervallen — de publieke API levert nu alleen nog
+// historische tegels (2 uur terug, per 10 minuten). Vandaar RADAR_ZOOM=7
+// (verder inzoomen gaf een tegel met de letterlijke tekst "Zoom level not
+// supported" i.p.v. neerslagdata) en de 3-uursverwachting hieronder via
+// buienradarNowcast.js i.p.v. via RainViewer.
 const FRAMES_URL = 'https://api.rainviewer.com/public/weather-maps.json';
-const TILE_SIZE = 256;
-// Zoomniveau waarop de radartegels daadwerkelijk neerslag tonen — de
-// brontegels hebben een resolutie van ~1km/pixel, dus verder inzoomen dan
-// dit (zoals de standaard dashboard-zoom 13) toont alleen een uitvergroot,
-// onscherp tegelblok i.p.v. herkenbare neerslagstructuur.
-export const RADAR_ZOOM = 8;
+export const RADAR_ZOOM = 7;
 
 export async function haalRadarFrames() {
   const res = await fetch(FRAMES_URL);
   if (!res.ok) return null;
   const data = await res.json();
   if (!data?.radar?.past?.length) return null;
-  return { host: data.host, past: data.radar.past, nowcast: data.radar.nowcast || [] };
+  return { host: data.host, past: data.radar.past };
 }
 
 export async function haalLaatsteRadarFrame() {
@@ -41,94 +45,13 @@ export function vulRadarLaag(laag, frame) {
     new XYZ({
       url: `${frame.host}${frame.path}/256/{z}/{x}/{y}/2/1_1.png`,
       attributions: '© RainViewer',
-      crossOrigin: 'anonymous'
+      crossOrigin: 'anonymous',
+      // Hard begrenzen op RADAR_ZOOM: zonder maxZoom blijft OL bij verder
+      // inzoomen (bv. handmatig na het aanzetten van de toggle) tegels op
+      // het diepere zoomniveau aanvragen, en die geeft RainViewer terug als
+      // een tegel met de tekst "Zoom level not supported" i.p.v. een 404 —
+      // met maxZoom hergebruikt OL i.p.v. dat de tegel van zoom 7 uitvergroot.
+      maxZoom: RADAR_ZOOM
     })
   );
-}
-
-function lonLatNaarTilePixel(lon, lat, zoom) {
-  const n = 2 ** zoom;
-  const xFloat = ((lon + 180) / 360) * n;
-  const latRad = (lat * Math.PI) / 180;
-  const yFloat = ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n;
-  const x = Math.floor(xFloat);
-  const y = Math.floor(yFloat);
-  return { x, y, px: Math.floor((xFloat - x) * TILE_SIZE), py: Math.floor((yFloat - y) * TILE_SIZE) };
-}
-
-function laadTegelAlsContext(url) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      resolve(ctx);
-    };
-    img.onerror = () => reject(new Error('Radartegel kon niet laden'));
-    img.src = url;
-  });
-}
-
-// Leest per beschikbaar frame (verleden + nowcast-voorspelling, als
-// RainViewer die voor deze regio levert) of er een gekleurde (= niet-
-// transparante) radarpixel op (lat, lng) staat. RainViewer's nowcast is
-// niet altijd gevuld — beschrijfNeerslagTijdlijn() valt dan terug op alleen
-// het actuele beeld.
-export async function leesNeerslagTijdlijn(lat, lng) {
-  const data = await haalRadarFrames();
-  if (!data) return null;
-  const { x, y, px, py } = lonLatNaarTilePixel(lng, lat, RADAR_ZOOM);
-  const framesMetType = [
-    ...data.past.map((f) => ({ ...f, voorspeld: false })),
-    ...data.nowcast.map((f) => ({ ...f, voorspeld: true }))
-  ];
-
-  const resultaten = [];
-  for (const frame of framesMetType) {
-    try {
-      const ctx = await laadTegelAlsContext(`${data.host}${frame.path}/${TILE_SIZE}/${RADAR_ZOOM}/${x}/${y}/2/1_1.png`);
-      const [, , , alpha] = ctx.getImageData(px, py, 1, 1).data;
-      resultaten.push({ tijd: frame.time, voorspeld: frame.voorspeld, neerslag: alpha > 10 });
-    } catch {
-      resultaten.push({ tijd: frame.time, voorspeld: frame.voorspeld, neerslag: false, onbekend: true });
-    }
-  }
-  return resultaten;
-}
-
-function formatTijd(unixSeconden) {
-  return new Date(unixSeconden * 1000).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
-}
-
-// Vertaalt de tijdlijn van leesNeerslagTijdlijn() naar één leesbare regel
-// voor de popup.
-export function beschrijfNeerslagTijdlijn(resultaten) {
-  if (!resultaten?.length) return 'Geen radardata beschikbaar voor deze locatie.';
-
-  const nu = resultaten.filter((r) => !r.voorspeld);
-  const voorspeld = resultaten.filter((r) => r.voorspeld);
-  const huidig = nu[nu.length - 1];
-
-  if (huidig?.neerslag) {
-    const droogVanaf = voorspeld.find((r) => !r.neerslag);
-    return droogVanaf
-      ? `🌧️ Het regent nu op deze locatie — naar verwachting droog vanaf ${formatTijd(droogVanaf.tijd)}.`
-      : '🌧️ Het regent nu op deze locatie.';
-  }
-
-  if (!voorspeld.length) {
-    return '☀️ Geen neerslag op de radar — geen voorspelling beschikbaar voor deze regio.';
-  }
-
-  const eersteRegen = voorspeld.find((r) => r.neerslag);
-  if (!eersteRegen) {
-    const minutenVooruit = Math.round((voorspeld[voorspeld.length - 1].tijd - huidig.tijd) / 60);
-    return `☀️ Geen neerslag verwacht op deze locatie in de komende ${minutenVooruit} minuten.`;
-  }
-  const minutenTot = Math.round((eersteRegen.tijd - huidig.tijd) / 60);
-  return `🌧️ Neerslag verwacht op deze locatie vanaf ${formatTijd(eersteRegen.tijd)} (over ${minutenTot} minuten).`;
 }
