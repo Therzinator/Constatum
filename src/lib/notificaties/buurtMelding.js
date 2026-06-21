@@ -1,7 +1,12 @@
 import { haversineAfstand } from '../geo/haversine.js';
 
+// Hard gemaximeerd op 5 km: een teler die zijn eigen thuislocatie als
+// melding-adres invult mag niet op grotere afstand kunnen meekijken naar
+// binnenkomende meldingen van anderen. Dit cijfer staat ook als absolute
+// bovengrens in de RLS-policy (supabase/migrations/0009_buurt_radius_cap.sql)
+// — deze instelling kan dus alleen vérnauwen, nooit verruimen.
 export const STANDAARD_RADIUS_METER = 5000;
-export const RADIUS_OPTIES = [1000, 2500, 5000, 10000, 25000];
+export const RADIUS_OPTIES = [1000, 2500, 5000];
 
 const SLEUTEL_AAN = 'spuitlog_notificatie_aan';
 const SLEUTEL_RADIUS = 'spuitlog_notificatie_radius';

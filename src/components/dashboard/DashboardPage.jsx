@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { DashboardKaart } from './DashboardKaart.jsx';
 import { MaandGrafiek } from './MaandGrafiek.jsx';
 import { MeldingCard } from '../meldingen/MeldingCard.jsx';
 import { MeldingDetailModal } from '../melding/MeldingDetailModal.jsx';
 import { dashboardStatistieken } from '../../lib/meldingen/statistieken.js';
 import { laadGpsCache } from '../../lib/geo/gpsCache.js';
+import { laadNotificatieInstellingen } from '../../lib/notificaties/buurtMelding.js';
+import { haversineAfstand } from '../../lib/geo/haversine.js';
 import './DashboardPage.css';
 
 // Komt overeen met de pagina 'dashboard' (updateDashboard/renderCharts) uit
@@ -13,12 +15,25 @@ import './DashboardPage.css';
 export function DashboardPage({ meldingenApi, user, gebruikerRol, thuislocatie }) {
   const { meldingen } = meldingenApi;
   const [geselecteerdId, setGeselecteerdId] = useState(null);
+  // Zelfde bereik-instelling als Instellingen → Notificaties (max 5 km, zie
+  // buurtMelding.js) — dit dashboard toont gedeelde meldingen van ANDEREN
+  // dus nooit verder weg dan dat ingestelde bereik. Eigen meldingen (incl.
+  // nog niet gesynchroniseerde, zonder user_id) blijven altijd zichtbaar.
+  // De database (migratie 0009) handhaaft daarbovenop een harde grens van
+  // 5 km, onafhankelijk van deze client-instelling.
+  const { radiusMeter } = laadNotificatieInstellingen();
+  const meldingenInBereik = useMemo(() => meldingen.filter((m) => {
+    if (!m.user_id || m.user_id === user?.id) return true;
+    if (!m.opt_in_buurt) return false;
+    if (!thuislocatie?.lat || !thuislocatie?.lng || m.gps?.lat == null || m.gps?.lng == null) return false;
+    return haversineAfstand(thuislocatie.lat, thuislocatie.lng, m.gps.lat, m.gps.lng) <= radiusMeter;
+  }), [meldingen, user, thuislocatie, radiusMeter]);
 
-  const { totaal, dezeMaand, dezeWeek, topWind } = dashboardStatistieken(meldingen);
-  const recent = [...meldingen]
+  const { totaal, dezeMaand, dezeWeek, topWind } = dashboardStatistieken(meldingenInBereik);
+  const recent = [...meldingenInBereik]
     .sort((a, b) => new Date(b.timestamp_local) - new Date(a.timestamp_local))
     .slice(0, 5);
-  const geselecteerd = geselecteerdId ? meldingen.find((m) => m.id === geselecteerdId) : null;
+  const geselecteerd = geselecteerdId ? meldingenInBereik.find((m) => m.id === geselecteerdId) : null;
   // Gecachete laatst bekende GPS-fix (lib/geo/gpsCache.js, gevuld door de
   // dashboardkaart) — geen eigen watchPosition hier nodig voor alleen de
   // afstandsindicatie op de "Recente meldingen"-kaartjes.
@@ -46,12 +61,12 @@ export function DashboardPage({ meldingenApi, user, gebruikerRol, thuislocatie }
       </div>
 
       <div className="dashboard-section">
-        <DashboardKaart meldingen={meldingen} thuislocatie={thuislocatie} onMeldingSelecteren={setGeselecteerdId} />
+        <DashboardKaart meldingen={meldingenInBereik} thuislocatie={thuislocatie} onMeldingSelecteren={setGeselecteerdId} />
       </div>
 
       <div className="card p-3 dashboard-section">
         <div className="section-label mb-2">Meldingen per maand</div>
-        <MaandGrafiek meldingen={meldingen} />
+        <MaandGrafiek meldingen={meldingenInBereik} />
       </div>
 
       <div className="dashboard-section">
@@ -75,7 +90,7 @@ export function DashboardPage({ meldingenApi, user, gebruikerRol, thuislocatie }
       </div>
 
       {geselecteerd && (
-        <MeldingDetailModal melding={geselecteerd} alleMeldingen={meldingen} onClose={() => setGeselecteerdId(null)} />
+        <MeldingDetailModal melding={geselecteerd} alleMeldingen={meldingenInBereik} onClose={() => setGeselecteerdId(null)} />
       )}
     </div>
   );
