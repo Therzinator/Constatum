@@ -14,6 +14,27 @@ de code, niet tegen het geheugen van een eerdere sessie.
 
 ## Middel
 
+- **Verdampings-/blootstellingsrisico-indicator uitwerken — eerst
+  vuistregels afstemmen, dan pas bouwen.** Reden: het driftzone-model
+  (FOCUS STEP) gaat bewust uit van "geen driftreductie" als worst-case
+  voor spuitdop-afhankelijkheid — dat is al expliciet gecommuniceerd in
+  de UI (`DriftZoneModal.jsx`) en verdedigbaar. Het echte gat is
+  verdamping: `melding.weather.temperature` wordt al opgehaald (Open-
+  Meteo) maar nergens analytisch gebruikt; de enige verdampings-logica is
+  één losse RV>85%-drempel in `lib/meldingen/spuitpatroon.js`; de al
+  berekende Pasquill-stabiliteitsklasse (`lib/weather/pasquill.js`,
+  relevant omdat stabiele klassen E/F damp dicht bij de grond houden)
+  wordt alleen als label getoond, niet gecombineerd tot een risico-
+  indicator. Data is er al, ontbrekend is de samengevoegde regel-
+  gebaseerde indicator (zelfde stijl als `spuitpatroon.js`). Eerst
+  uitzoeken welke temperatuur/RV/Pasquill-drempels het meest
+  verdedigbaar zijn (geen vastgestelde norm zoals bij windsnelheid),
+  vóórdat dit gebouwd wordt.
+- **Dode code opruimen: `lib/drift/berekening.js`.** Gevonden tijdens het
+  bovenstaande onderzoek — dit bestand is een volledige duplicaat van de
+  driftzone-logica in `lib/drift/driftzone.js` (FOCUS_DRIFT_TABEL/
+  focusDriftPct/windFactor/driftZones/driftKegel), maar wordt nergens
+  geïmporteerd. Losse, lage-risico opruimtaak.
 - **Realtime-subscriptie opnieuw filteren — NIET zonder live Supabase-test.**
   Reden: op 2026-06-21 toegevoegde `filter`-optie op de postgres_changes-
   listener (user_id/opt_in_buurt, voor minder Realtime-verkeer) is
