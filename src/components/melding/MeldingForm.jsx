@@ -116,7 +116,8 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
   const form = useNieuweMeldingForm({ user, thuislocatie, meldingenApi, syncNu });
   const { veld } = form;
   const kaartRef = useRef(null);
-  const typeDropdownRef = useRef(null);
+  const typeGroepRef = useRef(null);
+  const zintuiglijkRef = useRef(null);
   const descRef = useRef(null);
   const telerRef = useRef(null);
   const fotosRef = useRef(null);
@@ -149,7 +150,8 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
   // bijbehorende formulieronderdeel.
   const STAP_REFS = {
     locatie: kaartRef,
-    type: typeDropdownRef,
+    type: typeGroepRef,
+    zintuiglijk: zintuiglijkRef,
     omschrijving: descRef,
     fotos: fotosRef,
     teler: telerRef
@@ -169,7 +171,7 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
     if (veld.lat == null || veld.lng == null) {
       scrollNaarFout(kaartRef.current);
     } else if (!veld.types.length) {
-      scrollNaarFout(typeDropdownRef.current);
+      scrollNaarFout(typeGroepRef.current);
     } else if (!veld.description.trim()) {
       scrollNaarFout(descRef.current);
     }
@@ -303,58 +305,61 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
         </button>
       </div>
 
-      <CheckboxDropdown
-        ref={typeDropdownRef}
-        label="Type waarneming *"
-        opties={TYPES}
-        geselecteerd={veld.types}
-        onToggle={(w) => form.toggleInLijst('types', w)}
-        placeholder="Selecteer type(s)..."
-        fout={(Boolean(form.fout) || aangeraakt.type) && !veld.types.length}
-        onClose={() => setAangeraakt((a) => ({ ...a, type: true }))}
-      />
+      <div className="mf-field-groep" ref={typeGroepRef} tabIndex={-1}>
+        <CheckboxDropdown
+          label="Type waarneming *"
+          opties={TYPES}
+          geselecteerd={veld.types}
+          onToggle={(w) => form.toggleInLijst('types', w)}
+          placeholder="Selecteer type(s)..."
+          fout={(Boolean(form.fout) || aangeraakt.type) && !veld.types.length}
+          onClose={() => setAangeraakt((a) => ({ ...a, type: true }))}
+        />
 
-      <CheckboxDropdown
-        label="Betrokken activiteiten"
-        opties={ACTIVITEITEN}
-        geselecteerd={veld.activiteiten}
-        onToggle={(w) => form.toggleInLijst('activiteiten', w)}
-      />
-
-      <div className="mf-field">
-        <label className="section-label" htmlFor="mf-geur">Geurintensiteit</label>
-        <select
-          id="mf-geur"
-          className="mf-select"
-          value={veld.geurIntensiteit}
-          onChange={(e) => form.zetVeld('geurIntensiteit', parseInt(e.target.value, 10))}
-        >
-          {GEUR_OPTIES.map(([waarde, label]) => (
-            <option key={waarde} value={waarde}>{label}</option>
-          ))}
-        </select>
+        <CheckboxDropdown
+          label="Betrokken activiteiten"
+          opties={ACTIVITEITEN}
+          geselecteerd={veld.activiteiten}
+          onToggle={(w) => form.toggleInLijst('activiteiten', w)}
+        />
       </div>
 
-      <div className="mf-field">
-        <label className="section-label" htmlFor="mf-wind-subj">Wind subjectief ervaren</label>
-        <select
-          id="mf-wind-subj"
-          className="mf-select"
-          value={veld.windSubjectief}
-          onChange={(e) => form.zetVeld('windSubjectief', e.target.value)}
-        >
-          {WIND_SUBJ_OPTIES.map(([waarde, label]) => (
-            <option key={waarde} value={waarde}>{label}</option>
-          ))}
-        </select>
-      </div>
+      <div className="mf-field-groep" ref={zintuiglijkRef} tabIndex={-1}>
+        <div className="mf-field">
+          <label className="section-label" htmlFor="mf-geur">Geurintensiteit</label>
+          <select
+            id="mf-geur"
+            className="mf-select"
+            value={veld.geurIntensiteit}
+            onChange={(e) => form.zetVeld('geurIntensiteit', parseInt(e.target.value, 10))}
+          >
+            {GEUR_OPTIES.map(([waarde, label]) => (
+              <option key={waarde} value={waarde}>{label}</option>
+            ))}
+          </select>
+        </div>
 
-      <CheckboxDropdown
-        label="Drift & overlast waarneming"
-        opties={DRIFT_OPTIES}
-        geselecteerd={veld.driftWaarneming}
-        onToggle={form.toggleDrift}
-      />
+        <div className="mf-field">
+          <label className="section-label" htmlFor="mf-wind-subj">Wind subjectief ervaren</label>
+          <select
+            id="mf-wind-subj"
+            className="mf-select"
+            value={veld.windSubjectief}
+            onChange={(e) => form.zetVeld('windSubjectief', e.target.value)}
+          >
+            {WIND_SUBJ_OPTIES.map(([waarde, label]) => (
+              <option key={waarde} value={waarde}>{label}</option>
+            ))}
+          </select>
+        </div>
+
+        <CheckboxDropdown
+          label="Drift & overlast waarneming"
+          opties={DRIFT_OPTIES}
+          geselecteerd={veld.driftWaarneming}
+          onToggle={form.toggleDrift}
+        />
+      </div>
 
       <div className="mf-field">
         <div className="mf-desc-header">

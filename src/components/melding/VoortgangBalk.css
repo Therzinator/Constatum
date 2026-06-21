@@ -51,9 +51,13 @@
   color: var(--text-muted);
 }
 
+/* Grid i.p.v. flex-wrap — met 6 stappen (sinds de "Zintuiglijke
+   waarneming"-stap erbij kwam) gaf organisch wrappen een onvoorspelbaar
+   aantal rijen per viewportbreedte. 3 kolommen × 2 rijen geeft een vaste,
+   uitgelijnde indeling. */
 .voortgang-stappen {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 6px;
 }
 
@@ -65,6 +69,10 @@
   border: 1px solid;
   cursor: pointer;
   transition: filter 0.15s;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .voortgang-stap:hover {
   filter: brightness(1.3);

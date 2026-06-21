@@ -7,6 +7,11 @@
 
 .mf-field { display: flex; flex-direction: column; gap: 6px; border-radius: 8px; }
 
+/* Omhult een groep velden die samen één voortgangsbalk-stap vormen (zie
+   VoortgangBalk.jsx/MeldingForm.jsx STAP_REFS) — zodat de navigatie-
+   highlight om de hele groep verschijnt i.p.v. om maar één veld erin. */
+.mf-field-groep { display: flex; flex-direction: column; gap: 16px; border-radius: 8px; }
+
 /* Navigatie vanuit de voortgangsbalk (VoortgangBalk.jsx) — licht het
    vak waar je naartoe springt kort op met de accentkleur. Outline i.p.v.
    border, zodat er geen layout-shift optreedt op vakken die normaal geen
