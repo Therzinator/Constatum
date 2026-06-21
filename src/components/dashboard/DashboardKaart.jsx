@@ -30,7 +30,6 @@ import {
   haalLaatsteRadarFrame,
   RADAR_ZOOM
 } from '../../lib/weather/radarLaag.js';
-import { haalBuienradarRegenverwachting, beschrijfRegenverwachting } from '../../lib/weather/buienradarNowcast.js';
 import { haalWeerbericht, beschrijfWeerbericht } from '../../lib/weather/weerbericht.js';
 import { gebruikerKleur, melderCode } from '../../utils/format.js';
 import './DashboardKaart.css';
@@ -528,17 +527,17 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
       setRadarVoorspelling({ status: 'fout', regenTekst: 'Geen locatie beschikbaar voor neerslagverwachting.', weerItems: null });
       return;
     }
-    Promise.all([
-      haalBuienradarRegenverwachting(locatie.lat, locatie.lng).then(beschrijfRegenverwachting).catch(() => null),
-      haalWeerbericht(locatie.lat, locatie.lng).then(beschrijfWeerbericht).catch(() => null)
-    ]).then(([regenTekst, weerItems]) => {
-      const klaar = Boolean(regenTekst || weerItems?.length);
-      setRadarVoorspelling({
-        status: klaar ? 'klaar' : 'fout',
-        regenTekst: regenTekst || (klaar ? null : 'Geen weerdata beschikbaar voor deze locatie.'),
-        weerItems
-      });
-    });
+    haalWeerbericht(locatie.lat, locatie.lng)
+      .then(beschrijfWeerbericht)
+      .then(({ regenTekst, weerItems }) => {
+        const klaar = Boolean(regenTekst || weerItems?.length);
+        setRadarVoorspelling({
+          status: klaar ? 'klaar' : 'fout',
+          regenTekst: regenTekst || (klaar ? null : 'Geen weerdata beschikbaar voor deze locatie.'),
+          weerItems
+        });
+      })
+      .catch((err) => setRadarVoorspelling({ status: 'fout', regenTekst: `Kon weerdata niet ophalen: ${err.message}`, weerItems: null }));
   };
 
   const verversRadarTegels = () => {
