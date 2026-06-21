@@ -1,8 +1,8 @@
 .melding-mini-kaart {
   position: relative;
-  width: 56px;
-  height: 56px;
-  border-radius: 8px;
+  width: 112px;
+  height: 112px;
+  border-radius: 10px;
   overflow: hidden;
   flex-shrink: 0;
   background-color: var(--bg-secondary);
@@ -13,12 +13,12 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 10px;
-  height: 10px;
-  margin: -6px 0 0 -5px;
+  width: 20px;
+  height: 20px;
+  margin: -12px 0 0 -10px;
   border-radius: 50% 50% 50% 0;
   transform: rotate(-45deg);
   background: #f59e0b;
-  border: 2px solid #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }

@@ -2,7 +2,7 @@ import { degToCompass } from '../../lib/drift/oordeel.js';
 import { melderCode } from '../../utils/format.js';
 import { magVerwijderen } from '../../lib/rollen.js';
 import { SUPABASE_ENABLED } from '../../lib/supabase/client.js';
-import { haversineAfstand, formatAfstand } from '../../lib/geo/haversine.js';
+import { haversineAfstand } from '../../lib/geo/haversine.js';
 import { MeldingMiniKaart } from './MeldingMiniKaart.jsx';
 
 const TYPE_LABEL = {
@@ -47,7 +47,7 @@ export function MeldingCard({ melding, user, gebruikerRol, onVerwijderen, onSele
 
   const heeftLocatie = toonLocatieKaartje && melding.gps?.lat != null && melding.gps?.lng != null;
   const afstandTekst = heeftLocatie && gpsLocatie
-    ? formatAfstand(haversineAfstand(gpsLocatie.lat, gpsLocatie.lng, melding.gps.lat, melding.gps.lng))
+    ? `Melding ${Math.round(haversineAfstand(gpsLocatie.lat, gpsLocatie.lng, melding.gps.lat, melding.gps.lng))} meter vanaf jouw positie gedaan.`
     : null;
 
   return (

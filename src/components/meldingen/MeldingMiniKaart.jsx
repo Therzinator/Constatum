@@ -2,14 +2,15 @@ import { lonLatNaarTileEnPixel, TILE_GROOTTE } from '../../lib/geo/tiles.js';
 import './MeldingMiniKaart.css';
 
 const ZOOM = 15;
-const KAARTJE_GROOTTE = 56;
+const KAARTJE_GROOTTE = 112;
 
 // Eén los OSM-tegeltje i.p.v. een volwaardige OpenLayers-kaart per kaartje —
 // "Recente meldingen" toont tot 5 van deze kaartjes tegelijk, dus een eigen
 // Map-instantie per kaartje zou onnodig zwaar zijn voor zo'n klein beeld.
 // Beperking: bij een puntje vlak bij een tegelrand toont het kaartje aan
-// die kant geen buurtegel (gewoon de achtergrondkleur) — voor een 56px
-// thumbnail een acceptabele afwijking t.o.v. een volledige stitch.
+// die kant geen buurtegel (gewoon de achtergrondkleur) — bij 112px (de
+// helft van de 256px-tegel) komt dat sneller voor dan bij de vorige 56px,
+// maar nog steeds een acceptabele afwijking t.o.v. een volledige stitch.
 function osmSubdomein(x, y) {
   return 'abc'[(x + y) % 3];
 }
