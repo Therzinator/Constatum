@@ -70,7 +70,17 @@ async function zoekOsmKwetsbareLocaties(lat, lng) {
     node["amenity"="nursing_home"](around:300,${lat},${lng});
   );out center;`;
 
-  const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: query });
+  // overpass-api.de (de standaard publieke instantie) blokkeerde dit
+  // verzoek met een 406 zonder CORS-header — vermoedelijk botbescherming
+  // op die specifieke instantie. overpass.kumi.systems is een andere
+  // publieke Overpass-mirror met hetzelfde QL-protocol; geen garantie dat
+  // die nooit faalt (het blijft een gratis, niet-zelf-beheerde dienst),
+  // maar wel een ander faalrisico dan overpass-api.de specifiek.
+  const res = await fetch('https://overpass.kumi.systems/api/interpreter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: query
+  });
   if (!res.ok) return [];
   const data = await res.json();
 
