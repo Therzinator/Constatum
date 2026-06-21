@@ -21,15 +21,25 @@ export function useAuth() {
   const [authBusy, setAuthBusy] = useState(false);
   const sessieHersteldRef = useRef(false);
 
+  // GEEN `|| user`-fallback meer (en dus geen [user]-dependency): elke
+  // aanroeper geeft de user al expliciet door. Met [user] als dependency
+  // kreeg deze functie een nieuwe identiteit bij ELKE setUser()-aanroep
+  // hieronder (ook bij stille token-refreshes) — en omdat de
+  // authInit-effect daaronder op [laadGebruikerRol] depend, joeg dat een
+  // oneindige lus los: effect opnieuw uitvoeren -> onAuthStateChange
+  // afmelden+opnieuw aanmelden -> nieuw event -> setUser() -> weer een
+  // nieuwe laadGebruikerRol-identiteit -> effect weer opnieuw, enzovoort.
+  // Bleef onopgemerkt omdat dit nooit tegen een echte, ingelogde Supabase-
+  // sessie getest was (lokaal staat auth altijd uit). Met een stabiele
+  // (geheugenloze) laadGebruikerRol draait de authInit-effect maar één keer.
   const laadGebruikerRol = useCallback(async (huidigeUser) => {
     const sb = sbClient();
-    const actieveUser = huidigeUser || user;
-    if (!sb || !actieveUser) return null;
+    if (!sb || !huidigeUser) return null;
     try {
       const { data } = await sb
         .from('user_roles')
         .select('role, gemeente, thuislocatie_lat, thuislocatie_lng, thuislocatie_label')
-        .eq('user_id', actieveUser.id)
+        .eq('user_id', huidigeUser.id)
         .maybeSingle();
       const rol = data?.role || 'gebruiker';
       setGebruikerRol(rol);
@@ -40,7 +50,7 @@ export function useAuth() {
       setGebruikerRol('gebruiker');
       return null;
     }
-  }, [user]);
+  }, []);
 
   // Komt overeen met authInit: sessie herstellen + luisteren op auth state changes
   useEffect(() => {

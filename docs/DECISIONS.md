@@ -223,3 +223,49 @@ Een toekomstige sessie die alsnog een hash-van-de-dossierversie wil
 toevoegen (voor een directe byte-match met de getoonde afbeelding) moet
 dat expliciet met de gebruiker bespreken — dat raakt wél nieuwe
 crypto-logica.
+
+---
+
+## App bevroor bij eerste echte login — echte oorzaak was een useAuth.js-bug, niet de Realtime-filter
+
+### Keuze
+Bij de eerste keer dat de gebruiker echt inlogde met Supabase-gegevens
+(in plaats van de altijd-uitgeschakelde localhost-auth), bevroor de app
+met een console vol herhaalde `[Realtime] Status: CLOSED`-regels. Eerste
+diagnose: de op 2026-06-21 toegevoegde `filter`-optie op de
+postgres_changes-listener in `useSupabaseSync.js` werd verondersteld
+door Supabase geweigerd te worden, in een reconnect-lus — teruggedraaid
+naar een ongefilterde listener. De freeze bleef echter bestaan, wat
+toonde dat die eerste diagnose onvolledig was.
+
+De echte oorzaak: `useAuth.js`'s `laadGebruikerRol` had een `|| user`-
+fallback met `[user]` als dependency. `onAuthStateChange` roept
+`setUser()` aan bij ÉLK auth-event (ook stille token-refreshes), met
+elke keer een nieuwe object-referentie. Omdat de authInit-`useEffect`
+(die `onAuthStateChange` abonneert) depend op `[laadGebruikerRol]`, en
+`laadGebruikerRol` dus bij elke `setUser()`-aanroep een nieuwe identiteit
+kreeg, voerde die effect zichzelf opnieuw uit: oude listener afmelden,
+nieuwe aanmelden — wat zelf weer een event en dus weer `setUser()` kon
+triggeren. Oneindige lus. De Realtime-`CLOSED`-spam was een symptoom:
+`useSupabaseSync.js`'s eigen effect depend rechtstreeks op `user`, dus
+die werd in dezelfde lus telkens mee afgebroken en herstart.
+
+Fix: `laadGebruikerRol` verliest de `|| user`-fallback en de
+`[user]`-dependency (elke aanroeper geeft de user al expliciet door) —
+nu stabiel (`[]`), dus de authInit-effect draait nog maar één keer.
+
+### Waarom
+Dit bleef tot nu onopgemerkt omdat `useAuth.js`'s `onAuthStateChange`-pad
+nooit echt liep: lokaal staat `SUPABASE_ENABLED` altijd op `false` (zie
+`lib/supabase/client.js`), dus deze code is pas voor het eerst tegen een
+echte, ingelogde sessie getest tijdens deze freeze.
+
+### Impact
+Een algemene les voor dit project: **elke `useCallback`/`useEffect`-
+dependency die een Supabase-auth-gerelateerde waarde gebruikt, moet
+expliciet beoordeeld worden op "kan dit veranderen door een event
+waar de gebruiker niets van merkt (token-refresh, etc.)?"** — zo'n
+verandering die een dependency-keten raakt is precies het patroon dat
+hier tot een oneindige lus leidde. Toekomstige wijzigingen aan
+`useAuth.js`/`useSupabaseSync.js` kunnen het beste tegen een echte
+Supabase-sessie getest worden, niet (alleen) op localhost.

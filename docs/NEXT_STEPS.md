@@ -16,14 +16,15 @@ de code, niet tegen het geheugen van een eerdere sessie.
 
 - **Realtime-subscriptie opnieuw filteren — NIET zonder live Supabase-test.**
   Reden: op 2026-06-21 toegevoegde `filter`-optie op de postgres_changes-
-  listeners (user_id/opt_in_buurt, voor minder Realtime-verkeer) bleek bij
-  de eerste echte login een oneindige reconnect-lus te veroorzaken
-  ("[Realtime] Status: CLOSED" continu herhaald, app bevroren) — terug-
-  gedraaid naar de eenvoudige ongefilterde listener (zie
-  hooks/useSupabaseSync.js). Als dit alsnog opnieuw opgepakt wordt: eerst
-  tegen een echte Supabase-omgeving testen (bv. via een gratis project),
-  niet alleen op localhost (waar SUPABASE_ENABLED altijd false is, dus
-  deze code daar nooit draait).
+  listener (user_id/opt_in_buurt, voor minder Realtime-verkeer) is
+  teruggedraaid naar een eenvoudige ongefilterde listener nadat de app bij
+  de eerste echte login bevroor. Achteraf bleek de freeze NIET door de
+  filter te komen, maar door een aparte, echte bug in `useAuth.js` (zie
+  DECISIONS.md) — de filter-revert was dus voorbarig, maar wel veilig om
+  te laten staan. Als dit alsnog opnieuw opgepakt wordt: eerst tegen een
+  echte Supabase-omgeving testen, niet alleen op localhost (waar
+  SUPABASE_ENABLED altijd false is, dus deze code daar nooit draait) —
+  zie hooks/useSupabaseSync.js.
 - **Paginering/incrementele sync van `laadVanSupabase()` — NIET zonder
   schema-verificatie.** Reden: de functie doet een ongelimiteerde
   `.select('*')` op elke sync (lib/supabase/entries.js regel 82-87) —
