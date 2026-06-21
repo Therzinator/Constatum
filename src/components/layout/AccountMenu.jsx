@@ -1,16 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 import { APP_VERSION_CLIENT } from '../../lib/version.js';
+import { RADIUS_OPTIES } from '../../lib/notificaties/buurtMelding.js';
+import { laadDeelVoorkeur, slaDeelVoorkeurOp } from '../../lib/notificaties/deelvoorkeur.js';
 import './AccountMenu.css';
 
 // Vervangt het kale versienummer in de headerbalk (AppHeader.jsx) door een
 // knop die een account-menu opent — gegevens aanpassen gebeurt al via de
 // bestaande Instellingen-pagina (GegevensPrivacyInstelling.jsx e.a.), dit
-// menu is dus vooral een snelle ingang daarnaartoe + een directe
-// synchronisatie-knop, niet een dubbele set formuliervelden.
-export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, onUitloggen }) {
+// menu is dus vooral een snelle ingang daarnaartoe + directe toggles voor
+// de twee buurt-gerelateerde voorkeuren (voorheen losse kaarten op de
+// Instellingen-pagina, zie NotificatieInstellingen.jsx/
+// DeelVoorkeurInstelling.jsx — hier compact ingebed, niet meer apart op
+// die pagina).
+export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, laadVanCloud, notificatieApi, onUitloggen }) {
   const [open, setOpen] = useState(false);
   const [lokaalBezig, setLokaalBezig] = useState(false);
   const [laatsteSyncResultaat, setLaatsteSyncResultaat] = useState(null); // 'ok' | 'fout' | null
+  const [deelVoorkeurAan, setDeelVoorkeurAan] = useState(() => laadDeelVoorkeur());
   const menuRef = useRef(null);
 
   // Sluiten bij een klik buiten het menu of bij Escape — zelfde patroon
@@ -43,13 +49,26 @@ export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, o
   // zag de tussenstap dan nooit en toonde dus nooit feedback ("de sync
   // doet niks"). Door zelf op de promise te wachten is dit onafhankelijk
   // van hoe/of de bovenliggende hook tussentijds rendert.
+  //
+  // Doet twee dingen: syncNu() (lokale offline-queue omhoog naar Supabase)
+  // én laadVanCloud(true) (alle eigen/gedeelde meldingen van Supabase
+  // terughalen, force=true zodat ook al-bestaande lokale meldingen
+  // overschreven worden met de cloud-versie) — "Synchroniseer nu" moet
+  // niet alleen lokale wijzigingen wegschrijven, maar ook meldingen van
+  // vroeger die (bv. na een herinstallatie/nieuw toestel) nog niet lokaal
+  // staan weer terughalen.
   const handleSync = async () => {
-    if (!syncNu || lokaalBezig) return;
+    if (lokaalBezig) return;
     setLokaalBezig(true);
     setLaatsteSyncResultaat(null);
+    let mislukt = false;
     try {
-      const resultaat = await syncNu();
-      setLaatsteSyncResultaat(resultaat ? (resultaat.mislukt > 0 ? 'fout' : 'ok') : null);
+      const pushResultaat = syncNu ? await syncNu() : null;
+      if (pushResultaat?.mislukt > 0) mislukt = true;
+      if (laadVanCloud) {
+        await laadVanCloud(true).catch(() => { mislukt = true; });
+      }
+      setLaatsteSyncResultaat(mislukt ? 'fout' : 'ok');
     } finally {
       setLokaalBezig(false);
     }
@@ -58,6 +77,18 @@ export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, o
   const handleInstellingen = () => {
     setOpen(false);
     onNavigeerInstellingen?.();
+  };
+
+  const handleNotificatieToggle = async (e) => {
+    const aan = e.target.checked;
+    if (aan && notificatieApi?.permissie === 'default') await notificatieApi.vraagPermissie();
+    notificatieApi?.zetAan(aan);
+  };
+
+  const handleDeelVoorkeurToggle = (e) => {
+    const aan = e.target.checked;
+    setDeelVoorkeurAan(aan);
+    slaDeelVoorkeurOp(aan);
   };
 
   const handleUitloggen = () => {
@@ -73,9 +104,9 @@ export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, o
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="true"
         aria-expanded={open}
-        title="Account"
+        title="Instellingen"
       >
-        👤
+        ⚙️
       </button>
 
       {open && (
@@ -84,22 +115,55 @@ export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, o
             {user?.email ? user.email : 'Niet ingelogd'}
           </div>
 
-          {user && (
-            <button
-              type="button"
-              className={`account-menu-item account-menu-sync ${laatsteSyncResultaat ? `account-menu-sync-${laatsteSyncResultaat}` : ''}`}
-              onClick={handleSync}
-              disabled={lokaalBezig || syncBezig}
-            >
-              {lokaalBezig || syncBezig
+          <button
+            type="button"
+            className={`account-menu-item account-menu-sync ${laatsteSyncResultaat ? `account-menu-sync-${laatsteSyncResultaat}` : ''}`}
+            onClick={handleSync}
+            disabled={!user || lokaalBezig || syncBezig}
+            title={!user ? 'Log in om te synchroniseren met de cloud' : undefined}
+          >
+            {!user
+              ? '🔄 Synchroniseer nu (log in)'
+              : lokaalBezig || syncBezig
                 ? '⏳ Synchroniseren...'
                 : laatsteSyncResultaat === 'ok'
                   ? '✓ Synchronisatie gelukt'
                   : laatsteSyncResultaat === 'fout'
                     ? '✗ Synchronisatie deels mislukt'
                     : '🔄 Synchroniseer nu'}
-            </button>
+          </button>
+
+          {notificatieApi && (
+            <div className="account-menu-toggle-groep">
+              <label className="account-menu-toggle-rij">
+                <span>🔔 Notificaties in de buurt</span>
+                <input type="checkbox" checked={notificatieApi.instellingen.aan} onChange={handleNotificatieToggle} />
+              </label>
+              {notificatieApi.instellingen.aan && (
+                <label className="account-menu-toggle-rij account-menu-toggle-subrij">
+                  <span>Bereik</span>
+                  <select
+                    value={notificatieApi.instellingen.radiusMeter}
+                    onChange={(e) => notificatieApi.zetRadius(parseInt(e.target.value, 10))}
+                  >
+                    {RADIUS_OPTIES.map((m) => (
+                      <option key={m} value={m}>{m >= 1000 ? `${m / 1000} km` : `${m} m`}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {notificatieApi.instellingen.aan && notificatieApi.permissie === 'denied' && (
+                <div className="account-menu-toggle-waarschuwing">
+                  Browser-notificaties zijn geblokkeerd — meldingen verschijnen alleen als banner in de app.
+                </div>
+              )}
+            </div>
           )}
+
+          <label className="account-menu-toggle-rij">
+            <span>🤝 Meldingen delen met de buurt</span>
+            <input type="checkbox" checked={deelVoorkeurAan} onChange={handleDeelVoorkeurToggle} />
+          </label>
 
           <button type="button" className="account-menu-item" onClick={handleInstellingen}>
             ⚙️ Mijn gegevens &amp; instellingen

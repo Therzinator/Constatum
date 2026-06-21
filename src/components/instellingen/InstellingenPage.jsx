@@ -2,11 +2,8 @@ import { useEffect, useState } from 'react';
 import { idbCountBijlagen, idbVerwijderVerweesdeBijlagen } from '../../lib/storage/indexedDB.js';
 import { Toast } from '../ui/Toast.jsx';
 import { PrullenbakCard } from '../export/PrullenbakCard.jsx';
-import { NotificatieInstellingen } from '../notificaties/NotificatieInstellingen.jsx';
-import { DeelVoorkeurInstelling } from '../notificaties/DeelVoorkeurInstelling.jsx';
 import { DashboardGpsInstelling } from './DashboardGpsInstelling.jsx';
 import { GegevensPrivacyInstelling } from './GegevensPrivacyInstelling.jsx';
-import { DeeltokenGenerator } from '../notificaties/DeeltokenGenerator.jsx';
 import { KNMIInstellingen } from '../export/KNMIInstellingen.jsx';
 import { TrustIndicator } from '../export/TrustIndicator.jsx';
 import { PrivacyVerklaringModal } from '../onboarding/PrivacyVerklaringModal.jsx';
@@ -19,7 +16,7 @@ import '../export/ExportPage.css';
 // docs/index.html (regel 1569-1602), plus de account-/notificatie-
 // instellingen die tot nu toe tijdelijk in ExportPage stonden (zie
 // historische comment daar). ExportPage blijft puur export/backup/import.
-export function InstellingenPage({ meldingenApi, gebruikerRol, user, laadVanCloud, notificatieApi, thuislocatie, onOpenHandleiding, onUitloggen }) {
+export function InstellingenPage({ meldingenApi, gebruikerRol, user, laadVanCloud, thuislocatie, onOpenHandleiding, onUitloggen }) {
   const { meldingen, verwijderAlleMeldingenLokaal } = meldingenApi;
   const [idbCount, setIdbCount] = useState(null);
   const [melding, setMelding] = useState(null);
@@ -64,15 +61,9 @@ export function InstellingenPage({ meldingenApi, gebruikerRol, user, laadVanClou
 
       <TrustIndicator profiel={profiel} />
 
-      <NotificatieInstellingen notificatieApi={notificatieApi} />
-
-      <DeelVoorkeurInstelling />
-
       <DashboardGpsInstelling />
 
       <GegevensPrivacyInstelling user={user} meldingenApi={meldingenApi} thuislocatie={thuislocatie} onUitloggen={onUitloggen} />
-
-      <DeeltokenGenerator user={user} thuislocatie={thuislocatie} />
 
       <KNMIInstellingen />
 

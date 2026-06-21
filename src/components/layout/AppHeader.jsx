@@ -11,7 +11,7 @@ import './AppHeader.css';
 // zie styles/theme.css) zodat andere vast-gepositioneerde elementen (bv.
 // VoortgangBalk.jsx) er exact — zonder gat of overlap — onder kunnen
 // aansluiten, ook als de header-hoogte ooit verandert (logo/font/zoom).
-export function AppHeader({ user, onNavigeerInstellingen, syncNu, syncBezig, onUitloggen }) {
+export function AppHeader({ user, onNavigeerInstellingen, syncNu, syncBezig, laadVanCloud, notificatieApi, onUitloggen }) {
   const headerRef = useRef(null);
 
   useLayoutEffect(() => {
@@ -40,6 +40,8 @@ export function AppHeader({ user, onNavigeerInstellingen, syncNu, syncBezig, onU
         onNavigeerInstellingen={onNavigeerInstellingen}
         syncNu={syncNu}
         syncBezig={syncBezig}
+        laadVanCloud={laadVanCloud}
+        notificatieApi={notificatieApi}
         onUitloggen={onUitloggen}
       />
     </header>

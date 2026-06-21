@@ -5,8 +5,7 @@ const TABS = [
   ['dashboard', '📊', 'Dashboard'],
   ['melding', '📝', 'Melding'],
   ['tijdlijn', '🕐', 'Tijdlijn'],
-  ['export', '💾', 'Export'],
-  ['instellingen', '⚙️', 'Instellingen']
+  ['export', '💾', 'Export']
 ];
 
 // Komt overeen met de bottom-tab-navigatie uit docs/index.html
@@ -14,6 +13,8 @@ const TABS = [
 // tab-instellingen, Fase G). "Coördinatie" (Fase 4) is zichtbaar voor
 // admins én coordinators (moderator-achtige rol, sinds migratie 0011) —
 // de echte afscherming gebeurt via RLS, dit is puur UI.
+// "Instellingen" staat hier bewust NIET meer in — alleen nog te openen
+// via het account-menu in de header (AccountMenu.jsx), zie App.jsx.
 export function BottomNav({ pagina, onPaginaChange, gebruikerRol }) {
   const tabs = isCoordinatorOfAdmin(gebruikerRol) ? [...TABS, ['coordinatie', '🛡️', 'Coördinatie']] : TABS;
   return (

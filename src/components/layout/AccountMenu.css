@@ -24,7 +24,7 @@
   top: calc(100% + 8px);
   right: 0;
   z-index: 2100;
-  min-width: 240px;
+  min-width: 270px;
   background: var(--bg-card);
   border: 1px solid var(--border-bright);
   border-radius: 10px;
@@ -74,6 +74,47 @@
 }
 
 .account-menu-uitloggen {
+  color: var(--danger);
+}
+
+.account-menu-toggle-groep {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+}
+
+.account-menu-toggle-rij {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  border-radius: 6px;
+}
+.account-menu-toggle-rij:hover { background: var(--bg-secondary); }
+
+.account-menu-toggle-subrij {
+  padding-left: 22px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+.account-menu-toggle-subrij select {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  padding: 3px 6px;
+}
+
+.account-menu-toggle-waarschuwing {
+  padding: 4px 10px 6px;
+  font-size: 0.65rem;
   color: var(--danger);
 }
 

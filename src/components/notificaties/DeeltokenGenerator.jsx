@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { maakDeeltoken, haalEigenDeeltokens } from '../../lib/supabase/deeltokens.js';
 import { zoekPostcodePDOK } from '../../lib/pdok/postcode.js';
+import { Toast } from '../ui/Toast.jsx';
 
 // Coordinatie & Admin systeem, Fase 3 — uitnodigingslink voor buren.
 // Bewust GEEN directe data-toegang: de link leidt naar de registratie-
@@ -14,6 +15,7 @@ export function DeeltokenGenerator({ user, thuislocatie }) {
   const [fout, setFout] = useState(null);
   const [laatsteLink, setLaatsteLink] = useState(null);
   const [tokens, setTokens] = useState([]);
+  const [melding, setMelding] = useState(null);
 
   useEffect(() => {
     if (user) haalEigenDeeltokens(user).then(setTokens).catch(() => {});
@@ -32,9 +34,20 @@ export function DeeltokenGenerator({ user, thuislocatie }) {
       const url = new URL(window.location.origin + window.location.pathname);
       url.searchParams.set('uitnodiging', dossier.token);
       if (postcode) url.searchParams.set('postcode', postcode.slice(0, 4));
-      setLaatsteLink(url.toString());
+      const linkStr = url.toString();
+      setLaatsteLink(linkStr);
       setOmschrijving('');
       setTokens(await haalEigenDeeltokens(user));
+
+      try {
+        await navigator.clipboard.writeText(linkStr);
+        setMelding({ id: Date.now(), tekst: 'Link gekopieerd naar klembord.', type: 'success' });
+      } catch {
+        // Klembord-API niet beschikbaar/geweigerd (bv. geen HTTPS, geen
+        // gebruikersactiviteit meer in dezelfde tick) — de link staat
+        // hieronder nog gewoon zichtbaar om handmatig te selecteren.
+        setMelding({ id: Date.now(), tekst: 'Link gegenereerd — kopiëren naar klembord mislukt, selecteer hem hieronder.', type: 'error' });
+      }
     } catch (err) {
       setFout(err.message);
     } finally {
@@ -81,6 +94,8 @@ export function DeeltokenGenerator({ user, thuislocatie }) {
           ))}
         </div>
       )}
+
+      <Toast melding={melding} />
     </div>
   );
 }

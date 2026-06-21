@@ -47,6 +47,8 @@ function App() {
         onNavigeerInstellingen={() => setPagina('instellingen')}
         syncNu={sync.syncNu}
         syncBezig={sync.syncBezig}
+        laadVanCloud={sync.laadVanCloud}
+        notificatieApi={notificatieApi}
         onUitloggen={auth.logout}
       />
       <AuthOverlay auth={auth} uitnodiging={uitnodiging} />
@@ -96,7 +98,6 @@ function App() {
           gebruikerRol={auth.gebruikerRol}
           user={auth.user}
           laadVanCloud={sync.laadVanCloud}
-          notificatieApi={notificatieApi}
           thuislocatie={thuislocatieApi.thuislocatie}
           onOpenHandleiding={() => setHandleidingOpen(true)}
           onUitloggen={auth.logout}
