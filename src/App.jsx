@@ -42,7 +42,14 @@ function App() {
 
   return (
     <>
-      <AppHeader />
+      <AppHeader
+        user={auth.user}
+        onNavigeerInstellingen={() => setPagina('instellingen')}
+        syncNu={sync.syncNu}
+        syncBezig={sync.syncBezig}
+        syncStatus={sync.syncStatus}
+        onUitloggen={auth.logout}
+      />
       <AuthOverlay auth={auth} uitnodiging={uitnodiging} />
       {handleidingOpen && <HandleidingModal onSluiten={() => setHandleidingOpen(false)} />}
       <OnlineIndicator />
