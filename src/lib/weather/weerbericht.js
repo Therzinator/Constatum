@@ -37,22 +37,26 @@ function windRichtingTekst(graden) {
   return WINDRICHTINGEN[Math.round(graden / 45) % 8];
 }
 
-// Eén leesbare regel voor de radar-popup op het dashboard.
+// Losse { icoon, tekst }-items i.p.v. één doorlopende zin — de aanroeper
+// (DashboardKaart.jsx) rendert ze als uitgelijnde rijen (icoonkolom +
+// tekstkolom) i.p.v. een aaneengeplakte regel vol bullet-scheidingstekens.
 export function beschrijfWeerbericht(weer) {
   if (!weer) return null;
-  const delen = [];
+  const items = [];
 
   if (weer.windKmu != null) {
-    delen.push(`💨 Wind ${Math.round(weer.windKmu)} km/u ${windRichtingTekst(weer.windRichtingGraden)}`);
+    items.push({ icoon: '💨', tekst: `Wind ${Math.round(weer.windKmu)} km/u ${windRichtingTekst(weer.windRichtingGraden)}` });
   }
   if (weer.neerslagNuMm != null) {
-    delen.push(`🌧️ Nu ${weer.neerslagNuMm.toFixed(1)} mm/u op je locatie`);
+    items.push({ icoon: '🌧️', tekst: `Nu ${weer.neerslagNuMm.toFixed(1)} mm/u op je locatie` });
   }
   if (weer.neerslagKomendeUrenMm != null) {
-    delen.push(`📊 ${weer.neerslagKomendeUrenMm.toFixed(1)} mm verwacht komende ${FORECAST_UREN} uur`);
+    items.push({ icoon: '📊', tekst: `${weer.neerslagKomendeUrenMm.toFixed(1)} mm verwacht komende ${FORECAST_UREN} uur` });
   }
-  if (weer.luchtdrukHpa != null) delen.push(`🔽 ${Math.round(weer.luchtdrukHpa)} hPa`);
-  if (weer.zonneschijnKomendeUrenMin != null) delen.push(`🌤️ ${weer.zonneschijnKomendeUrenMin} min zon komende ${FORECAST_UREN} uur`);
+  if (weer.luchtdrukHpa != null) items.push({ icoon: '🔽', tekst: `${Math.round(weer.luchtdrukHpa)} hPa` });
+  if (weer.zonneschijnKomendeUrenMin != null) {
+    items.push({ icoon: '🌤️', tekst: `${weer.zonneschijnKomendeUrenMin} min zon komende ${FORECAST_UREN} uur` });
+  }
 
-  return delen.join(' · ');
+  return items;
 }

@@ -33,6 +33,27 @@
 }
 .dashboard-kaart-gps-knop:active { transform: scale(0.93); }
 
+/* OL's attributiewidget staat standaard rechtsonder — verplaatst naar
+   linksonder zodat hij niet overlapt met dashboard-kaart-gps-knop. */
+.dashboard-kaart-kaart-houder .ol-attribution {
+  right: auto;
+  left: .5em;
+  text-align: left;
+  flex-flow: row;
+}
+.dashboard-kaart-kaart-houder .ol-attribution.ol-uncollapsible {
+  right: auto;
+  left: 0;
+  border-radius: 0 4px 0 0;
+}
+
+.dashboard-kaart-filterbalk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 .dashboard-kaart-balk {
   display: flex;
   align-items: center;
@@ -80,6 +101,12 @@
   color: #4ade80;
 }
 
+.dashboard-kaart-toggle.actief-perceel {
+  border-color: var(--accent-dim);
+  background: var(--accent-glow);
+  color: var(--accent);
+}
+
 .dashboard-kaart-toggle.actief-heatmap {
   border-color: rgba(239, 68, 68, 0.5);
   background: rgba(239, 68, 68, 0.15);
@@ -116,8 +143,29 @@
   border: 1px solid rgba(59, 130, 246, 0.4);
   background: rgba(59, 130, 246, 0.1);
   color: #60a5fa;
-  white-space: pre-line;
   line-height: 1.5;
+}
+
+.dashboard-kaart-radar-popup-regen {
+  margin-bottom: 6px;
+}
+
+.dashboard-kaart-weer-grid {
+  display: grid;
+  gap: 3px 0;
+  padding-top: 6px;
+  border-top: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.dashboard-kaart-weer-rij {
+  display: grid;
+  grid-template-columns: 1.4em 1fr;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.dashboard-kaart-weer-icoon {
+  text-align: center;
 }
 
 .dashboard-kaart-radar-popup-close {

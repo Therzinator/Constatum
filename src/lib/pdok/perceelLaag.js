@@ -40,7 +40,7 @@ export async function haalPerceelgrenzen(lat, lng, deltaGraden = 0.001) {
 // features ophaalt en erin zet. Zo kan de laag al bij kaart-init worden
 // toegevoegd en later (bij elke locatiewijziging) hervuld worden.
 export function maakPerceelgrenzenLaag() {
-  return new VectorLayer({ source: new VectorSource(), style: PERCEEL_STIJL, zIndex: 5 });
+  return new VectorLayer({ source: new VectorSource(), style: PERCEEL_STIJL, visible: false, zIndex: 4 });
 }
 
 export async function vulPerceelgrenzenLaag(laag, lat, lng) {

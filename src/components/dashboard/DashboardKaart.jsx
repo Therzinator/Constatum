@@ -21,6 +21,7 @@ import 'ol/ol.css';
 import { maakDriftZoneLayer } from '../../lib/drift/driftzone.js';
 import { maakOsmLaag, maakLuchtfotoLaag } from '../../lib/ol/lagen.js';
 import { maakNatura2000Laag, vulNatura2000Laag } from '../../lib/pdok/natura2000Laag.js';
+import { maakPerceelgrenzenLaag, vulPerceelgrenzenLaag } from '../../lib/pdok/perceelLaag.js';
 import { laadGpsVoorkeur } from '../../lib/dashboard/gpsVoorkeur.js';
 import { laadGpsCache, slaGpsCacheOp } from '../../lib/geo/gpsCache.js';
 import {
@@ -56,6 +57,8 @@ const MAAND_OPTIES = [
   ['04', 'April'], ['05', 'Mei'], ['06', 'Juni'], ['07', 'Juli'], ['08', 'Augustus'],
   ['09', 'September'], ['10', 'Oktober'], ['11', 'November'], ['12', 'December']
 ];
+
+const DAG_OPTIES = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'));
 
 function clusterStijl(feature) {
   const onderliggend = feature.get('features');
@@ -125,6 +128,8 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
   const luchtLaagRef = useRef(null);
   const natura2000LaagRef = useRef(null);
   const natura2000MoveendKeyRef = useRef(null);
+  const perceelLaagRef = useRef(null);
+  const perceelMoveendKeyRef = useRef(null);
   const gebruikerSourceRef = useRef(null);
   const gebruikerMarkerRef = useRef(null);
   const gebruikerCirkelRef = useRef(null);
@@ -138,11 +143,13 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
   const [luchtAan, setLuchtAan] = useState(false);
   const [driftAan, setDriftAan] = useState(false);
   const [natura2000Aan, setNatura2000Aan] = useState(false);
+  const [perceelAan, setPerceelAan] = useState(false);
   const [heatmapAan, setHeatmapAan] = useState(false);
   const [radarAan, setRadarAan] = useState(false);
-  const [radarVoorspelling, setRadarVoorspelling] = useState(null); // { status: 'laden'|'klaar'|'fout', tekst }
+  const [radarVoorspelling, setRadarVoorspelling] = useState(null); // { status: 'laden'|'klaar'|'fout', regenTekst, weerItems }
   const [maandFilter, setMaandFilter] = useState('huidig');
   const [jaarFilter, setJaarFilter] = useState('');
+  const [dagFilter, setDagFilter] = useState('');
   const [gpsAan] = useState(() => laadGpsVoorkeur());
   const [gpsFout, setGpsFout] = useState(() =>
     !navigator.geolocation ? 'Geolocatie wordt niet ondersteund door deze browser' : null
@@ -163,9 +170,10 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
         return false;
       }
       if (jaarFilter && String(d.getFullYear()) !== jaarFilter) return false;
+      if (dagFilter && String(d.getDate()).padStart(2, '0') !== dagFilter) return false;
       return true;
     });
-  }, [meldingen, maandFilter, jaarFilter]);
+  }, [meldingen, maandFilter, jaarFilter, dagFilter]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -208,6 +216,9 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
     const natura2000Laag = maakNatura2000Laag();
     natura2000LaagRef.current = natura2000Laag;
 
+    const perceelLaag = maakPerceelgrenzenLaag();
+    perceelLaagRef.current = perceelLaag;
+
     const gebruikerSource = new VectorSource();
     gebruikerSourceRef.current = gebruikerSource;
     // zIndex boven Natura2000 (4) en thuislocatie (3) — anders kan de
@@ -221,12 +232,11 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
 
     const map = new Map({
       target: containerRef.current,
-      // attribution-control uit: rechtsonder komt i.p.v. daarvan de "Mijn
-      // locatie"-knop (zie .dashboard-kaart-gps-knop) — de attributietekst
-      // voegde verder geen waarde toe op een GIS-app die toch al alleen
-      // OSM/PDOK-bronnen gebruikt (vermeld in de export-/PDF-bijlage).
-      controls: defaultControls({ attribution: false }),
-      layers: [osmLaag, luchtLaag, radarLaag, natura2000Laag, driftGroep, heatmapLaag, homeLaag, gebruikerLaag, clusterLaag],
+      // attribution-control staat linksonder (CSS-override in
+      // DashboardKaart.css) zodat hij niet overlapt met de "Mijn
+      // locatie"-knop rechtsonder (.dashboard-kaart-gps-knop).
+      controls: defaultControls(),
+      layers: [osmLaag, luchtLaag, radarLaag, natura2000Laag, perceelLaag, driftGroep, heatmapLaag, homeLaag, gebruikerLaag, clusterLaag],
       overlays: [overlay],
       view: new View({ center: fromLonLat([lng, lat]), zoom: 13 })
     });
@@ -275,6 +285,10 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
         unByKey(natura2000MoveendKeyRef.current);
         natura2000MoveendKeyRef.current = null;
       }
+      if (perceelMoveendKeyRef.current) {
+        unByKey(perceelMoveendKeyRef.current);
+        perceelMoveendKeyRef.current = null;
+      }
       if (radarIntervalRef.current) {
         clearInterval(radarIntervalRef.current);
         radarIntervalRef.current = null;
@@ -285,6 +299,7 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
       driftGroepRef.current = null;
       luchtLaagRef.current = null;
       natura2000LaagRef.current = null;
+      perceelLaagRef.current = null;
       gebruikerSourceRef.current = null;
       gebruikerMarkerRef.current = null;
       gebruikerCirkelRef.current = null;
@@ -458,6 +473,32 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
     }
   };
 
+  // PDOK-kadastrale-percelen — net als Natura2000 maar dan rond het huidige
+  // kaartmidden i.p.v. de volledige extent (zie haalPerceelgrenzen() in
+  // perceelLaag.js, die met een lat/lng + delta werkt, geen bbox).
+  const verversPerceelgrenzen = () => {
+    if (!mapRef.current || !perceelLaagRef.current) return;
+    const center = mapRef.current.getView().getCenter();
+    if (!center) return;
+    const [lng, lat] = toLonLat(center);
+    vulPerceelgrenzenLaag(perceelLaagRef.current, lat, lng);
+  };
+
+  const wisselPerceel = () => {
+    const volgende = !perceelAan;
+    setPerceelAan(volgende);
+    perceelLaagRef.current?.setVisible(volgende);
+    if (volgende) {
+      verversPerceelgrenzen();
+      if (mapRef.current && !perceelMoveendKeyRef.current) {
+        perceelMoveendKeyRef.current = mapRef.current.on('moveend', verversPerceelgrenzen);
+      }
+    } else if (perceelMoveendKeyRef.current) {
+      unByKey(perceelMoveendKeyRef.current);
+      perceelMoveendKeyRef.current = null;
+    }
+  };
+
   // Heatmap en clustermarkers tonen dezelfde meldingenSource op twee
   // manieren — alternatieven, dus bij aanzetten van de ene gaat de andere uit.
   const wisselHeatmap = () => {
@@ -484,15 +525,19 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
   const verversRadarVoorspelling = () => {
     const locatie = haalVoorspellingsLocatie();
     if (!locatie) {
-      setRadarVoorspelling({ status: 'fout', tekst: 'Geen locatie beschikbaar voor neerslagverwachting.' });
+      setRadarVoorspelling({ status: 'fout', regenTekst: 'Geen locatie beschikbaar voor neerslagverwachting.', weerItems: null });
       return;
     }
     Promise.all([
       haalBuienradarRegenverwachting(locatie.lat, locatie.lng).then(beschrijfRegenverwachting).catch(() => null),
       haalWeerbericht(locatie.lat, locatie.lng).then(beschrijfWeerbericht).catch(() => null)
-    ]).then(([regenTekst, weerTekst]) => {
-      const tekst = [regenTekst, weerTekst].filter(Boolean).join('\n');
-      setRadarVoorspelling({ status: tekst ? 'klaar' : 'fout', tekst: tekst || 'Geen weerdata beschikbaar voor deze locatie.' });
+    ]).then(([regenTekst, weerItems]) => {
+      const klaar = Boolean(regenTekst || weerItems?.length);
+      setRadarVoorspelling({
+        status: klaar ? 'klaar' : 'fout',
+        regenTekst: regenTekst || (klaar ? null : 'Geen weerdata beschikbaar voor deze locatie.'),
+        weerItems
+      });
     });
   };
 
@@ -519,7 +564,7 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
         radarVorigeZoomRef.current = view.getZoom();
         if (view.getZoom() > RADAR_ZOOM) view.animate({ zoom: RADAR_ZOOM, duration: 400 });
       }
-      setRadarVoorspelling({ status: 'laden', tekst: 'Neerslagverwachting laden...' });
+      setRadarVoorspelling({ status: 'laden', regenTekst: 'Neerslagverwachting laden...', weerItems: null });
       verversRadarTegels();
       verversRadarVoorspelling();
       if (!radarIntervalRef.current) {
@@ -549,13 +594,6 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
   return (
     <div className="dashboard-kaart-wrap">
       <div className="dashboard-kaart-balk">
-        <select className="dashboard-kaart-select" value={maandFilter} onChange={(e) => setMaandFilter(e.target.value)}>
-          {MAAND_OPTIES.map(([waarde, label]) => <option key={waarde} value={waarde}>{label}</option>)}
-        </select>
-        <select className="dashboard-kaart-select" value={jaarFilter} onChange={(e) => setJaarFilter(e.target.value)}>
-          <option value="">Alle jaren</option>
-          {jaren.map((j) => <option key={j} value={j}>{j}</option>)}
-        </select>
         <button type="button" className={`dashboard-kaart-toggle ${luchtAan ? 'actief-lucht' : ''}`} onClick={wisselLuchtfoto}>
           {luchtAan ? '🗺️ Kaart' : '🛰️ Luchtfoto'}
         </button>
@@ -564,6 +602,9 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
         </button>
         <button type="button" className={`dashboard-kaart-toggle ${natura2000Aan ? 'actief-natura' : ''}`} onClick={wisselNatura2000}>
           🌳 Natura2000{natura2000Aan ? ' aan' : ''}
+        </button>
+        <button type="button" className={`dashboard-kaart-toggle ${perceelAan ? 'actief-perceel' : ''}`} onClick={wisselPerceel}>
+          🗺️ Percelen{perceelAan ? ' aan' : ''}
         </button>
         <button type="button" className={`dashboard-kaart-toggle ${heatmapAan ? 'actief-heatmap' : ''}`} onClick={wisselHeatmap}>
           🔥 Heatmap{heatmapAan ? ' aan' : ''}
@@ -580,6 +621,20 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
         </button>
       </div>
 
+      <div className="dashboard-kaart-filterbalk">
+        <select className="dashboard-kaart-select" value={jaarFilter} onChange={(e) => setJaarFilter(e.target.value)}>
+          <option value="">Alle jaren</option>
+          {jaren.map((j) => <option key={j} value={j}>{j}</option>)}
+        </select>
+        <select className="dashboard-kaart-select" value={maandFilter} onChange={(e) => setMaandFilter(e.target.value)}>
+          {MAAND_OPTIES.map(([waarde, label]) => <option key={waarde} value={waarde}>{label}</option>)}
+        </select>
+        <select className="dashboard-kaart-select" value={dagFilter} onChange={(e) => setDagFilter(e.target.value)}>
+          <option value="">Alle dagen</option>
+          {DAG_OPTIES.map((d) => <option key={d} value={d}>{d}</option>)}
+        </select>
+      </div>
+
       {gpsFout && <div className="dashboard-kaart-status dashboard-kaart-status-fout">📍 {gpsFout}</div>}
 
       {radarAan && radarVoorspelling && (
@@ -592,7 +647,21 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
           >
             ×
           </button>
-          {radarVoorspelling.status === 'laden' ? '⏳ ' : ''}{radarVoorspelling.tekst}
+          {radarVoorspelling.regenTekst && (
+            <div className="dashboard-kaart-radar-popup-regen">
+              {radarVoorspelling.status === 'laden' ? '⏳ ' : ''}{radarVoorspelling.regenTekst}
+            </div>
+          )}
+          {radarVoorspelling.weerItems?.length > 0 && (
+            <div className="dashboard-kaart-weer-grid">
+              {radarVoorspelling.weerItems.map((item, i) => (
+                <div className="dashboard-kaart-weer-rij" key={i}>
+                  <span className="dashboard-kaart-weer-icoon">{item.icoon}</span>
+                  <span>{item.tekst}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
