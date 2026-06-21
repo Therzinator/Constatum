@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
 // Dunne wrapper om vite-plugin-pwa's officiële React-hook — vervangt de
@@ -15,6 +16,16 @@ export function usePWA() {
     setNeedRefresh(false);
     setOfflineReady(false);
   };
+
+  // "Klaar voor offline gebruik" is puur informatief (geen actie nodig,
+  // anders dan needRefresh dat op een bevestigde herlaad-klik wacht) —
+  // verdwijnt daarom vanzelf. needRefresh blijft staan tot de gebruiker
+  // zelf Herladen/Sluiten klikt.
+  useEffect(() => {
+    if (!offlineReady) return;
+    const timer = setTimeout(() => setOfflineReady(false), 5000);
+    return () => clearTimeout(timer);
+  }, [offlineReady, setOfflineReady]);
 
   return { needRefresh, offlineReady, bijwerken, sluitMelding };
 }
