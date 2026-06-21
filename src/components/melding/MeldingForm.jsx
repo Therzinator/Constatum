@@ -67,6 +67,7 @@ const GEZONDHEID_OPTIES = [
 ];
 
 const GEUR_OPTIES = [
+  ['', 'Maak een keuze'],
   [0, '👃 Geen — geen geurdetectie'],
   [1, '🌱 Licht — geur alleen dichtbij waarneembaar'],
   [2, '🌿 Matig — geur constant waarneembaar'],
@@ -330,8 +331,8 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
           <select
             id="mf-geur"
             className="mf-select"
-            value={veld.geurIntensiteit}
-            onChange={(e) => form.zetVeld('geurIntensiteit', parseInt(e.target.value, 10))}
+            value={veld.geurIntensiteit ?? ''}
+            onChange={(e) => form.zetVeld('geurIntensiteit', e.target.value === '' ? null : parseInt(e.target.value, 10))}
           >
             {GEUR_OPTIES.map(([waarde, label]) => (
               <option key={waarde} value={waarde}>{label}</option>
@@ -355,6 +356,7 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
 
         <CheckboxDropdown
           label="Drift & overlast waarneming"
+          placeholder="Maak een keuze"
           opties={DRIFT_OPTIES}
           geselecteerd={veld.driftWaarneming}
           onToggle={form.toggleDrift}

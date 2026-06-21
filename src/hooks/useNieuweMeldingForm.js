@@ -25,9 +25,16 @@ function leegFormulier(thuislocatie) {
   return {
     types: ['spuitactiviteit'],
     description: '',
-    geurIntensiteit: 0,
+    // null = nog niets gekozen ("Selecteer wat je ervaart.") — i.p.v. 0
+    // ("Geen") als default, zodat "Geen geur" een bewuste keuze is i.p.v.
+    // een ongemerkte default. windSubjectief blijft wél standaard
+    // voorgevuld (door de meteodata, zie haalWeer hieronder) — dat veld
+    // representeert geen losse, bewuste invoer.
+    geurIntensiteit: null,
     windSubjectief: 'geen',
-    driftWaarneming: ['nvt'],
+    // Leeg i.p.v. ['nvt'] als default — "Niet van toepassing" is nu een
+    // bewuste keuze in de dropdown, geen ongemerkte default.
+    driftWaarneming: [],
     richtingDeg: 0,
     gezondheidsklachten: [],
     gezondheidToestemming: false,

@@ -124,7 +124,7 @@ export function MeldingDetailModal({ melding, alleMeldingen, onClose }) {
         <div className="card p-3">
           <div className="section-label mb-2">Observaties</div>
           <div className="detail-obs-grid">
-            <div><span style={{ color: 'var(--text-muted)' }}>Geur:</span> {melding.geur_intensiteit}/5</div>
+            <div><span style={{ color: 'var(--text-muted)' }}>Geur:</span> {melding.geur_intensiteit != null ? `${melding.geur_intensiteit}/5` : 'niet aangegeven'}</div>
             <div><span style={{ color: 'var(--text-muted)' }}>Wind:</span> {melding.wind_subjectief}</div>
             <div><span style={{ color: 'var(--text-muted)' }}>Richting:</span> {melding.richting_deg}° ({melding.richting_compass})</div>
           </div>

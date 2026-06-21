@@ -35,7 +35,9 @@ export function MeldingMiniKaart({ lat, lng, icoon = '📍' }) {
       style={{ backgroundImage: `url(${tileUrl})`, backgroundSize: `${TILE_GROOTTE}px ${TILE_GROOTTE}px`, backgroundPosition: `${positieX}px ${positieY}px` }}
       title="Locatie van deze melding"
     >
-      <span className="melding-mini-kaart-pin">{icoon}</span>
+      <span className="melding-mini-kaart-pin">
+        <span className="melding-mini-kaart-pin-icoon">{icoon}</span>
+      </span>
     </div>
   );
 }
