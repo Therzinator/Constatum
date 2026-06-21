@@ -92,6 +92,8 @@
   border: 1px solid rgba(59, 130, 246, 0.4);
   background: rgba(59, 130, 246, 0.1);
   color: #60a5fa;
+  white-space: pre-line;
+  line-height: 1.5;
 }
 
 .dashboard-kaart-radar-popup-close {

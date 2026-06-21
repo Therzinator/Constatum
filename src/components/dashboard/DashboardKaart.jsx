@@ -29,6 +29,7 @@ import {
   RADAR_ZOOM
 } from '../../lib/weather/radarLaag.js';
 import { haalBuienradarRegenverwachting, beschrijfRegenverwachting } from '../../lib/weather/buienradarNowcast.js';
+import { haalWeerbericht, beschrijfWeerbericht } from '../../lib/weather/weerbericht.js';
 import { gebruikerKleur, melderCode } from '../../utils/format.js';
 import './DashboardKaart.css';
 
@@ -143,7 +144,7 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
   const [jaarFilter, setJaarFilter] = useState('');
   const [gpsAan] = useState(() => laadGpsVoorkeur());
   const [gpsFout, setGpsFout] = useState(() =>
-    laadGpsVoorkeur() && !navigator.geolocation ? 'Geolocatie wordt niet ondersteund door deze browser' : null
+    !navigator.geolocation ? 'Geolocatie wordt niet ondersteund door deze browser' : null
   );
 
   const jaren = useMemo(
@@ -313,13 +314,63 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
     });
   }, [gefiltered]);
 
+  // Plaatst (eerste keer) of verplaatst (daarna) de blauwe GPS-stip +
+  // nauwkeurigheidscirkel op gebruikerSourceRef. Gedeeld door de live-pin-
+  // watch hieronder, de gecachete-positie-bij-mount en de handmatige
+  // "Mijn locatie"-knop (navigeerNaarGps) — zodat er maar één plek is die
+  // de marker-features aanmaakt/bijwerkt.
+  const plaatsOfUpdateGebruikerMarker = (coord, accuracy) => {
+    const source = gebruikerSourceRef.current;
+    if (!source) return;
+    if (!gebruikerMarkerRef.current) {
+      const marker = new Feature({ geometry: new Point(coord) });
+      marker.setStyle(GEBRUIKER_STIJL);
+      const cirkel = new Feature({ geometry: new CircleGeom(coord, accuracy || 0) });
+      cirkel.setStyle(GEBRUIKER_CIRKEL_STIJL);
+      source.addFeature(cirkel);
+      source.addFeature(marker);
+      gebruikerMarkerRef.current = marker;
+      gebruikerCirkelRef.current = cirkel;
+    } else {
+      gebruikerMarkerRef.current.getGeometry().setCoordinates(coord);
+      gebruikerCirkelRef.current.getGeometry().setCenterAndRadius(coord, accuracy || 0);
+    }
+  };
+
+  // Eenmalige GPS-fix (geen continue watch) — gebruikt door de "Mijn
+  // locatie"-knop én door de automatische centrering bij het laden van het
+  // dashboard (zie de map-init effect hieronder). Los van de live-GPS-pin-
+  // instelling: die blijft een bewuste opt-in voor continue locatietracking,
+  // dit is alleen "waar ben ik nu".
+  const navigeerNaarGps = () => {
+    if (!navigator.geolocation) {
+      setGpsFout('Geolocatie wordt niet ondersteund door deze browser');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        setGpsFout(null);
+        slaGpsCacheOp(latitude, longitude, accuracy);
+        const coord = fromLonLat([longitude, latitude]);
+        plaatsOfUpdateGebruikerMarker(coord, accuracy);
+        mapRef.current?.getView().animate({ center: coord, zoom: 15, duration: 500 });
+      },
+      (err) => {
+        console.warn('[DashboardKaart] GPS niet beschikbaar:', err.message);
+        setGpsFout('Kon GPS-locatie niet ophalen — controleer locatietoestemming in de browser');
+      },
+      { enableHighAccuracy: true, maximumAge: 5000 }
+    );
+  };
+
   // Live GPS-pin van de gebruiker — alleen actief als ingeschakeld via
-  // Instellingen (DashboardGpsInstelling), los van de meldingspin. Toont
-  // eerst de gecachete laatst bekende positie (sneller op positie dan
-  // wachten op een verse fix) en centreert de kaartweergave bij de EERSTE
-  // échte fix nog eens fijn op de actuele GPS-positie (zie gpsGecentreerdRef)
-  // — daarna mag de gebruiker zelf weer rondkijken zonder dat elke nieuwe
-  // GPS-update de kaart terugtrekt.
+  // Instellingen (DashboardGpsInstelling): continue watchPosition i.p.v. de
+  // eenmalige fix van navigeerNaarGps(). Toont eerst de gecachete laatst
+  // bekende positie (sneller op positie dan wachten op een verse fix) en
+  // centreert de kaartweergave bij de EERSTE échte fix nog eens fijn op de
+  // actuele GPS-positie (zie gpsGecentreerdRef) — daarna mag de gebruiker
+  // zelf weer rondkijken zonder dat elke nieuwe GPS-update de kaart terugtrekt.
   useEffect(() => {
     if (!gpsAan || !navigator.geolocation) return;
     gpsGecentreerdRef.current = false;
@@ -327,38 +378,18 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
     const cache = laadGpsCache();
     if (cache && gebruikerSourceRef.current) {
       const cacheCoord = fromLonLat([cache.lng, cache.lat]);
-      const marker = new Feature({ geometry: new Point(cacheCoord) });
-      marker.setStyle(GEBRUIKER_STIJL);
-      const cirkel = new Feature({ geometry: new CircleGeom(cacheCoord, cache.accuracy || 0) });
-      cirkel.setStyle(GEBRUIKER_CIRKEL_STIJL);
-      gebruikerSourceRef.current.addFeature(cirkel);
-      gebruikerSourceRef.current.addFeature(marker);
-      gebruikerMarkerRef.current = marker;
-      gebruikerCirkelRef.current = cirkel;
+      plaatsOfUpdateGebruikerMarker(cacheCoord, cache.accuracy);
       mapRef.current?.getView().animate({ center: cacheCoord, zoom: 15, duration: 400 });
     }
 
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         const { latitude, longitude, accuracy } = pos.coords;
-        const source = gebruikerSourceRef.current;
-        if (!source) return;
+        if (!gebruikerSourceRef.current) return;
         setGpsFout(null);
         slaGpsCacheOp(latitude, longitude, accuracy);
         const coord = fromLonLat([longitude, latitude]);
-        if (!gebruikerMarkerRef.current) {
-          const marker = new Feature({ geometry: new Point(coord) });
-          marker.setStyle(GEBRUIKER_STIJL);
-          const cirkel = new Feature({ geometry: new CircleGeom(coord, accuracy || 0) });
-          cirkel.setStyle(GEBRUIKER_CIRKEL_STIJL);
-          source.addFeature(cirkel);
-          source.addFeature(marker);
-          gebruikerMarkerRef.current = marker;
-          gebruikerCirkelRef.current = cirkel;
-        } else {
-          gebruikerMarkerRef.current.getGeometry().setCoordinates(coord);
-          gebruikerCirkelRef.current.getGeometry().setCenterAndRadius(coord, accuracy || 0);
-        }
+        plaatsOfUpdateGebruikerMarker(coord, accuracy);
         if (!gpsGecentreerdRef.current && mapRef.current) {
           gpsGecentreerdRef.current = true;
           mapRef.current.getView().animate({ center: coord, zoom: 15, duration: 500 });
@@ -372,6 +403,17 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
     );
     return () => navigator.geolocation.clearWatch(watchId);
   }, [gpsAan]);
+
+  // Automatisch navigeren naar de GPS-positie bij het laden van het
+  // dashboard — onafhankelijk van de live-pin-instelling (die regelt alleen
+  // of de stip daarna ZICHTBAAR/bijgewerkt blijft). Als gpsAan al aan staat
+  // regelt de watch-effect hierboven het eerste centreren al, dus dan niet
+  // dubbel een getCurrentPosition-aanvraag doen.
+  useEffect(() => {
+    if (gpsAan) return;
+    navigeerNaarGps();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const wisselLuchtfoto = () => {
     luchtLaagRef.current?.setVisible(!luchtAan);
@@ -439,12 +481,13 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
       setRadarVoorspelling({ status: 'fout', tekst: 'Geen locatie beschikbaar voor neerslagverwachting.' });
       return;
     }
-    haalBuienradarRegenverwachting(locatie.lat, locatie.lng)
-      .then((reeks) => {
-        const tekst = beschrijfRegenverwachting(reeks);
-        setRadarVoorspelling({ status: tekst ? 'klaar' : 'fout', tekst: tekst || 'Geen neerslagverwachting beschikbaar voor deze locatie.' });
-      })
-      .catch((err) => setRadarVoorspelling({ status: 'fout', tekst: `Kon neerslagverwachting niet ophalen: ${err.message}` }));
+    Promise.all([
+      haalBuienradarRegenverwachting(locatie.lat, locatie.lng).then(beschrijfRegenverwachting).catch(() => null),
+      haalWeerbericht(locatie.lat, locatie.lng).then(beschrijfWeerbericht).catch(() => null)
+    ]).then(([regenTekst, weerTekst]) => {
+      const tekst = [regenTekst, weerTekst].filter(Boolean).join('\n');
+      setRadarVoorspelling({ status: tekst ? 'klaar' : 'fout', tekst: tekst || 'Geen weerdata beschikbaar voor deze locatie.' });
+    });
   };
 
   const verversRadarTegels = () => {
@@ -522,11 +565,14 @@ export function DashboardKaart({ meldingen, thuislocatie, onMeldingSelecteren })
         <button type="button" className={`dashboard-kaart-toggle ${radarAan ? 'actief-radar' : ''}`} onClick={wisselRadar}>
           🌧️ Neerslagradar{radarAan ? ' aan' : ''}
         </button>
+        <button type="button" className="dashboard-kaart-toggle" onClick={navigeerNaarGps} title="Navigeer naar mijn huidige GPS-positie">
+          📍 Mijn locatie
+        </button>
       </div>
 
       <div ref={containerRef} className="dashboard-kaart" />
 
-      {gpsAan && gpsFout && <div className="dashboard-kaart-status dashboard-kaart-status-fout">📍 {gpsFout}</div>}
+      {gpsFout && <div className="dashboard-kaart-status dashboard-kaart-status-fout">📍 {gpsFout}</div>}
 
       {radarAan && radarVoorspelling && (
         <div className="dashboard-kaart-radar-popup">
