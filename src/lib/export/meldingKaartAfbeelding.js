@@ -48,24 +48,33 @@ function puntFeature(coord, kleur, label) {
 
 // Standaard OL-recept om de huidige kaartweergave als PNG-dataURL te
 // exporteren (canvas-per-laag samenvoegen) — zie OL's "Export Map" voorbeeld.
+// Faalt de toDataURL-stap (bv. een tegelbron zonder crossOrigin/CORS die de
+// canvas alsnog "tainted"), dan resolved dit met null i.p.v. de hele
+// PDF-generatie te laten hangen op een nooit-aflopende promise — de
+// aanroeper (export/pdf.js) laat de kaartsectie dan gewoon weg.
 function exporteerAlsDataURL(map) {
   return new Promise((resolve) => {
     map.once('rendercomplete', () => {
-      const mapCanvas = document.createElement('canvas');
-      const size = map.getSize();
-      mapCanvas.width = size[0];
-      mapCanvas.height = size[1];
-      const mapContext = mapCanvas.getContext('2d');
-      map.getViewport().querySelectorAll('.ol-layer canvas, canvas.ol-layer').forEach((canvas) => {
-        if (canvas.width === 0) return;
-        const opacity = canvas.parentNode.style.opacity || canvas.style.opacity;
-        mapContext.globalAlpha = opacity === '' ? 1 : Number(opacity);
-        const matrix = canvas.style.transform?.match(/^matrix\(([^)]*)\)$/)?.[1]?.split(',').map(Number);
-        if (matrix) mapContext.setTransform(...matrix);
-        mapContext.drawImage(canvas, 0, 0);
-      });
-      mapContext.setTransform(1, 0, 0, 1, 0, 0);
-      resolve(mapCanvas.toDataURL('image/png'));
+      try {
+        const mapCanvas = document.createElement('canvas');
+        const size = map.getSize();
+        mapCanvas.width = size[0];
+        mapCanvas.height = size[1];
+        const mapContext = mapCanvas.getContext('2d');
+        map.getViewport().querySelectorAll('.ol-layer canvas, canvas.ol-layer').forEach((canvas) => {
+          if (canvas.width === 0) return;
+          const opacity = canvas.parentNode.style.opacity || canvas.style.opacity;
+          mapContext.globalAlpha = opacity === '' ? 1 : Number(opacity);
+          const matrix = canvas.style.transform?.match(/^matrix\(([^)]*)\)$/)?.[1]?.split(',').map(Number);
+          if (matrix) mapContext.setTransform(...matrix);
+          mapContext.drawImage(canvas, 0, 0);
+        });
+        mapContext.setTransform(1, 0, 0, 1, 0, 0);
+        resolve(mapCanvas.toDataURL('image/png'));
+      } catch (err) {
+        console.warn('[meldingKaartAfbeelding] Kaart exporteren mislukt:', err.message);
+        resolve(null);
+      }
     });
     map.renderSync();
   });
@@ -140,7 +149,9 @@ export async function genereerMeldingKaartAfbeelding(melding) {
       });
     }
 
-    return await exporteerAlsDataURL(map);
+    const dataUrl = await exporteerAlsDataURL(map);
+    map.setTarget(null);
+    return dataUrl;
   } finally {
     document.body.removeChild(host);
   }

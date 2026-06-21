@@ -10,12 +10,20 @@ const LUCHTFOTO_URL =
 
 // Komt overeen met de OSM-laag uit de Leaflet-versie — XYZ-source i.p.v.
 // Leaflet's tileLayer, zelfde {z}/{x}/{y}-template.
+//
+// crossOrigin: 'anonymous' — OSM's tegelserver stuurt zelf al
+// Access-Control-Allow-Origin: * (gecheckt), maar zonder dit attribuut
+// vraagt de browser de tegel niet in CORS-mode op, waardoor de kaart-
+// canvas alsnog "tainted" raakt. Zonder dit attribuut gaf
+// canvas.toDataURL() in meldingKaartAfbeelding.js (PDF-export) een
+// leeg/wit resultaat terug i.p.v. de gerenderde kaart.
 export function maakOsmLaag() {
   return new TileLayer({
     className: 'ol-layer-basis',
     source: new XYZ({
       url: 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       attributions: '© OpenStreetMap',
+      crossOrigin: 'anonymous',
       maxZoom: 19
     })
   });
