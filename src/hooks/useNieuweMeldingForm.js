@@ -289,6 +289,8 @@ export function useNieuweMeldingForm({ user, thuislocatie, meldingenApi, syncNu 
         perceelnummer: veld.perceelnummer || null,
         postcode: veld.postcode || null,
         afstand_woning: veld.afstandWoning ?? null,
+        afstand_woning_lat: veld.afstandWoningLat ?? null,
+        afstand_woning_lng: veld.afstandWoningLng ?? null,
         wind_naar_woning: windNaarWoning,
         natura2000: veld.natura2000,
         kwetsbare_locaties: veld.kwetsbareLocaties,

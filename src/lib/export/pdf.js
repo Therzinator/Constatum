@@ -1,13 +1,15 @@
 import { idbGetBijlagen } from '../storage/indexedDB.js';
 import { melderCode } from '../../utils/format.js';
 import { APP_VERSION_CLIENT } from '../version.js';
+import { genereerMeldingKaartAfbeelding } from './meldingKaartAfbeelding.js';
 
 // Genereert een printbare HTML-pagina van het volledige dossier — opent in
 // een nieuw venster waar de gebruiker zelf "Afdrukken als PDF" kiest (geen
 // auto-print, zie legacy-regel "Geen auto-print — print knop in header").
-// Geen externe lettertypen/kaarttegels als base64 (dat was een CORS-
-// workaround specifiek voor de oude single-file deployment); deze pagina
-// gebruikt systeemlettertypen en toont coördinaten in tekst i.p.v. een kaart.
+// Geen externe lettertypen als base64 (CORS-workaround specifiek voor de
+// oude single-file deployment, hier niet relevant) — wel een kaartweergave
+// per melding, als PNG-dataURL "bevroren" vóór het openen van dit venster
+// (zie meldingKaartAfbeelding.js; dit printvenster zelf heeft geen React/OL).
 
 function escapeHTML(str) {
   return String(str ?? '').replace(/[&<>"']/g, (c) => ({
@@ -26,6 +28,8 @@ async function meldingNaarHTML(m) {
     .filter((f) => !f.type?.startsWith('video/'))
     .map((f) => f.thumbnail || idbBijlagen.find((b) => b.hash === f.hash || b.name === f.name)?.dataUrl)
     .filter(Boolean);
+  const kaartAfbeelding = await genereerMeldingKaartAfbeelding(m).catch(() => null);
+  const toontWoningPin = m.afstand_woning_lat != null && m.afstand_woning_lng != null;
 
   const types = (m.types?.length ? m.types : [m.type]).map((t) => TYPE_LABEL[t] || t).join(', ');
 
@@ -43,6 +47,12 @@ async function meldingNaarHTML(m) {
         ${m.bedrijfsnaam ? `<tr><td>Bedrijfsnaam teler</td><td>${escapeHTML(m.bedrijfsnaam)}</td></tr>` : ''}
         ${m.gewas ? `<tr><td>Gewas</td><td>${escapeHTML(m.gewas)}</td></tr>` : ''}
       </table>
+
+      ${kaartAfbeelding ? `
+      <h4>Kaartweergave</h4>
+      <img class="melding-kaart" src="${kaartAfbeelding}" />
+      <p class="kaart-legenda">🚜 Spuitactiviteit (windvector/driftkegel) · 🟢 Natura 2000 · 🟠 Overige kwetsbare locaties (zorg/onderwijs/speeltuin)${toontWoningPin ? ' · 🔵 Woning' : ''}
+        ${!toontWoningPin && m.afstand_woning != null ? ' — locatie van de woning is bij deze melding niet opgeslagen, dus niet op de kaart gevisualiseerd' : ''}</p>` : ''}
 
       <h4>Omschrijving</h4>
       <p>${escapeHTML(m.description)}</p>
@@ -91,6 +101,8 @@ export async function genereerDossierHTML(meldingen, locatieLabel) {
   .meta-table td { padding: 2px 6px; border-bottom: 1px solid #eee; font-size: 12px; }
   .meta-table td:first-child { color: #666; width: 200px; }
   .mono { font-family: 'Courier New', monospace; font-size: 10px; word-break: break-all; }
+  .melding-kaart { width: 100%; max-width: 680px; border: 1px solid #ccc; display: block; }
+  .kaart-legenda { font-size: 10px; color: #666; margin: 4px 0 12px; }
   .foto-grid { display: flex; flex-wrap: wrap; gap: 6px; }
   .foto-grid img { width: 140px; height: 140px; object-fit: cover; border: 1px solid #ccc; }
   .melding { page-break-inside: avoid; }
