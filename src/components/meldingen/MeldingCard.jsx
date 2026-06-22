@@ -24,12 +24,39 @@ const TYPE_BADGE = {
   overig: 'badge-muted'
 };
 
+// Zelfde kleuren als de kaart-markers (DashboardKaart.jsx/
+// BuurtgebiedTekenaar.jsx) — voor de stip op MeldingMiniKaart.
+const TYPE_KLEUR = {
+  spuitactiviteit: '#f59e0b',
+  drift: '#3b82f6',
+  geur: '#8b5cf6',
+  gezondheid: '#ef4444',
+  geluid: '#f97316',
+  overig: '#6b7280'
+};
+
 const SYNC_BADGE = {
   synced: ['sync-synced', 'Gesynchroniseerd'],
   lokaal: ['sync-lokaal', 'Alleen lokaal'],
   sync_mislukt: ['sync-error', 'Sync mislukt'],
   pending: ['sync-pending', 'In wachtrij']
 };
+
+// Relatieve tijd i.p.v. volledige datum/tijd — alleen voor de compacte
+// variant ("Recente meldingen"): scant sneller in een lijst die per
+// definitie recent is. Valt terug op de volledige datum zodra het langer
+// dan een week geleden is (relatieve tijd wordt dan minder leesbaar dan
+// een concrete datum).
+function relatieveTijd(datum, dateStr, timeStr) {
+  const minuten = Math.round((Date.now() - datum.getTime()) / 60000);
+  if (minuten < 1) return 'Nu';
+  if (minuten < 60) return `${minuten} min geleden`;
+  const uren = Math.round(minuten / 60);
+  if (uren < 24) return `${uren} u geleden`;
+  const dagen = Math.round(uren / 24);
+  if (dagen < 7) return `${dagen}d geleden`;
+  return `${dateStr} ${timeStr}`;
+}
 
 // Komt overeen met renderMeldingCard (niet-compacte variant) uit docs/index.html.
 // `user`/`gebruikerRol` komen uit hooks/useAuth.js. Klikken op de kaart opent
@@ -50,7 +77,15 @@ export function MeldingCard({ melding, user, gebruikerRol, onVerwijderen, onSele
   const afstandTekst = heeftLocatie && gpsLocatie
     ? `Melding ${Math.round(haversineAfstand(gpsLocatie.lat, gpsLocatie.lng, melding.gps.lat, melding.gps.lng))} meter vanaf jouw positie gedaan.`
     : null;
-  const typeIcoon = (TYPE_LABEL[melding.type] || '📍 ').split(' ')[0];
+  // Het mini-kaartje toont de EXACTE locatie-pin — voor andermans gedeelde
+  // melding (opt_in_buurt) is dat zelf een herleidbaarheidsrisico (zelfde
+  // dreigingsmodel als de 30-minuten-vertraging, zie lib/meldingen/
+  // buurtVertraging.js): een teler zou een melder zo alsnog tot op de
+  // meter kunnen lokaliseren. Daarom alleen tonen bij een eigen melding;
+  // de afstandTekst hierboven (alleen een getal, geen kaart) blijft voor
+  // andermans melding wel zichtbaar.
+  const isEigenMelding = !melding.user_id || melding.user_id === user?.id;
+  const toonMiniKaart = heeftLocatie && isEigenMelding;
 
   return (
     <div className="card melding-card">
@@ -62,6 +97,12 @@ export function MeldingCard({ melding, user, gebruikerRol, onVerwijderen, onSele
                 <span className={`badge ${TYPE_BADGE[melding.type] || 'badge-muted'}`}>
                   {TYPE_LABEL[melding.type] || melding.type}
                 </span>
+                {compact && melding.gezondheidsklachten?.length > 0 && (
+                  // Enige signaal dat in de compacte rij mag opvallen — staat
+                  // daarom als badge naast het type i.p.v. tussen de overige
+                  // meta-iconen in rij 2, zie comment daar.
+                  <span className="badge badge-danger">🏥 {melding.gezondheidsklachten.length}</span>
+                )}
                 {SUPABASE_ENABLED && (
                   <span className={`sync-badge ${syncCls}`}>
                     <span className="sync-dot" />
@@ -69,34 +110,24 @@ export function MeldingCard({ melding, user, gebruikerRol, onVerwijderen, onSele
                   </span>
                 )}
               </div>
-              <span className="melding-card-date">{dateStr} {timeStr}</span>
+              <span className="melding-card-date">{compact ? relatieveTijd(d, dateStr, timeStr) : `${dateStr} ${timeStr}`}</span>
             </div>
 
             {compact ? (
               // Compacte variant ("Recente meldingen"): rij 1 is hierboven
-              // (badges + datum, .melding-card-top), rij 2 combineert
-              // omschrijving en meta-iconen op één regel — bewust precies
-              // twee rijen data, geen losse derde rij.
+              // (badges + relatieve tijd, .melding-card-top — de
+              // gezondheidsklacht-badge staat daar nu ook, als enige signaal
+              // dat in dit overzicht mag opvallen), rij 2 is alleen nog
+              // omschrijving + windsnelheid (laag-prioriteit info als
+              // melding-ID/bestandsaantal/melder-code bewust weggelaten —
+              // die voegen op dit niveau niets toe, de detail-modal heeft ze).
               <div className="melding-card-compact-rij2">
                 <div className="melding-card-desc">{omschrijving}</div>
-                <div className="melding-card-meta">
-                  {melding.weather?.wind_speed != null && (
-                    <span style={{ color: 'var(--info)', fontSize: '0.65rem' }}>
-                      💨 {melding.weather.wind_speed} km/h {degToCompass(melding.weather.wind_dir)}
-                    </span>
-                  )}
-                  {melding.gezondheidsklachten?.length > 0 && (
-                    <span style={{ color: 'var(--danger)', fontSize: '0.65rem' }}>
-                      🏥 {melding.gezondheidsklachten.length} klacht(en)
-                    </span>
-                  )}
-                  {melding.bestanden?.length > 0 && (
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>
-                      📎 {melding.bestanden.length} bestand(en)
-                    </span>
-                  )}
-                  <span className="melding-id">{melding.id}</span>
-                </div>
+                {melding.weather?.wind_speed != null && (
+                  <span className="melding-card-meta" style={{ color: 'var(--info)', fontSize: '0.65rem' }}>
+                    💨 {melding.weather.wind_speed} km/h {degToCompass(melding.weather.wind_dir)}
+                  </span>
+                )}
               </div>
             ) : (
               <>
@@ -141,9 +172,9 @@ export function MeldingCard({ melding, user, gebruikerRol, onVerwijderen, onSele
             )}
           </div>
 
-          {heeftLocatie && (
+          {toonMiniKaart && (
             <div className="melding-card-thumb-col">
-              <MeldingMiniKaart lat={melding.gps.lat} lng={melding.gps.lng} icoon={typeIcoon} />
+              <MeldingMiniKaart lat={melding.gps.lat} lng={melding.gps.lng} kleur={TYPE_KLEUR[melding.type] || TYPE_KLEUR.overig} />
             </div>
           )}
         </div>

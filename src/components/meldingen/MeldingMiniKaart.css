@@ -16,34 +16,21 @@
   border: 1px solid var(--border);
 }
 
-/* Klassieke, scherpe locatie-pin-vorm (rond kopje + punt naar onder) i.p.v.
-   de eerdere platte cirkel-badge — klein gehouden zodat hij niet zwaar
-   oogt op het kaartje. De punt van de pin (niet het midden) wijst naar de
-   exacte locatie, dus de margin verschuift het ankerpunt naar de punt.
-   De buitenste vorm draait -45deg om van een vierkant met afgeronde hoeken
-   een teardrop te maken; .melding-mini-kaart-pin-icoon draait weer +45deg
-   terug zodat het emoji-icoon zelf rechtop blijft staan. */
+/* Effen gekleurde stip i.p.v. de eerdere teardrop-pin met tegengedraaid
+   emoji-icoon — bij 26px was de geroteerde emoji onduidelijk leesbaar; het
+   type staat al als badge boven de kaart, dus de stip hoeft alleen de
+   exacte locatie te markeren. `background` wordt inline per instantie
+   gezet (zelfde type-kleur als de kaart-markers, zie MeldingCard.jsx). */
 .melding-mini-kaart-pin {
   position: absolute;
   /* top/left worden inline per instantie gezet (MeldingMiniKaart.jsx) —
      niet altijd 50%/50%: als de tegelpositie geclampt is om een lege rand
      te voorkomen, staat de pin niet meer in het midden van de box, maar
      op de plek waar het punt na het clampen daadwerkelijk terechtkomt. */
-  width: 26px;
-  height: 26px;
-  margin: -26px 0 0 -13px;
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
-  background: #f59e0b;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
   border: 2.5px solid #fff;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.melding-mini-kaart-pin-icoon {
-  transform: rotate(45deg);
-  font-size: 12px;
-  line-height: 1;
 }

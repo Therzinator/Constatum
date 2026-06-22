@@ -4,7 +4,7 @@ Momentopname. Dit bestand veroudert sneller dan DOMAIN_KNOWLEDGE.md/
 DECISIONS.md — bij twijfel altijd verifiëren tegen de code (`git log`,
 grep), niet blind vertrouwen op een oude snapshot.
 
-Laatst bijgewerkt: 2026-06-21.
+Laatst bijgewerkt: 2026-06-22.
 
 ## Technische stack
 
@@ -143,6 +143,64 @@ ontwerp zien. Zie ook NEXT_STEPS.md.
   die meer dan 48 uur verlopen zijn worden niet meer opgehaald
   (`haalEigenDeeltokens`, `VERBERG_NA_UUR_VERLOPEN`) — blijven wel in de
   database staan, verdwijnen alleen uit het overzicht.
+
+## Privacybescherming melders: notificaties verwijderd + 30 min vertraging (sinds 2026-06-22)
+
+- **Buurt-notificatiefunctie volledig verwijderd** (`useBuurtNotificaties.js`,
+  `NotificatieBanner.jsx`/`.css`, `NotificatieInstellingen.jsx` — geen van
+  alle bestaan nog). Geen browser-`Notification` of in-app banner meer bij
+  een nieuwe gedeelde melding van een ander. Zie DECISIONS.md voor de
+  reden (identiteitsbescherming melders tegen een mogelijk
+  geïnfiltreerde teler in de buurt-groep).
+- **Bereik-instelling (1/2,5/5 km) blijft bestaan**, los van de
+  verwijderde notificaties — regelt hoe ver andermans gedeelde meldingen
+  op Dashboard en Tijdlijn zichtbaar zijn. Verplaatst van de (verwijderde)
+  `NotificatieInstellingen`-toggle naar een eigen "📍 Bereik
+  buurtmeldingen"-select in het account-menu (`AccountMenu.jsx`), altijd
+  zichtbaar i.p.v. alleen als notificaties aanstonden.
+  `lib/notificaties/buurtMelding.js` heet nog steeds zo (niet hernoemd),
+  exporteert nu `laadBereikMeter()`/`slaBereikMeterOp()` i.p.v. de oude
+  notificatie-instellingen-paar.
+- **Andermans gedeelde meldingen (`opt_in_buurt`) pas zichtbaar 30 minuten
+  na het melden** — `magAndermansMeldingTonen()`
+  (`lib/meldingen/buurtVertraging.js`), gebaseerd op `entries.created_at`
+  (server-tijdstip, niet het vrij invoerbare `timestamp_local`). Geldt op
+  Dashboard (`DashboardPage.jsx` → `meldingenInBereik`, dus ook de kaart en
+  "Recente meldingen") én Tijdlijn (`TijdlijnPage.jsx` →
+  "Gedeelde meldingen in jouw buurt"-filter). Eigen meldingen blijven voor
+  de melder zelf altijd direct zichtbaar. Geldt **niet** voor het
+  admin/coordinator-zicht (CoordinatiePage, buurtgebied-export,
+  buurtrapport) — dat is al een vertrouwde rol, bewust ongewijzigd.
+- `entries.js`'s `laadVanSupabase()`-mapping zet nu ook `created_at` door
+  naar het lokale melding-object (stond er voorheen niet expliciet in,
+  alleen indirect via `sync_at`) — nodig als betrouwbare bron voor de
+  vertraging.
+
+## "Recente meldingen" opmaak + mini-kaartje privacy (sinds 2026-06-22)
+
+- **Mini-kaartje (`MeldingMiniKaart.jsx`) toont een effen gekleurde stip**
+  i.p.v. een geroteerd type-emoji-icoon — bij 26px was de tegengedraaide
+  emoji onduidelijk leesbaar; het type staat al in de badge erboven. Kleur
+  komt uit `TYPE_KLEUR` in `MeldingCard.jsx` (dezelfde kleuren als de
+  kaart-markers op Dashboard/Buurtgebied tekenen, los gehouden van die
+  bestanden — geen gedeelde module, bewuste duplicatie zoals daar al
+  bestond tussen `DashboardKaart.jsx`/`BuurtgebiedTekenaar.jsx`).
+- **Mini-kaartje (exacte locatie-pin) alleen nog bij eigen meldingen** —
+  voor andermans gedeelde melding (`opt_in_buurt`) is een exacte pin op
+  een kaartje zelf een herleidbaarheidsrisico, hetzelfde dreigingsmodel als
+  de 30-minuten-vertraging (zie hierboven): een teler zou een melder
+  alsnog tot op de meter kunnen lokaliseren. De losse afstandTekst
+  ("Melding X meter vanaf jouw positie") blijft wel zichtbaar bij
+  andermans melding — dat is alleen een getal, geen kaart.
+- **Compacte kaart ("Recente meldingen") toont relatieve tijd** ("12 min
+  geleden" / "3 u geleden" / "2d geleden") i.p.v. de volledige datum/tijd,
+  valt terug op de volledige datum na een week (`relatieveTijd()` in
+  MeldingCard.jsx). Melding-ID, bestandsaantal en melder-code zijn uit de
+  compacte rij gehaald (stonden te dicht op elkaar, lage waarde op dit
+  niveau — wel nog in de detail-modal/niet-compacte Tijdlijn-kaart). Een
+  gezondheidsklacht is verplaatst naar een eigen badge naast het type
+  (rij 1) i.p.v. tussen de overige meta-iconen, als enige signaal dat in
+  dit overzicht mag opvallen.
 
 ## Bestaande modules
 

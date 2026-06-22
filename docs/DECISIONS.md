@@ -269,3 +269,86 @@ verandering die een dependency-keten raakt is precies het patroon dat
 hier tot een oneindige lus leidde. Toekomstige wijzigingen aan
 `useAuth.js`/`useSupabaseSync.js` kunnen het beste tegen een echte
 Supabase-sessie getest worden, niet (alleen) op localhost.
+
+---
+
+## Buurt-notificaties verwijderd + 30 minuten vertraging op andermans gedeelde meldingen
+
+### Keuze
+Op 2026-06-22, op expliciet verzoek van de gebruiker, **volledig verwijderd**:
+de buurt-notificatiefunctie (browser-`Notification` + in-app banner bij een
+nieuwe gedeelde melding van een ander, `useBuurtNotificaties.js`/
+`NotificatieBanner.jsx`/`NotificatieInstellingen.jsx`). Het bijbehorende
+bereik-instelling (1/2,5/5 km, `buurtMelding.js`) blijft bestaan — die regelt
+nu alleen nog hoe ver andermans gedeelde meldingen op Dashboard/Tijdlijn
+zichtbaar zijn, los van enige notificatie, instelbaar via het account-menu.
+
+Daarnaast: andermans gedeelde meldingen (`opt_in_buurt`) worden pas
+**30 minuten na het melden** zichtbaar op Dashboard (kaart + "Recente
+meldingen") en Tijdlijn ("Gedeelde meldingen in jouw buurt") —
+`magAndermansMeldingTonen()` in `lib/meldingen/buurtVertraging.js`, op basis
+van `entries.created_at` (server-tijdstip, niet het door de melder zelf
+invoerbare `timestamp_local`). Eigen meldingen blijven voor de melder zelf
+altijd direct zichtbaar.
+
+### Waarom
+Realtime zichtbaarheid van een nieuwe melding (via notificatie of direct op
+de kaart) kan de identiteit van de melder verraden aan een teler die zich —
+mogelijk onder een valse naam — bij de buurt-groep heeft aangesloten: wie
+net een melding deed, is dan onmiddellijk af te leiden uit timing. Een
+vertraging van 30 minuten ontkoppelt het moment van melden van het moment
+van zichtbaar worden, zonder de bewijswaarde van de melding zelf aan te
+tasten (tijdstip/hash/RFC3161 blijven exact, alleen de zichtbaarheid voor
+ánderen is vertraagd).
+
+### Impact
+- Admin/coordinator-zicht (CoordinatiePage, buurtgebied-export,
+  buurtrapport) is **niet** aangepast — dat is al een vertrouwde rol met
+  volledig zicht op individuele meldingen, los van het peer-to-peer
+  buurt-delen waar deze vertraging op gericht is. (Zie wel de latere
+  beslissing hieronder: de buurtgebied-export zelf is nadien alsnog
+  admin-only gemaakt, om een andere reden.)
+- `useSupabaseSync.js`'s realtime-listener riep voorheen een callback aan
+  bij elke INSERT (voor de notificatie) — die parameter/aanroep is
+  verwijderd; de listener triggert verder ongewijzigd een gedebouncede
+  herlaad van alle meldingen.
+- Een toekomstige wijziging aan deze vertraging (bv. instelbaar maken, of
+  ook laten gelden voor de admin-export) moet bewust opnieuw afgewogen
+  worden tegen dit dreigingsmodel.
+
+---
+
+## Buurtgebied-export (CSV/Dossier-PDF) admin-only, coordinator-rol verder ongewijzigd
+
+### Keuze
+Op 2026-06-22 besloten: de buurtgebied-CSV/Dossier-PDF-export in
+`BuurtgebiedTekenaar.jsx` (CoordinatiePage) is **admin-only** gemaakt — een
+coordinator ziet de kaart, kan het gebied nog tekenen en als GeoJSON
+exporteren, maar de twee knoppen die individuele meldingen (incl. PII van
+andere melders) bundelen zijn voor coordinator verborgen, met een
+verwijzing naar de beheerder. De rest van de coordinator-rol (moderatie,
+trust-score, postcode/gemeente-backfill, buurtrapport) is **niet**
+aangepast.
+
+### Waarom
+De gebruiker wil dossier-aanvragen liever zelf afhandelen i.p.v. een
+coordinator-sleutel (met toegang tot alle individuele meldingen) te geven
+aan iemand zonder kennis van de app/data. Tegelijk is volledige verwijdering
+van de coordinator-rol nu bewust **niet** gedaan: de gebruiker verwacht
+voorlopig weinig tot geen gebruikers en wil eerst zien of de app aanslaat
+voordat er in rol-infrastructuur geïnvesteerd of die afgebroken wordt — de
+rol blijft dus dormant beschikbaar voor het geval moderatietaken ooit
+gedelegeerd moeten worden.
+
+### Impact
+- `gebruikerRol` wordt nu doorgegeven: `App.jsx` → `CoordinatiePage` →
+  `BuurtgebiedTekenaar.jsx` (stond voorheen nergens in die keten).
+- `isAdmin()` (lib/rollen.js) bepaalt `magExporteren` in
+  `BuurtgebiedTekenaar.jsx` — geen nieuwe rolcontrole-functie nodig.
+- Geen RLS/migratie-wijziging: `haalAlleEntriesVoorExportAdmin()` blijft
+  voor coordinator technisch toegankelijk (server-side), dit is alleen een
+  UI-restrictie. Als dat ooit ook server-side afgedwongen moet worden, is
+  dat een nieuwe, aparte beslissing.
+- Een toekomstige keuze om de coordinator-rol volledig te verwijderen of
+  juist actief te gaan gebruiken voor delegatie staat nog open — bewust
+  geen besluit hierover genomen, alleen deze ene actie afgeschermd.

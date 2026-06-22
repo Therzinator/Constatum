@@ -19,10 +19,12 @@ function osmSubdomein(x, y) {
   return 'abc'[(x + y) % 3];
 }
 
-// `icoon` is de emoji van het waarneming-type (zie TYPE_LABEL in
-// MeldingCard.jsx) — vervangt de eerdere generieke oranje pin-druppel,
-// zodat je het type meldingen al op het kaartje zelf herkent.
-export function MeldingMiniKaart({ lat, lng, icoon = '📍' }) {
+// `kleur` is de type-kleur (zie TYPE_KLEUR in MeldingCard.jsx, dezelfde
+// kleuren als de kaart-markers op Dashboard/Buurtgebied tekenen) — een
+// effen gekleurde stip i.p.v. een geroteerd emoji-icoon, dat bij dit
+// kleine formaat (26px, binnen een -45°/+45°-tegendraai) onduidelijk/
+// verknipt overkwam. Het type staat al leesbaar in de badge boven de kaart.
+export function MeldingMiniKaart({ lat, lng, kleur = '#f59e0b' }) {
   if (lat == null || lng == null) return null;
 
   const { x, y, px, py } = lonLatNaarTileEnPixel(lng, lat, ZOOM);
@@ -56,9 +58,7 @@ export function MeldingMiniKaart({ lat, lng, icoon = '📍' }) {
       style={{ backgroundImage: `url(${tileUrl})`, backgroundSize: `${TEGEL_WEERGAVEGROOTTE}px ${TEGEL_WEERGAVEGROOTTE}px`, backgroundPosition: `${positieX}px ${positieY}px` }}
       title="Locatie van deze melding"
     >
-      <span className="melding-mini-kaart-pin" style={{ left: `${pinX}px`, top: `${pinY}px` }}>
-        <span className="melding-mini-kaart-pin-icoon">{icoon}</span>
-      </span>
+      <span className="melding-mini-kaart-pin" style={{ left: `${pinX}px`, top: `${pinY}px`, background: kleur }} />
     </div>
   );
 }
