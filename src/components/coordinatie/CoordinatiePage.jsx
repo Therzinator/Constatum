@@ -6,16 +6,21 @@ import {
   zetTrustScoreAdmin,
   zetVisibilityAdmin,
   haalEntriesZonderPostcode,
-  zetPostcodeAdmin
+  zetPostcodeAdmin,
+  haalEntriesZonderGemeente,
+  zetGemeenteProvincieAdmin
 } from '../../lib/supabase/admin.js';
-import { zoekPostcodePDOK } from '../../lib/pdok/postcode.js';
+import { zoekPostcodePDOK, zoekGemeenteProvinciePDOK } from '../../lib/pdok/postcode.js';
 import { perceelStatistieken, windrichtingPerPerceel } from '../../lib/meldingen/statistieken.js';
 import { BuurtrapportGenerator } from './BuurtrapportGenerator.jsx';
 import {
   meldersPerPostcode,
   trustScoreVerdeling,
   meldersOverzicht,
-  meldingenOnderReview
+  meldingenOnderReview,
+  provincies,
+  gemeentenInProvincie,
+  filterOpRegio
 } from '../../lib/meldingen/coordinatieStatistieken.js';
 import './CoordinatiePage.css';
 
@@ -38,6 +43,10 @@ export function CoordinatiePage({ user, thuislocatie }) {
   const [bezigId, setBezigId] = useState(null);
   const [backfillBezig, setBackfillBezig] = useState(false);
   const [backfillStatus, setBackfillStatus] = useState(null);
+  const [gemeenteBackfillBezig, setGemeenteBackfillBezig] = useState(false);
+  const [gemeenteBackfillStatus, setGemeenteBackfillStatus] = useState(null);
+  const [filterProvincie, setFilterProvincie] = useState('');
+  const [filterGemeente, setFilterGemeente] = useState('');
 
   const laad = async () => {
     try {
@@ -67,10 +76,44 @@ export function CoordinatiePage({ user, thuislocatie }) {
 
   const perPostcode = meldersPerPostcode(entries);
   const verdeling = trustScoreVerdeling(profielen);
-  const perceelStats = perceelStatistieken(entries);
-  const windroosPerPerceel = windrichtingPerPerceel(entries);
-  const melders = meldersOverzicht(entries, profielen);
-  const onderReview = meldingenOnderReview(entries);
+  const provincieOpties = provincies(entries);
+  const gemeenteOpties = gemeentenInProvincie(entries, filterProvincie);
+  const entriesGefilterd = filterOpRegio(entries, filterProvincie, filterGemeente);
+  const perceelStats = perceelStatistieken(entriesGefilterd);
+  const windroosPerPerceel = windrichtingPerPerceel(entriesGefilterd);
+  const melders = meldersOverzicht(entriesGefilterd, profielen);
+  const onderReview = meldingenOnderReview(entriesGefilterd);
+
+  // Gemiddelde GPS van de gefilterde meldingen — centreert Buurtgebied
+  // tekenen op de geselecteerde regio i.p.v. altijd op thuislocatie, zodat
+  // het filter ook daar effect heeft (die tool toont zelf geen meldingen,
+  // alleen een losse teken-kaart). Geen useMemo: deze component heeft al
+  // vroege returns vóór dit punt (laden/foutstatus), dus een hook hier zou
+  // afhankelijk van renderpad een wisselend aantal hooks opleveren.
+  let filterCentrum = null;
+  if (filterProvincie) {
+    const metGps = entriesGefilterd.filter((e) => e.gps_lat != null && e.gps_lng != null);
+    if (metGps.length) {
+      filterCentrum = {
+        lat: metGps.reduce((s, e) => s + e.gps_lat, 0) / metGps.length,
+        lng: metGps.reduce((s, e) => s + e.gps_lng, 0) / metGps.length
+      };
+    }
+  }
+
+  // Meest voorkomende 4-cijferige postcode-prefix binnen het filter — vult
+  // het postcodegebied-veld van BuurtrapportGenerator voor (die werkt zelf
+  // op postcode, niet op gemeente/provincie, zie BuurtrapportGenerator.jsx).
+  let voorgeselecteerdPostcodegebied = '';
+  if (filterProvincie) {
+    const tellingen = {};
+    entriesGefilterd.forEach((e) => {
+      const prefix = e.postcode?.slice(0, 4);
+      if (prefix) tellingen[prefix] = (tellingen[prefix] || 0) + 1;
+    });
+    const gesorteerd = Object.entries(tellingen).sort((a, b) => b[1] - a[1]);
+    voorgeselecteerdPostcodegebied = gesorteerd[0]?.[0] || '';
+  }
 
   const handleTrustScore = async (userId, waarde) => {
     setBezigId(userId);
@@ -119,10 +162,73 @@ export function CoordinatiePage({ user, thuislocatie }) {
     }
   };
 
+  // Backfill voor het provincie/gemeente-filter (migratie 0013) — zelfde
+  // aanpak als de postcode-backfill hierboven, eigen los traject omdat
+  // gemeente/provincie een eigen kolom/PDOK-call zijn.
+  const handleBackfillGemeente = async () => {
+    setGemeenteBackfillBezig(true);
+    try {
+      const teBackfillen = await haalEntriesZonderGemeente();
+      let gelukt = 0;
+      for (let i = 0; i < teBackfillen.length; i++) {
+        const e = teBackfillen[i];
+        setGemeenteBackfillStatus(`${i + 1} / ${teBackfillen.length}`);
+        const r = await zoekGemeenteProvinciePDOK(e.gps_lat, e.gps_lng).catch(() => null);
+        if (r?.gemeente) {
+          await zetGemeenteProvincieAdmin(e.id, r.gemeente, r.provincie);
+          gelukt++;
+        }
+      }
+      setGemeenteBackfillStatus(`Klaar — ${gelukt} / ${teBackfillen.length} meldingen aangevuld`);
+      await laad();
+    } catch (err) {
+      setGemeenteBackfillStatus(`Mislukt: ${err.message}`);
+    } finally {
+      setGemeenteBackfillBezig(false);
+    }
+  };
+
   return (
     <div className="p-4 coordinatie-page">
       <div className="export-titel">Coördinatie</div>
       <div className="export-subtitel">Admin/coordinator-overzicht — niet zichtbaar voor gewone gebruikers</div>
+
+      <div className="card p-4">
+        <div className="section-label mb-3">🗺️ Filter op provincie/gemeente</div>
+        <div className="export-card-beschrijving mb-3">
+          Filtert perceel-analyse, windroos, melder-overzicht en onder
+          review/shadow hieronder, centreert Buurtgebied tekenen op de
+          regio en vult het postcodegebied van Buurtrapport genereren voor.
+          Meldingen zonder provincie/gemeente (van vóór migratie 0013)
+          vallen buiten elk filter — eenmalig aanvullen via PDOK.
+        </div>
+        <label className="export-info-rij">
+          <span>Provincie</span>
+          <select
+            value={filterProvincie}
+            onChange={(e) => { setFilterProvincie(e.target.value); setFilterGemeente(''); }}
+          >
+            <option value="">Alle provincies</option>
+            {provincieOpties.map((p) => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </label>
+        {filterProvincie && (
+          <label className="export-info-rij">
+            <span>Gemeente</span>
+            <select value={filterGemeente} onChange={(e) => setFilterGemeente(e.target.value)}>
+              <option value="">Alle gemeenten in {filterProvincie}</option>
+              {gemeenteOpties.map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </label>
+        )}
+        {provincieOpties.length === 0 && (
+          <div className="export-card-beschrijving mt-2">Nog geen meldingen met provincie/gemeente gevonden.</div>
+        )}
+        <button type="button" className="btn-outline px-3 py-1 mt-2" disabled={gemeenteBackfillBezig} onClick={handleBackfillGemeente}>
+          {gemeenteBackfillBezig ? `⏳ Bezig... ${gemeenteBackfillStatus || ''}` : '🗺️ Provincie/gemeente backfillen'}
+        </button>
+        {!gemeenteBackfillBezig && gemeenteBackfillStatus && <div className="export-card-beschrijving mt-2">{gemeenteBackfillStatus}</div>}
+      </div>
 
       <div className="card p-4">
         <div className="section-label mb-3">📮 Opt-in-melders per postcode</div>
@@ -213,10 +319,10 @@ export function CoordinatiePage({ user, thuislocatie }) {
       </div>
 
       <Suspense fallback={<div className="card p-4">Kaart laden...</div>}>
-        <BuurtgebiedTekenaar thuislocatie={thuislocatie} />
+        <BuurtgebiedTekenaar thuislocatie={filterCentrum || thuislocatie} meldingen={entriesGefilterd} user={user} />
       </Suspense>
 
-      <BuurtrapportGenerator user={user} />
+      <BuurtrapportGenerator user={user} voorgeselecteerdPostcodegebied={voorgeselecteerdPostcodegebied} />
 
       <div className="card p-4">
         <div className="section-label mb-3" style={{ color: 'var(--danger)' }}>🚩 Onder review / shadow</div>

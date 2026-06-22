@@ -6,6 +6,27 @@ de code, niet tegen het geheugen van een eerdere sessie.
 
 ## Hoog
 
+- **Controleren of een coordinator/admin andermans foto's mag lezen
+  (attachments-tabel + storage-bucket `spuitlog-bijlagen`-RLS).** Nodig
+  voor de nieuwe "Exporteer meldingen + Dossier-PDF" op Buurtgebied
+  tekenen (CoordinatiePage) — die bundelt foto's van ALLE melders binnen
+  het getekende gebied, niet alleen eigen meldingen. Niet vanuit de code
+  te verifiëren: geen migratie regelt RLS op `attachments`/storage. Werkt
+  ook zonder (faalt stilletjes terug naar geen foto's per melding), maar
+  check of dat het gewenste gedrag is.
+- **Provincie/gemeente backfillen-knop draaien op CoordinatiePage.**
+  Migratie 0013 (`gemeente`/`provincie`-kolommen op `entries`) is
+  **uitgevoerd** (bevestigd door de gebruiker op 2026-06-22) — nieuwe
+  meldingen krijgen deze velden nu automatisch. Historische meldingen
+  missen ze nog; eenmalig aanvullen via de backfill-knop in de
+  "Filter op provincie/gemeente"-kaart.
+- **Trust-score automatische op-/afschaling — wel of niet bouwen?** Een
+  ontwerp staat in `docs/CURRENT_STATE.md` ("Trust-score — ontwerp...").
+  Gebruiker wilde dit eerst zien voordat er code komt; nog geen besluit
+  genomen. Bij akkoord: nieuwe migratie 0014, raakt
+  `fn_entries_set_visibility()`/`fn_entries_misbruikdetectie()`
+  (migratie 0003/0005).
+
 - **Een gebruiker een `coordinator`-rol toekennen om te testen.** Reden:
   migraties 0008-0011 zijn op 2026-06-21 uitgevoerd (bevestigd, geen
   foutmeldingen), maar er is nog geen account met de rol `coordinator`;

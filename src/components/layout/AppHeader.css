@@ -44,3 +44,19 @@
   text-transform: uppercase;
 }
 
+.app-header-uitnodigen-knop {
+  margin-left: auto;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border-bright);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.app-header-uitnodigen-knop:hover { border-color: var(--accent); color: var(--accent); }
+

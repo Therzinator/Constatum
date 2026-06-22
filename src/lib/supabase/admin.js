@@ -11,7 +11,33 @@ export async function haalAlleEntriesAdmin() {
 
   const { data, error } = await sb
     .from('entries')
-    .select('id, user_id, melder_email, timestamp_local, type, description, postcode, perceelnummer, opt_in_buurt, visibility, gps_lat, gps_lng, weather')
+    .select('id, user_id, melder_email, timestamp_local, type, description, postcode, gemeente, provincie, perceelnummer, opt_in_buurt, visibility, gps_lat, gps_lng, weather')
+    .eq('deleted', false)
+    .order('timestamp_local', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+// Coordinatie & Admin systeem — volledige entry-selectie voor Buurtgebied
+// tekenen → export/Dossier PDF (BuurtgebiedTekenaar.jsx). Bewust een eigen,
+// zwaardere query (`select('*')`) i.p.v. haalAlleEntriesAdmin() hierboven
+// uit te breiden: die lichte selectie wordt bij elke CoordinatiePage-load
+// gebruikt voor de statistiek-kaarten, dit volledige record (incl. hash/
+// rfc3161/gezondheidsdata/bestanden-metadata) alleen on-demand bij een
+// daadwerkelijke export. Zelfde admin-RLS-bypass als hierboven — geeft ALLE
+// meldingen terug, ongeacht opt_in_buurt (anders dan
+// haalEntriesVoorBuurtrapport, dat bewust tot opt-in beperkt voor het
+// geanonimiseerde collectieve rapport — dit hier is geen anonieme
+// aggregatie maar het bestaande, al toegestane admin/coordinator-zicht op
+// individuele meldingen).
+export async function haalAlleEntriesVoorExportAdmin() {
+  const sb = sbClient();
+  if (!sb) return [];
+
+  const { data, error } = await sb
+    .from('entries')
+    .select('*')
     .eq('deleted', false)
     .order('timestamp_local', { ascending: false });
 
@@ -137,6 +163,37 @@ export async function zetPostcodeAdmin(entryId, postcode) {
   const { error } = await sb
     .from('entries')
     .update({ postcode })
+    .eq('id', entryId);
+
+  if (error) throw error;
+}
+
+// Coordinatie & Admin systeem — backfill voor het provincie/gemeente-
+// filter (migratie 0013), zelfde patroon als de postcode-backfill
+// hierboven: historische meldingen van vóór de kolom missen gemeente/
+// provincie, eenmalig aanvullen via PDOK.
+export async function haalEntriesZonderGemeente() {
+  const sb = sbClient();
+  if (!sb) return [];
+
+  const { data, error } = await sb
+    .from('entries')
+    .select('id, gps_lat, gps_lng')
+    .is('gemeente', null)
+    .not('gps_lat', 'is', null)
+    .not('gps_lng', 'is', null);
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function zetGemeenteProvincieAdmin(entryId, gemeente, provincie) {
+  const sb = sbClient();
+  if (!sb) return;
+
+  const { error } = await sb
+    .from('entries')
+    .update({ gemeente, provincie })
     .eq('id', entryId);
 
   if (error) throw error;

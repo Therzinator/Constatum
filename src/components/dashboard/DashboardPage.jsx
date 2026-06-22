@@ -1,7 +1,6 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
 import { MaandGrafiek } from './MaandGrafiek.jsx';
 import { MeldingCard } from '../meldingen/MeldingCard.jsx';
-import { DeeltokenGenerator } from '../notificaties/DeeltokenGenerator.jsx';
 import { dashboardStatistieken } from '../../lib/meldingen/statistieken.js';
 import { laadGpsCache } from '../../lib/geo/gpsCache.js';
 import { laadNotificatieInstellingen } from '../../lib/notificaties/buurtMelding.js';
@@ -73,10 +72,6 @@ export function DashboardPage({ meldingenApi, user, gebruikerRol, thuislocatie }
       <div className="card p-3 dashboard-section">
         <div className="section-label mb-2">Meldingen per maand</div>
         <MaandGrafiek meldingen={meldingenInBereik} />
-      </div>
-
-      <div className="dashboard-section">
-        <DeeltokenGenerator user={user} thuislocatie={thuislocatie} />
       </div>
 
       <div className="dashboard-section">

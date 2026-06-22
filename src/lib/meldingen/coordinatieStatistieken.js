@@ -67,3 +67,28 @@ export function meldersOverzicht(entries, profielen) {
 export function meldingenOnderReview(entries) {
   return entries.filter((e) => e.visibility === 'under_review' || e.visibility === 'shadow');
 }
+
+// Provincie/gemeente-filter (Coördinatiepagina) — gemeente/provincie komen
+// uit migratie 0013, alleen gevuld voor meldingen die na die migratie
+// aangemaakt of via de admin-backfill aangevuld zijn; oudere meldingen
+// zonder deze velden vallen buiten elk provincie/gemeente-filter (komen
+// wel nog gewoon mee als er niet gefilterd wordt).
+export function provincies(entries) {
+  return [...new Set(entries.map((e) => e.provincie).filter(Boolean))].sort();
+}
+
+export function gemeentenInProvincie(entries, provincie) {
+  if (!provincie) return [];
+  return [...new Set(
+    entries.filter((e) => e.provincie === provincie).map((e) => e.gemeente).filter(Boolean)
+  )].sort();
+}
+
+export function filterOpRegio(entries, provincie, gemeente) {
+  if (!provincie) return entries;
+  return entries.filter((e) => {
+    if (e.provincie !== provincie) return false;
+    if (gemeente && e.gemeente !== gemeente) return false;
+    return true;
+  });
+}

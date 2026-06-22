@@ -18,6 +18,7 @@ import { DashboardPage } from './components/dashboard/DashboardPage.jsx'
 import { TijdlijnPage } from './components/meldingen/TijdlijnPage.jsx'
 import { ExportPage } from './components/export/ExportPage.jsx'
 import { InstellingenPage } from './components/instellingen/InstellingenPage.jsx'
+import { UitnodigenPage } from './components/notificaties/UitnodigenPage.jsx'
 import { CoordinatiePage } from './components/coordinatie/CoordinatiePage.jsx'
 import { BottomNav } from './components/nav/BottomNav.jsx'
 import { isCoordinatorOfAdmin } from './lib/rollen.js'
@@ -45,6 +46,7 @@ function App() {
       <AppHeader
         user={auth.user}
         onNavigeerInstellingen={() => setPagina('instellingen')}
+        onNavigeerUitnodigen={() => setPagina('uitnodigen')}
         syncNu={sync.syncNu}
         syncBezig={sync.syncBezig}
         laadVanCloud={sync.laadVanCloud}
@@ -90,6 +92,10 @@ function App() {
           meldingenApi={meldingenApi}
           thuislocatie={thuislocatieApi.thuislocatie}
         />
+      )}
+
+      {pagina === 'uitnodigen' && (
+        <UitnodigenPage user={auth.user} thuislocatie={thuislocatieApi.thuislocatie} />
       )}
 
       {pagina === 'instellingen' && (

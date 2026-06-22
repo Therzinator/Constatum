@@ -9,8 +9,13 @@ import { Toast } from '../ui/Toast.jsx';
 // naar perceel- of individuele meldingdata (zie migratie 0007/sessie-
 // overleg: een teler herkent zijn eigen perceel ook in "geanonimiseerde"
 // cijfers).
+const STANDAARD_UITNODIGINGSTEKST = 'Doe mee met de buurt en registreer spuitactiviteiten!';
+
+function urenResterend(expiresAt) {
+  return Math.round((new Date(expiresAt) - new Date()) / (60 * 60 * 1000));
+}
+
 export function DeeltokenGenerator({ user, thuislocatie }) {
-  const [omschrijving, setOmschrijving] = useState('');
   const [bezig, setBezig] = useState(false);
   const [fout, setFout] = useState(null);
   const [laatsteLink, setLaatsteLink] = useState(null);
@@ -29,19 +34,18 @@ export function DeeltokenGenerator({ user, thuislocatie }) {
     setFout(null);
     setBezig(true);
     try {
-      const dossier = await maakDeeltoken(user, omschrijving.trim());
+      const dossier = await maakDeeltoken(user);
       const postcode = await zoekPostcodePDOK(thuislocatie.lat, thuislocatie.lng).catch(() => null);
       const url = new URL(window.location.origin + window.location.pathname);
       url.searchParams.set('uitnodiging', dossier.token);
       if (postcode) url.searchParams.set('postcode', postcode.slice(0, 4));
       const linkStr = url.toString();
       setLaatsteLink(linkStr);
-      setOmschrijving('');
       setTokens(await haalEigenDeeltokens(user));
 
       try {
-        await navigator.clipboard.writeText(linkStr);
-        setMelding({ id: Date.now(), tekst: 'Link gekopieerd naar klembord.', type: 'success' });
+        await navigator.clipboard.writeText(`${STANDAARD_UITNODIGINGSTEKST}\n${linkStr}`);
+        setMelding({ id: Date.now(), tekst: 'Uitnodiging gekopieerd naar klembord.', type: 'success' });
       } catch {
         // Klembord-API niet beschikbaar/geweigerd (bv. geen HTTPS, geen
         // gebruikersactiviteit meer in dezelfde tick) — de link staat
@@ -61,15 +65,11 @@ export function DeeltokenGenerator({ user, thuislocatie }) {
     <div className="card p-4">
       <div className="section-label mb-3">🔗 Buren uitnodigen</div>
       <div className="export-card-beschrijving mb-3">
-        Genereert een link naar de registratiepagina (geldig 14 dagen) —
-        toont alleen hoeveel buren al meedoen, geen melding- of
-        perceeldata.
+        Genereert een link naar de registratiepagina (geldig 24 uur, daarna
+        werkt hij niet meer) — toont alleen hoeveel buren al meedoen, geen
+        melding- of perceeldata. Bij het kopiëren wordt automatisch de tekst
+        "{STANDAARD_UITNODIGINGSTEKST}" meegestuurd.
       </div>
-
-      <label className="export-info-rij">
-        <span>Omschrijving (optioneel, bv. "buurman nr. 12")</span>
-        <input type="text" value={omschrijving} onChange={(e) => setOmschrijving(e.target.value)} />
-      </label>
 
       {fout && <div className="export-card-beschrijving mt-2" style={{ color: 'var(--danger)' }}>{fout}</div>}
 
@@ -86,12 +86,15 @@ export function DeeltokenGenerator({ user, thuislocatie }) {
       {tokens.length > 0 && (
         <div className="mt-3">
           <div className="section-label mb-2">Eerder gegenereerd</div>
-          {tokens.map((t) => (
-            <div key={t.id} className="export-info-rij">
-              <span>{t.omschrijving || '(zonder omschrijving)'}</span>
-              <span>{t.gebruikt ? '✓ gebruikt' : new Date(t.expires_at) < new Date() ? 'verlopen' : 'open'}</span>
-            </div>
-          ))}
+          {tokens.map((t) => {
+            const uren = urenResterend(t.expires_at);
+            return (
+              <div key={t.id} className="export-info-rij">
+                <span>{t.omschrijving}</span>
+                <span>{t.gebruikt ? '✓ gebruikt' : uren <= 0 ? 'verlopen' : `nog ${uren} uur`}</span>
+              </div>
+            );
+          })}
         </div>
       )}
 

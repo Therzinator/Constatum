@@ -11,7 +11,7 @@ import { zoekPerceelPDOK } from '../lib/pdok/perceel.js';
 import { zoekDichtstbijzijndeWoning } from '../lib/pdok/woning.js';
 import { zoekNatura2000InDeBuurt } from '../lib/pdok/natura2000.js';
 import { zoekKwetsbareLocaties } from '../lib/pdok/kwetsbareLocaties.js';
-import { zoekPostcodePDOK } from '../lib/pdok/postcode.js';
+import { zoekPostcodePDOK, zoekGemeenteProvinciePDOK } from '../lib/pdok/postcode.js';
 import { windWaaitNaarWoning } from '../lib/drift/oordeel.js';
 import { haalWeerdata, windSubjectiefVanSnelheid } from '../lib/weather/openMeteo.js';
 import { berekenPasquillKlasse } from '../lib/weather/pasquill.js';
@@ -54,6 +54,8 @@ function leegFormulier(thuislocatie) {
     perceelnummer: null,
     perceelStatus: null,
     postcode: null,
+    gemeente: null,
+    provincie: null,
     afstandWoning: null,
     afstandWoningLat: null,
     afstandWoningLng: null,
@@ -196,6 +198,14 @@ export function useNieuweMeldingForm({ user, thuislocatie, meldingenApi, syncNu 
       .then((postcode) => setVeld((v) => ({ ...v, postcode })))
       .catch(() => setVeld((v) => ({ ...v, postcode: null })));
 
+    // Alleen voor het provincie/gemeente-filter op de Coördinatiepagina —
+    // zelfde achterliggende Locatieserver-call als hierboven, bewust als
+    // eigen functie (zie lib/pdok/postcode.js), dus ook hier los/stilletjes
+    // falend.
+    zoekGemeenteProvinciePDOK(lat, lng)
+      .then((r) => setVeld((v) => ({ ...v, gemeente: r?.gemeente ?? null, provincie: r?.provincie ?? null })))
+      .catch(() => setVeld((v) => ({ ...v, gemeente: null, provincie: null })));
+
     if (metWeer) haalWeer(lat, lng);
   }, [haalWeer]);
 
@@ -295,6 +305,8 @@ export function useNieuweMeldingForm({ user, thuislocatie, meldingenApi, syncNu 
         melder_email: user?.email ? await sha256(user.email) : null,
         perceelnummer: veld.perceelnummer || null,
         postcode: veld.postcode || null,
+        gemeente: veld.gemeente || null,
+        provincie: veld.provincie || null,
         afstand_woning: veld.afstandWoning ?? null,
         afstand_woning_lat: veld.afstandWoningLat ?? null,
         afstand_woning_lng: veld.afstandWoningLng ?? null,

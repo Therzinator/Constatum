@@ -19,7 +19,7 @@ import { laadKNMIKey, haalKNMIWeerdata } from '../../lib/weather/knmi.js';
 // (loopt door de gefilterde meldingen heen en checkt per stuk of er een
 // KNMI-station beschikbaar is) — wordt niet historisch bijgehouden, dus
 // elke generatie controleert opnieuw en kan een paar seconden duren.
-export function BuurtrapportGenerator({ user }) {
+export function BuurtrapportGenerator({ user, voorgeselecteerdPostcodegebied }) {
   const [postcodegebied, setPostcodegebied] = useState('');
   const [periodeVan, setPeriodeVan] = useState('');
   const [periodeTot, setPeriodeTot] = useState('');
@@ -29,16 +29,25 @@ export function BuurtrapportGenerator({ user }) {
 
   useEffect(() => { haalBuurtdossiers().then(setDossiers).catch(() => {}); }, []);
 
+  // Vult het veld voor met het dominante postcodegebied uit het provincie/
+  // gemeente-filter op CoordinatiePage (zelf werkt deze generator nog op
+  // postcode, niet op gemeente — zie module-comment hierboven). Afgeleide
+  // waarde i.p.v. een effect dat de state zelf overschrijft: zodra de
+  // gebruiker zelf typt wint postcodegebied, anders de voorgestelde
+  // waarde — geen risico op het overschrijven van actieve invoer.
+  const weergegevenPostcodegebied = postcodegebied || voorgeselecteerdPostcodegebied || '';
+
   const handleGenereer = async () => {
-    if (!/^\d{4}$/.test(postcodegebied)) {
+    const postcodegebiedVoorAanvraag = weergegevenPostcodegebied;
+    if (!/^\d{4}$/.test(postcodegebiedVoorAanvraag)) {
       setFout('Vul een geldig 4-cijferig postcodegebied in (bv. 1234)');
       return;
     }
     setFout(null);
     setBezig(true);
     try {
-      const ruweEntries = await haalEntriesVoorBuurtrapport(postcodegebied);
-      const entries = filterVoorBuurtrapport(ruweEntries, postcodegebied, periodeVan, periodeTot);
+      const ruweEntries = await haalEntriesVoorBuurtrapport(postcodegebiedVoorAanvraag);
+      const entries = filterVoorBuurtrapport(ruweEntries, postcodegebiedVoorAanvraag, periodeVan, periodeTot);
 
       if (!entries.length) {
         setFout('Geen opt-in-meldingen gevonden voor dit postcodegebied/periode');
@@ -78,7 +87,7 @@ export function BuurtrapportGenerator({ user }) {
       });
 
       const rapport = {
-        postcodegebied,
+        postcodegebied: postcodegebiedVoorAanvraag,
         periodeVan: periodeVan || null,
         periodeTot: periodeTot || null,
         aantalMelders,
@@ -115,7 +124,7 @@ export function BuurtrapportGenerator({ user }) {
           inputMode="numeric"
           pattern="[0-9]*"
           maxLength={4}
-          value={postcodegebied}
+          value={weergegevenPostcodegebied}
           onChange={(e) => setPostcodegebied(e.target.value)}
           placeholder="1234"
         />

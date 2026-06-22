@@ -1,20 +1,36 @@
 import { sbClient } from './client.js';
 
-const GELDIGHEID_DAGEN = 14;
+const GELDIGHEID_UUR = 24;
+// Tokens die langer dan dit aantal uur verlopen zijn, verdwijnen uit het
+// overzicht (blijven wel gewoon in de database staan, alleen niet meer
+// opgehaald) — voorkomt dat de lijst onbeperkt aangroeit met oude, allang
+// onbruikbare uitnodigingen.
+const VERBERG_NA_UUR_VERLOPEN = 48;
+
+const CODE_TEKENS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // zonder 0/O/1/I — minder leesfouten bij overtypen
+
+function genereerUitnodigingscode() {
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += CODE_TEKENS[Math.floor(Math.random() * CODE_TEKENS.length)];
+  }
+  return code;
+}
 
 // Coordinatie & Admin systeem, Fase 3 — deeltoken als uitnodiging-naar-
 // registratie. Geen directe data-toegang: zie migratie 0007 voor de
 // achterliggende afweging (zelfs geanonimiseerde perceeldata zou een
 // teler zichzelf laten herkennen).
-export async function maakDeeltoken(user, omschrijving) {
+export async function maakDeeltoken(user) {
   const sb = sbClient();
   if (!sb || !user) return null;
 
-  const expiresAt = new Date(Date.now() + GELDIGHEID_DAGEN * 24 * 60 * 60 * 1000).toISOString();
+  const expiresAt = new Date(Date.now() + GELDIGHEID_UUR * 60 * 60 * 1000).toISOString();
+  const code = genereerUitnodigingscode();
 
   const { data, error } = await sb
     .from('coordinatie_tokens')
-    .insert({ user_id: user.id, omschrijving: omschrijving || null, expires_at: expiresAt })
+    .insert({ user_id: user.id, omschrijving: code, expires_at: expiresAt })
     .select('id, token, omschrijving, expires_at, gebruikt, created_at')
     .single();
 
@@ -26,10 +42,13 @@ export async function haalEigenDeeltokens(user) {
   const sb = sbClient();
   if (!sb || !user) return [];
 
+  const verborgenGrens = new Date(Date.now() - VERBERG_NA_UUR_VERLOPEN * 60 * 60 * 1000).toISOString();
+
   const { data, error } = await sb
     .from('coordinatie_tokens')
     .select('id, omschrijving, expires_at, gebruikt, created_at')
     .eq('user_id', user.id)
+    .gte('expires_at', verborgenGrens)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
