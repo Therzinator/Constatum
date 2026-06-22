@@ -31,17 +31,21 @@ Laatst bijgewerkt: 2026-06-21.
   de set die CoordinatiePage al doorgeeft (`entriesGefilterd`, dezelfde
   provincie/gemeente-filter als de andere kaarten). Kaarthoogte 240px →
   360px voor betere leesbaarheid van de clustering.
-- **Na het tekenen: "📦 Exporteer meldingen + Dossier-PDF"** — filtert
-  ALLE meldingen (volledig admin/coordinator-zicht via
-  `haalAlleEntriesVoorExportAdmin()`, **ongeacht `opt_in_buurt`** — dit is
-  bewust geen anonieme aggregatie zoals Buurtrapport genereren, maar het
-  al bestaande admin-zicht op individuele meldingen) op of ze binnen de
-  getekende polygoon liggen (`geometry.intersectsCoordinate()`, OpenLayers
-  — geen eigen point-in-polygon-code), downloadt ze als CSV
-  (`meldingenNaarCSV`) en bundelt ze in het bestaande Dossier-PDF-formaat
-  (`genereerDossierHTML`/`openDossierPDF` uit `lib/export/pdf.js` —
-  **ongewijzigd hergebruikt**, geen aanpassing aan hash/RFC3161-logica).
-  Nieuw bestand `lib/meldingen/regioExport.js`
+- **Na het tekenen: twee losse knoppen** — "📄 Exporteer meldingen als
+  CSV" en "📦 Stel Dossier-PDF samen" zijn bewust gescheiden acties
+  (voorheen één knop die altijd eerst de CSV downloadde en daarna de PDF
+  opende). Beide filteren ALLE meldingen (volledig admin/coordinator-
+  zicht via `haalAlleEntriesVoorExportAdmin()`, **ongeacht `opt_in_buurt`**
+  — dit is bewust geen anonieme aggregatie zoals Buurtrapport genereren,
+  maar het al bestaande admin-zicht op individuele meldingen) op of ze
+  binnen de getekende polygoon liggen (`geometry.intersectsCoordinate()`,
+  OpenLayers — geen eigen point-in-polygon-code) via de gedeelde helper
+  `haalMeldingenInGebied()` (`BuurtgebiedTekenaar.jsx`, met eigen
+  status/bezig-state per knop). De CSV-knop downloadt
+  (`meldingenNaarCSV`); de PDF-knop bundelt in het bestaande
+  Dossier-PDF-formaat (`genereerDossierHTML`/`openDossierPDF` uit
+  `lib/export/pdf.js` — **ongewijzigd hergebruikt**, geen aanpassing aan
+  hash/RFC3161-logica). Nieuw bestand `lib/meldingen/regioExport.js`
   (`entryNaarExportMelding()`) zet een ruwe entries-rij om naar dezelfde
   vorm die die PDF/CSV-functies al verwachten — een eigen, kleinere kopie
   van de mapping in `laadVanSupabase()` (entries.js), niet die functie

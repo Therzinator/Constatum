@@ -5,19 +5,33 @@
 }
 
 .account-menu-knop {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 56px;
+  height: 48px;
+  border-radius: 10px;
   border: 1px solid var(--border-bright);
   background: var(--bg-card);
   color: var(--text-secondary);
   font-size: 1.1rem;
   cursor: pointer;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
 }
 .account-menu-knop:hover { border-color: var(--accent); color: var(--accent); }
+
+.account-menu-knop-icoon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.account-menu-knop-label {
+  font-family: var(--sans);
+  font-size: 0.6rem;
+  line-height: 1;
+  white-space: nowrap;
+}
 
 .account-menu-paneel {
   position: absolute;

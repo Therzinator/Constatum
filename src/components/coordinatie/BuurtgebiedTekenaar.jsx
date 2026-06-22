@@ -75,8 +75,10 @@ export function BuurtgebiedTekenaar({ thuislocatie, meldingen, user }) {
   const polygoonGeomRef = useRef(null);
   const [oppervlakteHa, setOppervlakteHa] = useState(null);
   const [geojson, setGeojson] = useState(null);
-  const [exportBezig, setExportBezig] = useState(false);
-  const [exportStatus, setExportStatus] = useState(null);
+  const [csvBezig, setCsvBezig] = useState(false);
+  const [csvStatus, setCsvStatus] = useState(null);
+  const [pdfBezig, setPdfBezig] = useState(false);
+  const [pdfStatus, setPdfStatus] = useState(null);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -104,7 +106,8 @@ export function BuurtgebiedTekenaar({ thuislocatie, meldingen, user }) {
       polygoonGeomRef.current = null;
       setGeojson(null);
       setOppervlakteHa(null);
-      setExportStatus(null);
+      setCsvStatus(null);
+      setPdfStatus(null);
     });
     draw.on('drawend', (evt) => {
       const geom = evt.feature.getGeometry();
@@ -150,7 +153,8 @@ export function BuurtgebiedTekenaar({ thuislocatie, meldingen, user }) {
     polygoonGeomRef.current = null;
     setGeojson(null);
     setOppervlakteHa(null);
-    setExportStatus(null);
+    setCsvStatus(null);
+    setPdfStatus(null);
   };
 
   const downloadGeojson = () => {
@@ -168,51 +172,72 @@ export function BuurtgebiedTekenaar({ thuislocatie, meldingen, user }) {
   // zie haalAlleEntriesVoorExportAdmin(); dit is geen anonieme aggregatie
   // zoals BuurtrapportGenerator.jsx, maar het bestaande, al toegestane
   // admin/coordinator-zicht op individuele meldingen) op het getekende
-  // gebied, downloadt ze als CSV én bundelt ze in het bestaande
-  // Dossier-PDF-formaat (genereerDossierHTML/openDossierPDF, zelfde
-  // functies als ExportPage.jsx — hier ongewijzigd hergebruikt). Foto's
-  // worden per melding apart opgehaald via laadBijlagenVanSupabase(); als
-  // de huidige gebruiker daar voor andermans meldingen geen toegang tot
-  // heeft (storage/attachments-RLS, niet in een migratie vastgelegd —
-  // zie root-CLAUDE.md-opmerking over schema-gaten) faalt dat per melding
-  // stilletjes terug naar een lege bijlagenlijst, niet de hele export.
-  const handleExporteer = async () => {
-    if (!polygoonGeomRef.current) return;
-    setExportBezig(true);
-    setExportStatus('Meldingen ophalen...');
-    try {
-      const ruweEntries = await haalAlleEntriesVoorExportAdmin();
-      const binnenGebied = ruweEntries.filter((e) =>
-        e.gps_lat != null && e.gps_lng != null &&
-        polygoonGeomRef.current.intersectsCoordinate(fromLonLat([e.gps_lng, e.gps_lat]))
-      );
+  // gebied en haalt per melding de bijlagen op. Gedeeld door CSV-export en
+  // Dossier-PDF — die zijn twee losse acties, geen vaste volgorde van
+  // CSV-download gevolgd door PDF-opening meer. Foto's worden per melding
+  // apart opgehaald via laadBijlagenVanSupabase(); als de huidige
+  // gebruiker daar voor andermans meldingen geen toegang tot heeft
+  // (storage/attachments-RLS, niet in een migratie vastgelegd — zie
+  // root-CLAUDE.md-opmerking over schema-gaten) faalt dat per melding
+  // stilletjes terug naar een lege bijlagenlijst, niet de hele actie.
+  const haalMeldingenInGebied = async (setStatus) => {
+    setStatus('Meldingen ophalen...');
+    const ruweEntries = await haalAlleEntriesVoorExportAdmin();
+    const binnenGebied = ruweEntries.filter((e) =>
+      e.gps_lat != null && e.gps_lng != null &&
+      polygoonGeomRef.current.intersectsCoordinate(fromLonLat([e.gps_lng, e.gps_lat]))
+    );
+    if (!binnenGebied.length) return [];
 
-      if (!binnenGebied.length) {
-        setExportStatus('Geen meldingen gevonden binnen het getekende gebied');
+    const meldingenVoorExport = binnenGebied.map(entryNaarExportMelding);
+    for (let i = 0; i < meldingenVoorExport.length; i++) {
+      setStatus(`Bijlagen ophalen... ${i + 1}/${meldingenVoorExport.length}`);
+      meldingenVoorExport[i].bestanden = await laadBijlagenVanSupabase(meldingenVoorExport[i].id, user).catch(() => []);
+    }
+    return meldingenVoorExport;
+  };
+
+  const handleExporteerCSV = async () => {
+    if (!polygoonGeomRef.current) return;
+    setCsvBezig(true);
+    setCsvStatus(null);
+    try {
+      const meldingenVoorExport = await haalMeldingenInGebied(setCsvStatus);
+      if (!meldingenVoorExport.length) {
+        setCsvStatus('Geen meldingen gevonden binnen het getekende gebied');
         return;
       }
-
-      const meldingenVoorExport = binnenGebied.map(entryNaarExportMelding);
-      for (let i = 0; i < meldingenVoorExport.length; i++) {
-        setExportStatus(`Bijlagen ophalen... ${i + 1}/${meldingenVoorExport.length}`);
-        meldingenVoorExport[i].bestanden = await laadBijlagenVanSupabase(meldingenVoorExport[i].id, user).catch(() => []);
-      }
-
       downloadFile(
         meldingenNaarCSV(meldingenVoorExport),
         `buurtgebied_export_${new Date().toISOString().split('T')[0]}.csv`,
         'text/csv'
       );
+      setCsvStatus(`Klaar — ${meldingenVoorExport.length} meldingen als CSV gedownload`);
+    } catch (err) {
+      setCsvStatus(`Mislukt: ${err.message}`);
+    } finally {
+      setCsvBezig(false);
+    }
+  };
 
-      setExportStatus('Dossier-PDF openen...');
+  const handleSamenstellenDossier = async () => {
+    if (!polygoonGeomRef.current) return;
+    setPdfBezig(true);
+    setPdfStatus(null);
+    try {
+      const meldingenVoorExport = await haalMeldingenInGebied(setPdfStatus);
+      if (!meldingenVoorExport.length) {
+        setPdfStatus('Geen meldingen gevonden binnen het getekende gebied');
+        return;
+      }
+      setPdfStatus('Dossier-PDF openen...');
       const html = await genereerDossierHTML(meldingenVoorExport, 'Buurtgebied (getekend)');
       openDossierPDF(html);
-
-      setExportStatus(`Klaar — ${meldingenVoorExport.length} meldingen geëxporteerd (CSV-download + Dossier-PDF geopend)`);
+      setPdfStatus(`Klaar — Dossier-PDF geopend met ${meldingenVoorExport.length} meldingen`);
     } catch (err) {
-      setExportStatus(`Mislukt: ${err.message}`);
+      setPdfStatus(`Mislukt: ${err.message}`);
     } finally {
-      setExportBezig(false);
+      setPdfBezig(false);
     }
   };
 
@@ -231,12 +256,16 @@ export function BuurtgebiedTekenaar({ thuislocatie, meldingen, user }) {
         <button type="button" className="btn-outline px-3 py-1" disabled={!geojson} onClick={downloadGeojson}>
           ⬇️ Exporteer GeoJSON
         </button>
-        <button type="button" className="btn-outline px-3 py-1" disabled={!geojson || exportBezig} onClick={handleExporteer}>
-          {exportBezig ? '⏳ Bezig...' : '📦 Exporteer meldingen + Dossier-PDF'}
+        <button type="button" className="btn-outline px-3 py-1" disabled={!geojson || csvBezig} onClick={handleExporteerCSV}>
+          {csvBezig ? '⏳ Bezig...' : '📄 Exporteer meldingen als CSV'}
+        </button>
+        <button type="button" className="btn-outline px-3 py-1" disabled={!geojson || pdfBezig} onClick={handleSamenstellenDossier}>
+          {pdfBezig ? '⏳ Bezig...' : '📦 Stel Dossier-PDF samen'}
         </button>
         {oppervlakteHa != null && <span className="buurtgebied-tekenaar-oppervlakte">≈ {oppervlakteHa} ha</span>}
       </div>
-      {exportStatus && <div className="export-card-beschrijving mt-2">{exportStatus}</div>}
+      {csvStatus && <div className="export-card-beschrijving mt-2">{csvStatus}</div>}
+      {pdfStatus && <div className="export-card-beschrijving mt-2">{pdfStatus}</div>}
     </div>
   );
 }

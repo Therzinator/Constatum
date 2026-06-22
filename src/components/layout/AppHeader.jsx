@@ -48,6 +48,7 @@ export function AppHeader({ user, onNavigeerInstellingen, onNavigeerUitnodigen, 
           <path d="M19 8v6" />
           <path d="M16 11h6" />
         </svg>
+        <span className="app-header-knop-label">Uitnodigen</span>
       </button>
       <AccountMenu
         user={user}

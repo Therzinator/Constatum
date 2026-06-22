@@ -106,7 +106,8 @@ export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, l
         aria-expanded={open}
         title="Instellingen"
       >
-        ⚙️
+        <span className="account-menu-knop-icoon">⚙️</span>
+        <span className="account-menu-knop-label">Instellingen</span>
       </button>
 
       {open && (
