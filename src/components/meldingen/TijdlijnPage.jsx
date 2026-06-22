@@ -2,6 +2,7 @@ import { lazy, Suspense, useMemo, useState } from 'react';
 import { MeldingCard } from './MeldingCard.jsx';
 import { ClusterCard } from './ClusterCard.jsx';
 import { clusterMeldingen } from '../../lib/meldingen/clustering.js';
+import { magAndermansMeldingTonen } from '../../lib/meldingen/buurtVertraging.js';
 import './TijdlijnPage.css';
 
 // Lazy — trekt via DriftZoneModal/DriftZoneKaart OpenLayers mee, alleen
@@ -48,6 +49,7 @@ export function TijdlijnPage({ meldingenApi, user, gebruikerRol }) {
     return meldingen
       .filter((m) => {
         if (alleenBuurt && !(m.opt_in_buurt && m.user_id && m.user_id !== user?.id)) return false;
+        if (alleenBuurt && !magAndermansMeldingTonen(m, user)) return false;
         if (filterType) {
           const matchType = m.type === filterType;
           const matchTypes = Array.isArray(m.types) && m.types.includes(filterType);

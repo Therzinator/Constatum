@@ -3,8 +3,9 @@ import { MaandGrafiek } from './MaandGrafiek.jsx';
 import { MeldingCard } from '../meldingen/MeldingCard.jsx';
 import { dashboardStatistieken } from '../../lib/meldingen/statistieken.js';
 import { laadGpsCache } from '../../lib/geo/gpsCache.js';
-import { laadNotificatieInstellingen } from '../../lib/notificaties/buurtMelding.js';
+import { laadBereikMeter } from '../../lib/notificaties/buurtMelding.js';
 import { haversineAfstand } from '../../lib/geo/haversine.js';
+import { magAndermansMeldingTonen } from '../../lib/meldingen/buurtVertraging.js';
 import './DashboardPage.css';
 
 // Lazy geladen — beide trekken OpenLayers (~300-400KB) mee, dat hoeft niet
@@ -18,16 +19,22 @@ const MeldingDetailModal = lazy(() => import('../melding/MeldingDetailModal.jsx'
 export function DashboardPage({ meldingenApi, user, gebruikerRol, thuislocatie }) {
   const { meldingen } = meldingenApi;
   const [geselecteerdId, setGeselecteerdId] = useState(null);
-  // Zelfde bereik-instelling als Instellingen → Notificaties (max 5 km, zie
+  // Zelfde bereik-instelling als Instellingen → account-menu (max 5 km, zie
   // buurtMelding.js) — dit dashboard toont gedeelde meldingen van ANDEREN
   // dus nooit verder weg dan dat ingestelde bereik. Eigen meldingen (incl.
   // nog niet gesynchroniseerde, zonder user_id) blijven altijd zichtbaar.
   // De database (migratie 0009) handhaaft daarbovenop een harde grens van
-  // 5 km, onafhankelijk van deze client-instelling.
-  const { radiusMeter } = laadNotificatieInstellingen();
+  // 5 km, onafhankelijk van deze client-instelling. Daarnaast worden
+  // andermans meldingen pas 30 minuten na het melden zichtbaar
+  // (magAndermansMeldingTonen, lib/meldingen/buurtVertraging.js) — dit
+  // beschermt de identiteit van de melder tegen een teler die zich
+  // (mogelijk onder een valse naam) bij de buurt-groep heeft aangesloten en
+  // anders realtime zou kunnen zien wie net heeft gemeld.
+  const radiusMeter = laadBereikMeter();
   const meldingenInBereik = useMemo(() => meldingen.filter((m) => {
     if (!m.user_id || m.user_id === user?.id) return true;
     if (!m.opt_in_buurt) return false;
+    if (!magAndermansMeldingTonen(m, user)) return false;
     if (!thuislocatie?.lat || !thuislocatie?.lng || m.gps?.lat == null || m.gps?.lng == null) return false;
     return haversineAfstand(thuislocatie.lat, thuislocatie.lng, m.gps.lat, m.gps.lng) <= radiusMeter;
   }), [meldingen, user, thuislocatie, radiusMeter]);

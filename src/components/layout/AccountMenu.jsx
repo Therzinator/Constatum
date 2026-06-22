@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { APP_VERSION_CLIENT } from '../../lib/version.js';
-import { RADIUS_OPTIES } from '../../lib/notificaties/buurtMelding.js';
+import { RADIUS_OPTIES, laadBereikMeter, slaBereikMeterOp } from '../../lib/notificaties/buurtMelding.js';
 import { laadDeelVoorkeur, slaDeelVoorkeurOp } from '../../lib/notificaties/deelvoorkeur.js';
 import './AccountMenu.css';
 
@@ -8,15 +8,18 @@ import './AccountMenu.css';
 // knop die een account-menu opent — gegevens aanpassen gebeurt al via de
 // bestaande Instellingen-pagina (GegevensPrivacyInstelling.jsx e.a.), dit
 // menu is dus vooral een snelle ingang daarnaartoe + directe toggles voor
-// de twee buurt-gerelateerde voorkeuren (voorheen losse kaarten op de
-// Instellingen-pagina, zie NotificatieInstellingen.jsx/
-// DeelVoorkeurInstelling.jsx — hier compact ingebed, niet meer apart op
-// die pagina).
-export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, laadVanCloud, notificatieApi, onUitloggen }) {
+// de buurt-gerelateerde voorkeuren (voorheen losse kaarten op de
+// Instellingen-pagina, zie DeelVoorkeurInstelling.jsx — hier compact
+// ingebed, niet meer apart op die pagina). Geen notificatie-toggle meer
+// (verwijderd om de identiteit van melders te beschermen, zie
+// docs/DECISIONS.md) — alleen het bereik waarbinnen andermans gedeelde
+// meldingen op Dashboard/Tijdlijn zichtbaar zijn, blijft instelbaar.
+export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, laadVanCloud, onUitloggen }) {
   const [open, setOpen] = useState(false);
   const [lokaalBezig, setLokaalBezig] = useState(false);
   const [laatsteSyncResultaat, setLaatsteSyncResultaat] = useState(null); // 'ok' | 'fout' | null
   const [deelVoorkeurAan, setDeelVoorkeurAan] = useState(() => laadDeelVoorkeur());
+  const [bereikMeter, setBereikMeter] = useState(() => laadBereikMeter());
   const menuRef = useRef(null);
 
   // Sluiten bij een klik buiten het menu of bij Escape — zelfde patroon
@@ -79,10 +82,10 @@ export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, l
     onNavigeerInstellingen?.();
   };
 
-  const handleNotificatieToggle = async (e) => {
-    const aan = e.target.checked;
-    if (aan && notificatieApi?.permissie === 'default') await notificatieApi.vraagPermissie();
-    notificatieApi?.zetAan(aan);
+  const handleBereikChange = (e) => {
+    const meter = parseInt(e.target.value, 10);
+    setBereikMeter(meter);
+    slaBereikMeterOp(meter);
   };
 
   const handleDeelVoorkeurToggle = (e) => {
@@ -134,32 +137,16 @@ export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, l
                     : '🔄 Synchroniseer nu'}
           </button>
 
-          {notificatieApi && (
-            <div className="account-menu-toggle-groep">
-              <label className="account-menu-toggle-rij">
-                <span>🔔 Notificaties in de buurt</span>
-                <input type="checkbox" checked={notificatieApi.instellingen.aan} onChange={handleNotificatieToggle} />
-              </label>
-              {notificatieApi.instellingen.aan && (
-                <label className="account-menu-toggle-rij account-menu-toggle-subrij">
-                  <span>Bereik</span>
-                  <select
-                    value={notificatieApi.instellingen.radiusMeter}
-                    onChange={(e) => notificatieApi.zetRadius(parseInt(e.target.value, 10))}
-                  >
-                    {RADIUS_OPTIES.map((m) => (
-                      <option key={m} value={m}>{m >= 1000 ? `${m / 1000} km` : `${m} m`}</option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              {notificatieApi.instellingen.aan && notificatieApi.permissie === 'denied' && (
-                <div className="account-menu-toggle-waarschuwing">
-                  Browser-notificaties zijn geblokkeerd — meldingen verschijnen alleen als banner in de app.
-                </div>
-              )}
-            </div>
-          )}
+          <div className="account-menu-toggle-groep">
+            <label className="account-menu-toggle-rij">
+              <span>📍 Bereik buurtmeldingen</span>
+              <select value={bereikMeter} onChange={handleBereikChange}>
+                {RADIUS_OPTIES.map((m) => (
+                  <option key={m} value={m}>{m >= 1000 ? `${m / 1000} km` : `${m} m`}</option>
+                ))}
+              </select>
+            </label>
+          </div>
 
           <label className="account-menu-toggle-rij">
             <span>🤝 Meldingen delen met de buurt</span>

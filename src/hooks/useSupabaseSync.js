@@ -13,7 +13,7 @@ import { getMeldingen, saveMeldingen } from '../lib/storage/localStorage.js';
 // meldingenApi: het object dat hooks/useMeldingen.js teruggeeft
 // (offlineQueue, deleteQueue, voegToeAanQueue, voegToeAanDeleteQueue,
 // verwijderUitQueue, herlaadMeldingen).
-export function useSupabaseSync(user, meldingenApi, onNieuweEntry) {
+export function useSupabaseSync(user, meldingenApi) {
   const [syncBezig, setSyncBezig] = useState(false);
   const [syncStatus, setSyncStatus] = useState('idle'); // idle | bezig | ok | fout | offline
   const realtimeChannelRef = useRef(null);
@@ -147,10 +147,7 @@ export function useSupabaseSync(user, meldingenApi, onNieuweEntry) {
         event: '*',           // INSERT, UPDATE, DELETE
         schema: 'public',
         table: 'entries',
-      }, payload => {
-        if (payload.eventType === 'INSERT' && onNieuweEntry) {
-          onNieuweEntry(payload.new);
-        }
+      }, () => {
         // Gedebounced i.p.v. een setTimeout per event — bij een burst van
         // wijzigingen (bv. de admin-postcode-backfill die tientallen rijen
         // achter elkaar update) joeg elk event een eigen volledige reload
@@ -162,7 +159,7 @@ export function useSupabaseSync(user, meldingenApi, onNieuweEntry) {
       .subscribe(status => {
         console.log('[Realtime] Status:', status);
       });
-  }, [user, laadVanCloud, onNieuweEntry]);
+  }, [user, laadVanCloud]);
 
   const stopRealtime = useCallback(() => {
     clearTimeout(reloadTimerRef.current);

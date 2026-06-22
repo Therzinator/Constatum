@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { laadDeelVoorkeur, slaDeelVoorkeurOp } from '../../lib/notificaties/deelvoorkeur.js';
 
 // Coordinatie & Admin systeem, Fase 3 — standaardvoorkeur voor opt_in_buurt
-// bij nieuwe meldingen. Staat — net als NotificatieInstellingen — voorlopig
-// in ExportPage tot er een eigen Instellingen-pagina is (Fase G).
+// bij nieuwe meldingen. Stond voorlopig in ExportPage tot er een eigen
+// Instellingen-pagina was (Fase G); nu inline in AccountMenu.jsx.
 export function DeelVoorkeurInstelling() {
   const [aan, setAan] = useState(() => laadDeelVoorkeur());
 

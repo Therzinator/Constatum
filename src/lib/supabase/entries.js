@@ -114,6 +114,7 @@ export async function laadVanSupabase(user, force = false) {
       ...(bestaand || {}),
       id:                  entry.id,
       user_id:             entry.user_id || null,
+      created_at:          entry.created_at || null,
       timestamp_local:     tsLocal,
       timestamp_utc:       entry.timestamp_utc || tsLocal,
       date:                new Date(tsLocal).toLocaleDateString('nl-NL', { timeZone: 'Europe/Amsterdam' }),

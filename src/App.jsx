@@ -5,13 +5,11 @@ import { HandleidingModal } from './components/onboarding/HandleidingModal.jsx'
 import { useMeldingen } from './hooks/useMeldingen.js'
 import { useSupabaseSync } from './hooks/useSupabaseSync.js'
 import { useThuislocatie } from './hooks/useThuislocatie.js'
-import { useBuurtNotificaties } from './hooks/useBuurtNotificaties.js'
 import { useUitnodigingToken } from './hooks/useUitnodigingToken.js'
 import { AppHeader } from './components/layout/AppHeader.jsx'
 import { AuthOverlay } from './components/auth/AuthOverlay.jsx'
 import { SyncStatusBar } from './components/sync/SyncStatusBar.jsx'
 import { OnlineIndicator } from './components/sync/OnlineIndicator.jsx'
-import { NotificatieBanner } from './components/notificaties/NotificatieBanner.jsx'
 import { UpdateBanner } from './components/pwa/UpdateBanner.jsx'
 import { MeldingForm } from './components/melding/MeldingForm.jsx'
 import { DashboardPage } from './components/dashboard/DashboardPage.jsx'
@@ -28,8 +26,7 @@ function App() {
   const auth = useAuth()
   const meldingenApi = useMeldingen()
   const thuislocatieApi = useThuislocatie(auth.user)
-  const notificatieApi = useBuurtNotificaties(thuislocatieApi.thuislocatie, auth.user)
-  const sync = useSupabaseSync(auth.user, meldingenApi, notificatieApi.verwerkNieuweEntry)
+  const sync = useSupabaseSync(auth.user, meldingenApi)
   const uitnodiging = useUitnodigingToken(auth.user)
   const [handleidingOpen, setHandleidingOpen] = useState(false)
 
@@ -50,14 +47,12 @@ function App() {
         syncNu={sync.syncNu}
         syncBezig={sync.syncBezig}
         laadVanCloud={sync.laadVanCloud}
-        notificatieApi={notificatieApi}
         onUitloggen={auth.logout}
       />
       <AuthOverlay auth={auth} uitnodiging={uitnodiging} />
       {handleidingOpen && <HandleidingModal onSluiten={() => setHandleidingOpen(false)} />}
       <OnlineIndicator />
       <SyncStatusBar syncBezig={sync.syncBezig} syncStatus={sync.syncStatus} />
-      <NotificatieBanner banner={notificatieApi.banner} onSluiten={notificatieApi.sluitBanner} />
       <UpdateBanner />
 
       {pagina === 'dashboard' && (
@@ -111,7 +106,7 @@ function App() {
       )}
 
       {pagina === 'coordinatie' && isCoordinatorOfAdmin(auth.gebruikerRol) && (
-        <CoordinatiePage user={auth.user} thuislocatie={thuislocatieApi.thuislocatie} />
+        <CoordinatiePage user={auth.user} thuislocatie={thuislocatieApi.thuislocatie} gebruikerRol={auth.gebruikerRol} />
       )}
 
       <BottomNav pagina={pagina} onPaginaChange={setPagina} gebruikerRol={auth.gebruikerRol} />
