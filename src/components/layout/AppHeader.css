@@ -35,6 +35,13 @@
   font-size: 1.9rem;
   letter-spacing: -0.01em;
   color: var(--text-primary);
+  /* Voorkomt dat de titel/subtitel visueel over de Instellingen-knop
+     heen schuiven op smalle schermen — .app-header-tekst kan wel
+     krimpen (min-width:0), maar tekst zelf overflowt anders gewoon
+     buiten zijn eigen doos i.p.v. netjes af te kappen. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app-header-subtitel {
@@ -43,6 +50,9 @@
   letter-spacing: 0.04em;
   color: var(--text-muted);
   text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app-header-acties {
@@ -52,5 +62,26 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
+}
+
+/* Op smalle (mobiele) schermen is logo (108px) + titel/subtitel op volle
+   grootte te breed naast elkaar — de Instellingen-knop kwam daardoor
+   onder de tekst te liggen. Logo en tekst samen schalen terug i.p.v.
+   alleen de tekst af te kappen, zodat het geheel weer in proportie blijft. */
+@media (max-width: 480px) {
+  .app-header {
+    gap: 12px;
+    padding: 14px 16px;
+  }
+  .app-header-logo {
+    width: 64px;
+    height: 64px;
+  }
+  .app-header-titel {
+    font-size: 1.3rem;
+  }
+  .app-header-subtitel {
+    font-size: 0.8rem;
+  }
 }
 

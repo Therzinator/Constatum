@@ -30,13 +30,19 @@
   gap: 3px;
   /* Hele paneel +50% (was 10px 0 / 0.6rem-label) — anders waren met name
      het eigen lijn-icoon (.bottom-nav-icoon-img) en de labels te klein om
-     comfortabel te zien/raken. */
-  padding: 15px 0;
+     comfortabel te zien/raken. Horizontale padding (was 0) toegevoegd —
+     anders stonden de labels van naburige tabs (bv. "Dashboard"/"Melding")
+     strak tegen elkaar aan zonder enige ruimte ertussen. */
+  padding: 15px 4px;
+  min-width: 0;
   background: none;
   border: none;
   cursor: pointer;
   font-family: var(--mono);
   font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   /* text-secondary i.p.v. text-muted — laatste haalt maar 2.62:1 contrast
      tegen --bg-card (WCAG AA voor tekst eist 4.5:1), waardoor niet-actieve
      tabs onleesbaar/uitgeschakeld aanvoelden i.p.v. gewoon "niet
@@ -65,4 +71,19 @@
   mask-repeat: no-repeat;
   -webkit-mask-position: center;
   mask-position: center;
+}
+
+/* Op smalle schermen, met 5-6 tabs naast elkaar, past een label op
+   0.9rem (bv. "Dashboard") niet meer comfortabel binnen zijn eigen
+   kolom — kleinere letter + minder padding voorkomt dat labels alsnog
+   (bijna) tegen elkaar aan komen of afgekapt worden. */
+@media (max-width: 420px) {
+  .bottom-nav-tab {
+    padding: 12px 2px;
+    font-size: 0.72rem;
+  }
+  .bottom-nav-icoon-img {
+    width: 44px;
+    height: 44px;
+  }
 }
