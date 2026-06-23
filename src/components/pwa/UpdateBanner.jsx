@@ -13,7 +13,7 @@ export function UpdateBanner() {
     <div className="update-banner">
       <span className="update-banner-text">
         {needRefresh
-          ? 'SpuitLogger is klaar om te installeren.'
+          ? 'SpuitLogger heeft een nieuwe update klaar staan.'
           : 'SpuitLogger is klaar voor offline gebruik.'}
       </span>
       {needRefresh && (
