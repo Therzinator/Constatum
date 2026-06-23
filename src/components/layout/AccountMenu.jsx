@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { APP_VERSION_CLIENT } from '../../lib/version.js';
 import { RADIUS_OPTIES, laadBereikMeter, slaBereikMeterOp } from '../../lib/notificaties/buurtMelding.js';
-import { laadDeelVoorkeur, slaDeelVoorkeurOp } from '../../lib/notificaties/deelvoorkeur.js';
 import instellingenIcon from '../../assets/ui-icons/icon_instellingen.png';
 import './AccountMenu.css';
 
@@ -19,7 +18,6 @@ export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, l
   const [open, setOpen] = useState(false);
   const [lokaalBezig, setLokaalBezig] = useState(false);
   const [laatsteSyncResultaat, setLaatsteSyncResultaat] = useState(null); // 'ok' | 'fout' | null
-  const [deelVoorkeurAan, setDeelVoorkeurAan] = useState(() => laadDeelVoorkeur());
   const [bereikMeter, setBereikMeter] = useState(() => laadBereikMeter());
   const menuRef = useRef(null);
 
@@ -89,12 +87,6 @@ export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, l
     slaBereikMeterOp(meter);
   };
 
-  const handleDeelVoorkeurToggle = (e) => {
-    const aan = e.target.checked;
-    setDeelVoorkeurAan(aan);
-    slaDeelVoorkeurOp(aan);
-  };
-
   const handleUitloggen = () => {
     setOpen(false);
     onUitloggen?.();
@@ -151,11 +143,6 @@ export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, l
               </select>
             </label>
           </div>
-
-          <label className="account-menu-toggle-rij">
-            <span>🤝 Meldingen delen met de buurt</span>
-            <input type="checkbox" checked={deelVoorkeurAan} onChange={handleDeelVoorkeurToggle} />
-          </label>
 
           <button type="button" className="account-menu-item" onClick={handleInstellingen}>
             ⚙️ Mijn gegevens &amp; instellingen

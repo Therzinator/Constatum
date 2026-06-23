@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { maakFeedback, haalFeedback, wijzigFeedbackStatus } from '../../lib/feedback/feedback.js';
+import { maakFeedback, haalFeedback, wijzigFeedbackStatus, verwijderFeedback } from '../../lib/feedback/feedback.js';
 import { isAdmin } from '../../lib/rollen.js';
 import { Toast } from '../ui/Toast.jsx';
 import './FeedbackPage.css';
@@ -71,6 +71,16 @@ export function FeedbackPage({ user, gebruikerRol, onTerug }) {
       await laad();
     } catch (err) {
       toon(`Status wijzigen mislukt: ${err.message}`, 'error');
+    }
+  };
+
+  const handleVerwijderen = async (id) => {
+    if (!confirm('Deze feedback verwijderen?')) return;
+    try {
+      await verwijderFeedback(id);
+      await laad();
+    } catch (err) {
+      toon(`Verwijderen mislukt: ${err.message}`, 'error');
     }
   };
 
@@ -152,6 +162,7 @@ export function FeedbackPage({ user, gebruikerRol, onTerug }) {
             isEigen={item.user_id === user.id}
             magBeheren={isAdmin(gebruikerRol)}
             onStatusWijzigen={handleStatusWijzigen}
+            onVerwijderen={handleVerwijderen}
           />
         ))}
       </div>
@@ -161,7 +172,7 @@ export function FeedbackPage({ user, gebruikerRol, onTerug }) {
   );
 }
 
-function FeedbackItem({ item, isEigen, magBeheren, onStatusWijzigen }) {
+function FeedbackItem({ item, isEigen, magBeheren, onStatusWijzigen, onVerwijderen }) {
   const [reactie, setReactie] = useState(item.admin_reactie || '');
 
   return (
@@ -175,6 +186,11 @@ function FeedbackItem({ item, isEigen, magBeheren, onStatusWijzigen }) {
       <div className="export-card-beschrijving">{item.omschrijving}</div>
       <div className="export-info-rij mt-1">
         <span>{isEigen ? 'Door jou' : 'Door een andere gebruiker'} · {new Date(item.created_at).toLocaleDateString('nl-NL')}</span>
+        {(isEigen || magBeheren) && (
+          <button type="button" className="feedback-item-verwijderen" onClick={() => onVerwijderen(item.id)} aria-label="Verwijderen" title="Verwijderen">
+            🗑️
+          </button>
+        )}
       </div>
       {item.admin_reactie && !magBeheren && (
         <div className="feedback-item-reactie">💬 Reactie van de beheerder: {item.admin_reactie}</div>

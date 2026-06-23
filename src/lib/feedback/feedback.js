@@ -51,3 +51,12 @@ export async function wijzigFeedbackStatus(feedbackId, status, adminReactie) {
   const { error } = await sb.from('feedback').update(updates).eq('id', feedbackId);
   if (error) throw error;
 }
+
+// Eigen item, of elk item als admin (RLS, zie migratie 0019).
+export async function verwijderFeedback(feedbackId) {
+  const sb = sbClient();
+  if (!sb) return;
+
+  const { error } = await sb.from('feedback').delete().eq('id', feedbackId);
+  if (error) throw error;
+}

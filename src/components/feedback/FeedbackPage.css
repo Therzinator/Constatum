@@ -43,6 +43,18 @@
   gap: 4px;
 }
 
+.feedback-item-verwijderen {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  opacity: 0.7;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0 2px;
+}
+.feedback-item-verwijderen:hover { opacity: 1; color: var(--danger); }
+
 .feedback-item-beheer select {
   background: var(--bg-secondary);
   border: 1px solid var(--border);

@@ -23,7 +23,6 @@ import { maakOsmLaag, maakLuchtfotoLaag } from '../../lib/ol/lagen.js';
 import { maakNatura2000Laag, vulNatura2000Laag } from '../../lib/pdok/natura2000Laag.js';
 import { maakPerceelgrenzenLaag, vulPerceelgrenzenLaag } from '../../lib/pdok/perceelLaag.js';
 import { haalBestemming } from '../../lib/pdok/bestemming.js';
-import { laadGpsVoorkeur } from '../../lib/dashboard/gpsVoorkeur.js';
 import { laadGpsCache, slaGpsCacheOp } from '../../lib/geo/gpsCache.js';
 import { isCoordinatorOfAdmin } from '../../lib/rollen.js';
 import { gebruikerKleur, melderCode } from '../../utils/format.js';
@@ -158,7 +157,6 @@ export function DashboardKaart({ meldingen, thuislocatie, gebruikerRol, onMeldin
   const gebruikerSourceRef = useRef(null);
   const gebruikerMarkerRef = useRef(null);
   const gebruikerCirkelRef = useRef(null);
-  const gpsGecentreerdRef = useRef(false);
   const overlayRef = useRef(null);
   const bestemmingAanvraagRef = useRef(0);
   const clusterLaagRef = useRef(null);
@@ -173,7 +171,6 @@ export function DashboardKaart({ meldingen, thuislocatie, gebruikerRol, onMeldin
   const [maandFilter, setMaandFilter] = useState('huidig');
   const [jaarFilter, setJaarFilter] = useState('');
   const [dagFilter, setDagFilter] = useState('');
-  const [gpsAan] = useState(() => laadGpsVoorkeur());
   const [gpsFout, setGpsFout] = useState(() =>
     !navigator.geolocation ? 'Geolocatie wordt niet ondersteund door deze browser' : null
   );
@@ -431,53 +428,11 @@ export function DashboardKaart({ meldingen, thuislocatie, gebruikerRol, onMeldin
     );
   };
 
-  // Live GPS-pin van de gebruiker — alleen actief als ingeschakeld via
-  // Instellingen (DashboardGpsInstelling): continue watchPosition i.p.v. de
-  // eenmalige fix van navigeerNaarGps(). Toont eerst de gecachete laatst
-  // bekende positie (sneller op positie dan wachten op een verse fix) en
-  // centreert de kaartweergave bij de EERSTE échte fix nog eens fijn op de
-  // actuele GPS-positie (zie gpsGecentreerdRef) — daarna mag de gebruiker
-  // zelf weer rondkijken zonder dat elke nieuwe GPS-update de kaart terugtrekt.
+  // Automatisch eenmalig navigeren naar de GPS-positie bij het laden van
+  // het dashboard (geen continue tracking meer — de vroegere "live
+  // GPS-pin op dashboard"-instelling is verwijderd, overbodig naast deze
+  // automatische centrering en de handmatige "Mijn locatie"-knop).
   useEffect(() => {
-    if (!gpsAan || !navigator.geolocation) return;
-    gpsGecentreerdRef.current = false;
-
-    const cache = laadGpsCache();
-    if (cache && gebruikerSourceRef.current) {
-      const cacheCoord = fromLonLat([cache.lng, cache.lat]);
-      plaatsOfUpdateGebruikerMarker(cacheCoord, cache.accuracy);
-      mapRef.current?.getView().animate({ center: cacheCoord, zoom: 15, duration: 400 });
-    }
-
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const { latitude, longitude, accuracy } = pos.coords;
-        if (!gebruikerSourceRef.current) return;
-        setGpsFout(null);
-        slaGpsCacheOp(latitude, longitude, accuracy);
-        const coord = fromLonLat([longitude, latitude]);
-        plaatsOfUpdateGebruikerMarker(coord, accuracy);
-        if (!gpsGecentreerdRef.current && mapRef.current) {
-          gpsGecentreerdRef.current = true;
-          mapRef.current.getView().animate({ center: coord, zoom: 15, duration: 500 });
-        }
-      },
-      (err) => {
-        console.warn('[DashboardKaart] GPS niet beschikbaar:', err.message);
-        setGpsFout('Kon GPS-locatie niet ophalen — controleer locatietoestemming in de browser');
-      },
-      { enableHighAccuracy: true, maximumAge: 5000 }
-    );
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, [gpsAan]);
-
-  // Automatisch navigeren naar de GPS-positie bij het laden van het
-  // dashboard — onafhankelijk van de live-pin-instelling (die regelt alleen
-  // of de stip daarna ZICHTBAAR/bijgewerkt blijft). Als gpsAan al aan staat
-  // regelt de watch-effect hierboven het eerste centreren al, dus dan niet
-  // dubbel een getCurrentPosition-aanvraag doen.
-  useEffect(() => {
-    if (gpsAan) return;
     navigeerNaarGps();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

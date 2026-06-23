@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { idbCountBijlagen, idbVerwijderVerweesdeBijlagen } from '../../lib/storage/indexedDB.js';
 import { Toast } from '../ui/Toast.jsx';
 import { PrullenbakCard } from '../export/PrullenbakCard.jsx';
-import { DashboardGpsInstelling } from './DashboardGpsInstelling.jsx';
 import { GegevensPrivacyInstelling } from './GegevensPrivacyInstelling.jsx';
 import { TrustIndicator } from '../export/TrustIndicator.jsx';
 import { PrivacyVerklaringModal } from '../onboarding/PrivacyVerklaringModal.jsx';
@@ -70,8 +69,6 @@ export function InstellingenPage({ meldingenApi, gebruikerRol, user, laadVanClou
       </div>
 
       <TrustIndicator profiel={profiel} />
-
-      <DashboardGpsInstelling />
 
       <GegevensPrivacyInstelling user={user} meldingenApi={meldingenApi} thuislocatie={thuislocatie} onUitloggen={onUitloggen} />
 
