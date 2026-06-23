@@ -39,7 +39,10 @@
   border: none;
   cursor: pointer;
   font-family: var(--mono);
-  font-size: 0.9rem;
+  /* -15% (was 0.9rem), op verzoek — samen met de letter-spacing
+     hieronder de belangrijkste reden dat labels elkaar nog raakten. */
+  font-size: 0.765rem;
+  letter-spacing: -0.03em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -80,7 +83,9 @@
 @media (max-width: 420px) {
   .bottom-nav-tab {
     padding: 12px 2px;
-    font-size: 0.72rem;
+    /* -15% van de al verkleinde 0.72rem die hier stond */
+    font-size: 0.612rem;
+    letter-spacing: -0.03em;
   }
   .bottom-nav-icoon-img {
     width: 44px;
