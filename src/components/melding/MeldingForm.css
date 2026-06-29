@@ -96,6 +96,15 @@
   border-color: var(--accent);
   color: var(--accent);
 }
+.mf-standaardzin-chip.mf-standaardzin-gebruikt,
+.mf-standaardzin-chip:disabled {
+  text-decoration: line-through;
+  color: var(--text-muted);
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+  border-color: var(--border);
+}
 
 .mf-textarea {
   background: var(--bg-secondary);

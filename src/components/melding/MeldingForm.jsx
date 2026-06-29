@@ -373,36 +373,38 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
       <div className="mf-field">
         <div className="mf-desc-header">
           <label className="section-label" htmlFor="mf-desc">Omschrijving &amp; notities *</label>
-          {veld.description.length > 0 && (
-            <button type="button" className="mf-wis-knop" onClick={() => form.zetVeld('description', '')}>
-              🗑️ Wis alles
-            </button>
-          )}
+          <button type="button" className="mf-wis-knop" onClick={() => form.zetVeld('description', '')}>
+            🗑️ Wis alles
+          </button>
         </div>
         <textarea
           id="mf-desc"
           ref={descRef}
           className="mf-textarea"
           rows={4}
-          placeholder="Beschrijf wat je waarneemt: tijd, locatie, activiteit, omstandigheden..."
+          placeholder="Beschrijf wat je ziet, ruikt of voelt: bijv. nevel drifting richting tuin, sterke chemische geur, duur, effecten..."
           value={veld.description}
           onChange={(e) => form.zetVeld('description', e.target.value)}
           onBlur={() => setAangeraakt((a) => ({ ...a, omschrijving: true }))}
           style={(Boolean(form.fout) || aangeraakt.omschrijving) && !veld.description.trim() ? { borderColor: 'var(--danger)', boxShadow: '0 0 0 2px rgba(239,68,68,0.2)' } : undefined}
         />
         <div className="mf-standaardzinnen">
-          {STANDAARD_ZINNEN.map(([emoji, zin]) => (
-            <button
-              key={zin}
-              type="button"
-              className="mf-standaardzin-chip"
-              title={zin}
-              onClick={() => voegStandaardZinToe(zin)}
-            >
-              <span className="mf-standaardzin-chip-emoji">{emoji}</span>
-              <span>{zin}</span>
-            </button>
-          ))}
+          {STANDAARD_ZINNEN.map(([emoji, zin]) => {
+            const gebruikt = veld.description.includes(zin);
+            return (
+              <button
+                key={zin}
+                type="button"
+                className={`mf-standaardzin-chip${gebruikt ? ' mf-standaardzin-gebruikt' : ''}`}
+                title={zin}
+                disabled={gebruikt}
+                onClick={() => voegStandaardZinToe(zin)}
+              >
+                <span className="mf-standaardzin-chip-emoji">{emoji}</span>
+                <span>{zin}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
