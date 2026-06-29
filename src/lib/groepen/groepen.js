@@ -171,10 +171,26 @@ export async function haalMeldingenVoorGroep(groepId) {
 
   const { data, error } = await sb
     .from('entries_groepen')
-    .select('gedeeld_op, entries(id, user_id, melder_email, timestamp_local, type, description, gemeente, provincie, gps_lat, gps_lng, visibility)')
+    .select('gedeeld_op, entries(id, user_id, melder_email, timestamp_local, type, description, gemeente, provincie, gps_lat, gps_lng, visibility, deleted, weather, richting_deg, richting_compass, geur_intensiteit, wind_subjectief)')
     .eq('groep_id', groepId)
     .order('gedeeld_op', { ascending: false });
 
   if (error) throw error;
-  return (data || []).filter((r) => r.entries).map((r) => ({ ...r.entries, gedeeldOp: r.gedeeld_op }));
+  return (data || [])
+    .filter((r) => r.entries && !r.entries.deleted)
+    .map((r) => ({ ...r.entries, gedeeldOp: r.gedeeld_op }));
+}
+
+export async function verwijderMeldingUitGroep(groepId, entryId) {
+  const sb = sbClient();
+  if (!sb) return false;
+
+  const { error } = await sb
+    .from('entries_groepen')
+    .delete()
+    .eq('groep_id', groepId)
+    .eq('entry_id', entryId);
+
+  if (error) throw error;
+  return true;
 }

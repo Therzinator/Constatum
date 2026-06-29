@@ -56,7 +56,7 @@ export function perceelStatistieken(meldingen) {
   meldingen.forEach((m) => {
     const p = m.perceelnummer;
     if (!p) return;
-    if (!stats[p]) stats[p] = { totaal: 0, ditJaar: 0, bovenWindNorm: 0, gewassen: new Set() };
+    if (!stats[p]) stats[p] = { totaal: 0, ditJaar: 0, bovenWindNorm: 0, gewassen: new Set(), gemeenten: new Set() };
 
     stats[p].totaal++;
     const d = new Date(m.timestamp_local);
@@ -66,6 +66,7 @@ export function perceelStatistieken(meldingen) {
     if (ws && ws > 18) stats[p].bovenWindNorm++;
 
     if (m.gewas) stats[p].gewassen.add(m.gewas);
+    if (m.gemeente) stats[p].gemeenten.add(m.gemeente);
   });
 
   return stats;

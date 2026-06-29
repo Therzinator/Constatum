@@ -173,7 +173,6 @@ export function GroepenPage({ user, thuislocatie, onOpenGroep }) {
       </div>
 
       <div className="card p-4">
-        <div className="section-label mb-3">➕ Groep starten</div>
         {!formOpen && (
           <button type="button" className="btn-primary groepen-knop" onClick={openFormulier}>Nieuwe groep aanmaken</button>
         )}

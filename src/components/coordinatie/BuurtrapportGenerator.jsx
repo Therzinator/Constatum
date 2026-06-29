@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   haalEntriesVoorBuurtrapport,
+  haalGroepEntriesVoorBuurtrapport,
   haalAlleProfielenAdmin,
   maakBuurtdossier,
   haalBuurtdossiers
@@ -19,7 +20,7 @@ import { haalKNMIWeerdata } from '../../lib/weather/knmi.js';
 // (loopt door de gefilterde meldingen heen en checkt per stuk of er een
 // KNMI-station beschikbaar is) — wordt niet historisch bijgehouden, dus
 // elke generatie controleert opnieuw en kan een paar seconden duren.
-export function BuurtrapportGenerator({ user, voorgeselecteerdGemeente }) {
+export function BuurtrapportGenerator({ user, voorgeselecteerdGemeente, gemeenteOpties = [] }) {
   const [gemeente, setGemeente] = useState('');
   const [periodeVan, setPeriodeVan] = useState('');
   const [periodeTot, setPeriodeTot] = useState('');
@@ -40,11 +41,16 @@ export function BuurtrapportGenerator({ user, voorgeselecteerdGemeente }) {
     setFout(null);
     setBezig(true);
     try {
-      const ruweEntries = await haalEntriesVoorBuurtrapport(gemeenteVoorAanvraag);
-      const entries = filterVoorBuurtrapport(ruweEntries, gemeenteVoorAanvraag, periodeVan, periodeTot);
+      const [ruweEntries, groepEntries] = await Promise.all([
+        haalEntriesVoorBuurtrapport(gemeenteVoorAanvraag),
+        haalGroepEntriesVoorBuurtrapport(gemeenteVoorAanvraag).catch(() => [])
+      ]);
+      const gedeeldeIds = new Set(ruweEntries.map((e) => e.id));
+      const gecombineerd = [...ruweEntries, ...groepEntries.filter((e) => !gedeeldeIds.has(e.id))];
+      const entries = filterVoorBuurtrapport(gecombineerd, gemeenteVoorAanvraag, periodeVan, periodeTot);
 
       if (!entries.length) {
-        setFout('Geen opt-in-meldingen gevonden voor deze gemeente/periode');
+        setFout('Geen meldingen gevonden voor deze gemeente/periode');
         setBezig(false);
         return;
       }
@@ -104,18 +110,25 @@ export function BuurtrapportGenerator({ user, voorgeselecteerdGemeente }) {
     <div className="card p-4">
       <div className="section-label mb-3">📋 Buurtrapport genereren</div>
       <div className="export-card-beschrijving mb-3">
-        Geanonimiseerd collectief rapport per gemeente. Alleen meldingen
-        met opt_in_buurt=true tellen mee. Weerverificatie via Open-Meteo (geen API-key nodig).
+        Geanonimiseerd collectief rapport per gemeente. Meldingen met opt_in_buurt=true én
+        meldingen gedeeld met groepen tellen mee. Weerverificatie via Open-Meteo (geen API-key nodig).
       </div>
 
       <label className="export-info-rij">
         <span>Gemeente</span>
-        <input
-          type="text"
-          value={weergegevenGemeente}
-          onChange={(e) => setGemeente(e.target.value)}
-          placeholder="bijv. Westland"
-        />
+        {gemeenteOpties.length > 0 ? (
+          <select value={weergegevenGemeente} onChange={(e) => setGemeente(e.target.value)}>
+            <option value="">— kies gemeente —</option>
+            {gemeenteOpties.map((g) => <option key={g} value={g}>{g}</option>)}
+          </select>
+        ) : (
+          <input
+            type="text"
+            value={weergegevenGemeente}
+            onChange={(e) => setGemeente(e.target.value)}
+            placeholder="bijv. Westland"
+          />
+        )}
       </label>
       <label className="export-info-rij">
         <span>Periode van</span>

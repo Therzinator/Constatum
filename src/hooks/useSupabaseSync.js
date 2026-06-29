@@ -51,8 +51,8 @@ export function useSupabaseSync(user, meldingenApi) {
           .eq('user_id', user.id);
 
         if (!error) {
-          // count === 0: entry bestond niet in Supabase (nooit gesynchroniseerd) — lokaal verwijderen volstaat
-          // count > 0: update geslaagd, bevestigd via count
+          // Verwijder ook de koppeling met groepen (stille mislukking als er geen RLS-rechten zijn)
+          await sb.from('entries_groepen').delete().eq('entry_id', delId);
           await sbAuditLog(delId, 'deleted', { door: user.id }, user);
           verwijderUitQueue(delId);
         } else {

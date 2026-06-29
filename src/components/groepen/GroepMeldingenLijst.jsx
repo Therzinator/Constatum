@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { haalMeldingenVoorGroep } from '../../lib/groepen/groepen.js';
+import { haalMeldingenVoorGroep, verwijderMeldingUitGroep } from '../../lib/groepen/groepen.js';
 import { bepaalZichtbaarheidsniveau, velden } from '../../lib/groepen/trustZichtbaarheid.js';
 import { melderCode } from '../../utils/format.js';
 import { GroepMeldingDetailModal } from './GroepMeldingDetailModal.jsx';
@@ -41,6 +41,7 @@ export function GroepMeldingenLijst({ groepId, viewerTrustScore, viewerUserId, u
   const [meldingen, setMeldingen] = useState(null);
   const [fout, setFout] = useState(null);
   const [geopend, setGeopend] = useState(null);
+  const [verwijderenId, setVerwijderenId] = useState(null);
 
   useEffect(() => {
     let actief = true;
@@ -49,6 +50,20 @@ export function GroepMeldingenLijst({ groepId, viewerTrustScore, viewerUserId, u
       .catch((err) => { if (actief) setFout(err.message); });
     return () => { actief = false; };
   }, [groepId]);
+
+  const handleVerwijder = async (e, meldingId) => {
+    e.stopPropagation();
+    if (!confirm('Deze melding uit de groep verwijderen?')) return;
+    setVerwijderenId(meldingId);
+    try {
+      await verwijderMeldingUitGroep(groepId, meldingId);
+      setMeldingen((prev) => prev.filter((m) => m.id !== meldingId));
+    } catch (err) {
+      alert(`Verwijderen mislukt: ${err.message}`);
+    } finally {
+      setVerwijderenId(null);
+    }
+  };
 
   // Beheerders krijgen altijd volledige inzage, ongeacht hun eigen trust score.
   const niveau = isBeheerder ? 'hoog' : bepaalZichtbaarheidsniveau(viewerTrustScore);
@@ -74,11 +89,23 @@ export function GroepMeldingenLijst({ groepId, viewerTrustScore, viewerUserId, u
           <div
             key={m.id}
             className="card melding-card melding-card-klikbaar"
+            style={{ position: 'relative' }}
             role="button"
             tabIndex={0}
             onClick={() => setGeopend(m)}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setGeopend(m); }}
           >
+            {isBeheerder && (
+              <button
+                type="button"
+                className="btn-outline"
+                style={{ position: 'absolute', top: 8, right: 8, fontSize: '0.65rem', padding: '2px 8px', minHeight: 0, color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                disabled={verwijderenId === m.id}
+                onClick={(e) => handleVerwijder(e, m.id)}
+              >
+                {verwijderenId === m.id ? '...' : '✕'}
+              </button>
+            )}
             <div className="melding-card-body">
               <div className="melding-card-top">
                 <div className="melding-card-badges">

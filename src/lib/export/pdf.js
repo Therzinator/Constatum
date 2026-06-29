@@ -71,6 +71,7 @@ async function meldingNaarHTML(m, index) {
         <tr><td>Tijdstip (lokaal)</td><td>${escapeHTML(m.date)} ${escapeHTML(m.time)} (${escapeHTML(m.timezone || 'Europe/Amsterdam')})</td></tr>
         <tr><td>Tijdstip (UTC)</td><td>${escapeHTML(m.timestamp_utc)}</td></tr>
         ${locatieRegel ? `<tr><td>GPS-locatie</td><td>${escapeHTML(locatieRegel)}</td></tr>` : ''}
+        ${m.gemeente ? `<tr><td>Gemeente</td><td>${escapeHTML(m.gemeente)}</td></tr>` : ''}
         ${m.provincie ? `<tr><td>Provincie</td><td>${escapeHTML(m.provincie)}</td></tr>` : ''}
         ${m.afstand_woning != null ? `<tr><td>Afstand tot perceel met woonbestemming</td><td>${m.afstand_woning} m${m.afstand_woning < 50 ? ' — ONDER 50m NORM' : ''}</td></tr>` : ''}
         ${m.perceelnummer ? `<tr><td>Perceelnummer (BRK)</td><td>${escapeHTML(m.perceelnummer)}</td></tr>` : ''}

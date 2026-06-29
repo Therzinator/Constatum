@@ -99,6 +99,22 @@ export async function haalEntriesVoorBuurtrapport(gemeente) {
   return data || [];
 }
 
+export async function haalGroepEntriesVoorBuurtrapport(gemeente) {
+  const sb = sbClient();
+  if (!sb) return [];
+
+  const { data, error } = await sb
+    .from('entries')
+    .select('id, user_id, melder_email, timestamp_local, gemeente, perceelnummer, weather, rfc3161, opt_in_buurt, gps_lat, gps_lng, entries_groepen!inner(groep_id)')
+    .eq('deleted', false)
+    .ilike('gemeente', `${gemeente}%`)
+    .order('timestamp_local', { ascending: false });
+
+  if (error) throw error;
+  // Strip the joined entries_groepen data — we only needed !inner to filter
+  return (data || []).map(({ entries_groepen: _eg, ...rest }) => rest);
+}
+
 export async function maakBuurtdossier(dossier, userId) {
   const sb = sbClient();
   if (!sb) return null;

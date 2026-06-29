@@ -63,7 +63,24 @@ export function GroepMeldingDetailModal({ melding, toon, isEigen, user, onClose 
           <div className="detail-mono-block">{datum}</div>
           {regio && <div className="detail-mono-block mt-1">{regio}</div>}
           {toon.exacteLocatie && melding.gps_lat != null && melding.gps_lng != null && (
-            <div className="hash-display mt-1">{melding.gps_lat.toFixed(5)}, {melding.gps_lng.toFixed(5)}</div>
+            <>
+              <div className="hash-display mt-1">{melding.gps_lat.toFixed(5)}, {melding.gps_lng.toFixed(5)}</div>
+              <a
+                href={`https://www.openstreetmap.org/?mlat=${melding.gps_lat}&mlon=${melding.gps_lng}&zoom=15`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="export-card-beschrijving mt-1"
+                style={{ display: 'inline-block', color: 'var(--accent)' }}
+              >
+                Bekijk op kaart →
+              </a>
+              {melding.richting_compass && (
+                <div className="export-card-beschrijving mt-1">
+                  Windrichting: {melding.richting_compass}{melding.weather?.wind_speed != null ? ` · ${melding.weather.wind_speed} km/h` : ''}
+                  {melding.geur_intensiteit != null ? ` · Geursterkte ${melding.geur_intensiteit}/5` : ''}
+                </div>
+              )}
+            </>
           )}
           {!toon.grofweLocatie && !toon.exacteLocatie && (
             <div className="export-card-beschrijving mt-1">Locatie pas zichtbaar bij een hogere trust score.</div>
@@ -76,6 +93,17 @@ export function GroepMeldingDetailModal({ melding, toon, isEigen, user, onClose 
             <div style={{ fontSize: '0.85rem', lineHeight: 1.6 }}>{melding.description}</div>
           ) : (
             <div className="export-card-beschrijving">Omschrijving pas zichtbaar bij een hogere trust score.</div>
+          )}
+          {toon.metadata && melding.weather?.wind_speed != null && (
+            <div className="card p-2 mt-2">
+              <div className="section-label mb-1" style={{ fontSize: '0.65rem' }}>Weerdata op moment van melding</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', fontSize: '0.75rem' }}>
+                <span>Wind</span><span>{melding.weather.wind_speed} km/h {melding.richting_compass || ''}</span>
+                {melding.weather.temperature != null && <><span>Temperatuur</span><span>{melding.weather.temperature}°C</span></>}
+                {melding.weather.humidity != null && <><span>Luchtvochtigheid</span><span>{melding.weather.humidity}%</span></>}
+                {melding.wind_subjectief && <><span>Wind (subjectief)</span><span>{melding.wind_subjectief}</span></>}
+              </div>
+            </div>
           )}
         </div>
 

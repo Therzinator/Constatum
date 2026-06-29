@@ -77,6 +77,7 @@ export function CoordinatiePage({ user, thuislocatie, gebruikerRol }) {
   const verdeling = trustScoreVerdeling(profielen);
   const provincieOpties = provincies(entries);
   const gemeenteOpties = gemeentenInProvincie(entries, filterProvincie);
+  const alleGemeenten = [...new Set(entries.map((e) => e.gemeente).filter(Boolean))].sort();
   const entriesGefilterd = filterOpRegio(entries, filterProvincie, filterGemeente);
   const perceelStats = perceelStatistieken(entriesGefilterd);
   const windroosPerPerceel = windrichtingPerPerceel(entriesGefilterd);
@@ -262,7 +263,14 @@ export function CoordinatiePage({ user, thuislocatie, gebruikerRol }) {
         {Object.entries(perceelStats).map(([perceel, stats]) => (
           <div key={perceel} className="coordinatie-stat-rij">
             <div className="coordinatie-stat-label">
-              <span>{perceel}</span>
+              <div>
+                <span>{perceel}</span>
+                {stats.gemeenten?.size > 0 && (
+                  <span style={{ display: 'block', fontSize: '0.6rem', color: 'var(--text-muted)' }}>
+                    {[...stats.gemeenten].join(', ')}
+                  </span>
+                )}
+              </div>
               <span>{stats.totaal}x · {stats.ditJaar}x dit jaar{stats.bovenWindNorm ? ` · ${stats.bovenWindNorm}x boven windnorm` : ''}</span>
             </div>
             <div className="coordinatie-stat-balk-track">
@@ -335,7 +343,7 @@ export function CoordinatiePage({ user, thuislocatie, gebruikerRol }) {
             <BuurtgebiedTekenaar thuislocatie={filterCentrum || thuislocatie} meldingen={entriesGefilterd} user={user} gebruikerRol={gebruikerRol} />
           </Suspense>
 
-          <BuurtrapportGenerator user={user} voorgeselecteerdGemeente={voorgeselecteerdGemeente} />
+          <BuurtrapportGenerator user={user} voorgeselecteerdGemeente={voorgeselecteerdGemeente} gemeenteOpties={alleGemeenten} />
         </div>
       </Collapsible>
     </div>
