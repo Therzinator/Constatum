@@ -165,7 +165,12 @@ export function GroepenPage({ user, thuislocatie, onOpenGroep }) {
   return (
     <div className="groepen-page">
       <div className="export-titel">Groepen</div>
-      <div className="export-subtitel">Sociale samenwerking binnen SpuitLogger</div>
+      <div className="export-subtitel">Samen sterk</div>
+      <div className="groepen-intro">
+        <p>Eén melding is een waarneming. Een groep melders die hetzelfde perceel over tijd documenteren, is bewijs.</p>
+        <p>Maak een privégroep met buren en bouw gezamenlijk aan een buurtdossier. Elke deelnemer houdt zijn eigen privédossier, de groep voegt de patronen samen. Meer melders, meer tijdstippen, meer windrichtingen: dat is wat een rechter overtuigt.</p>
+        <p>Sluit u aan bij een openbare groep van een burgerinitiatief in uw regio, of start er zelf een. Uw identiteit blijft altijd beschermd.</p>
+      </div>
 
       <div className="card p-4">
         <div className="section-label mb-3">➕ Groep starten</div>
