@@ -27,7 +27,9 @@ export function briefTekstVoorVertoning(melding, naamMelder, adresMelder) {
   const lat = melding.gps?.lat?.toFixed(6) ?? '—';
   const lng = melding.gps?.lng?.toFixed(6) ?? '—';
   const weerBron = melding.weather?.source || 'Open-Meteo/KNMI';
-  const rfc3161 = melding.rfc3161?.timestamp || 'niet beschikbaar';
+  const tijdstempel = melding.rfc3161?.timestamp
+    ? `✓ RFC 3161 tijdstempel: ${new Date(melding.rfc3161.timestamp).toLocaleString('nl-NL', { timeZone: 'Europe/Amsterdam' })}`
+    : `Melding opgeslagen op: ${new Date(melding.timestamp_local).toLocaleString('nl-NL', { timeZone: 'Europe/Amsterdam' })}\n   (geen RFC 3161 tijdstempel beschikbaar — melding mogelijk offline aangemaakt)`;
 
   return `${naamMelder}
 ${adresMelder}
@@ -60,9 +62,10 @@ Verzochte registratieperiode: ${periodeVan} t/m ${periodeTot}
 
 GRONDSLAG
 De rechtbank Noord-Nederland heeft op 12 januari 2026 (zaaknummers
-[in te vullen]) geoordeeld dat omwonenden op grond van artikel 67
-van Verordening (EG) nr. 1107/2009 recht hebben op inzage in
-spuitregistraties van nabijgelegen agrarische percelen. Ik beroep
+LEE 23/5100 en LEE 23/1511, ECLI:NL:RBNNE:2026:130 en
+ECLI:NL:RBNNE:2026:129) geoordeeld dat omwonenden op grond van
+artikel 67 van Verordening (EG) nr. 1107/2009 recht hebben op inzage
+in spuitregistraties van nabijgelegen agrarische percelen. Ik beroep
 mij op dit recht als omwonende die op voornoemde datum spuitactiviteit
 heeft waargenomen in de directe nabijheid van mijn woning.
 
@@ -83,9 +86,15 @@ ${naamMelder}
 ${adresMelder}
 
 ---
+Noot: Het Ministerie van LVVN heeft hoger beroep ingesteld bij de
+Afdeling bestuursrechtspraak van de Raad van State. Het hoger beroep
+heeft geen automatische schorsende werking. Volg de voortgang via
+metenweten.nl.
+
+---
 Gegenereerd door SpuitLogger — spuitlogger.nl
 Melding-ID: ${melding.id}
-RFC 3161 tijdstempel: ${rfc3161}`;
+${tijdstempel}`;
 }
 
 // Genereert de brief als opmaakvaste HTML (A4, wit, formele brief) — voor print/opslaan als PDF.
@@ -97,7 +106,10 @@ export function genereerSpuitregisterBrief(melding, naamMelder, adresMelder) {
   const lat = melding.gps?.lat?.toFixed(6) ?? '—';
   const lng = melding.gps?.lng?.toFixed(6) ?? '—';
   const weerBron = melding.weather?.source || 'Open-Meteo/KNMI';
-  const rfc3161 = melding.rfc3161?.timestamp || 'niet beschikbaar';
+  const heeftRfc3161 = !!melding.rfc3161?.timestamp;
+  const rfc3161Tekst = heeftRfc3161
+    ? `✓ RFC 3161: ${new Date(melding.rfc3161.timestamp).toLocaleString('nl-NL', { timeZone: 'Europe/Amsterdam' })}`
+    : `Opgeslagen op: ${new Date(melding.timestamp_local).toLocaleString('nl-NL', { timeZone: 'Europe/Amsterdam' })} (geen RFC 3161)`;
   const adresHTML = escapeHTML(adresMelder).replace(/\n/g, '<br>');
 
   return `<!DOCTYPE html>
@@ -179,7 +191,7 @@ export function genereerSpuitregisterBrief(melding, naamMelder, adresMelder) {
   </table>
 
   <h3>Grondslag</h3>
-  <p>De rechtbank Noord-Nederland heeft op 12 januari 2026 (zaaknummers [in te vullen]) geoordeeld dat omwonenden op grond van artikel 67 van Verordening (EG) nr. 1107/2009 recht hebben op inzage in spuitregistraties van nabijgelegen agrarische percelen. Ik beroep mij op dit recht als omwonende die op voornoemde datum spuitactiviteit heeft waargenomen in de directe nabijheid van mijn woning.</p>
+  <p>De rechtbank Noord-Nederland heeft op 12 januari 2026 (zaaknummers LEE 23/5100 en LEE 23/1511, ECLI:NL:RBNNE:2026:130 en ECLI:NL:RBNNE:2026:129) geoordeeld dat omwonenden op grond van artikel 67 van Verordening (EG) nr. 1107/2009 recht hebben op inzage in spuitregistraties van nabijgelegen agrarische percelen. Ik beroep mij op dit recht als omwonende die op voornoemde datum spuitactiviteit heeft waargenomen in de directe nabijheid van mijn woning.</p>
 
   <h3>Onderbouwing</h3>
   <p>Ter onderbouwing van mijn verzoek voeg ik bij:</p>
@@ -198,9 +210,13 @@ export function genereerSpuitregisterBrief(melding, naamMelder, adresMelder) {
     </div>
   </div>
 
+  <div style="margin-top: 28pt; padding-top: 8pt; border-top: 1px solid #ddd; font-size: 8pt; color: #555; line-height: 1.5;">
+    <strong>Noot hoger beroep:</strong> Het Ministerie van Landbouw, Visserij, Voedselzekerheid en Natuur (LVVN) heeft hoger beroep ingesteld bij de Afdeling bestuursrechtspraak van de Raad van State tegen de uitspraken van 12 januari 2026. Het hoger beroep heeft geen automatische schorsende werking &mdash; uw verzoek kan gewoon worden ingediend. Het ministerie heeft echter laten weten ingekomen verzoeken aan te houden totdat er juridische duidelijkheid bestaat. Dit verzoek wordt ingediend op grond van de huidige rechtspositie zoals vastgesteld door de Rechtbank Noord-Nederland. Volg de voortgang via metenweten.nl.
+  </div>
+
   <div class="voetnoot">
     <span>Gegenereerd door SpuitLogger &mdash; spuitlogger.nl &nbsp;&middot;&nbsp; Melding-ID: ${escapeHTML(melding.id)}</span>
-    <span>RFC 3161: ${escapeHTML(rfc3161)}</span>
+    <span>${escapeHTML(rfc3161Tekst)}</span>
   </div>
 </div>
 </body>

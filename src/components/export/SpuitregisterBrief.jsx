@@ -22,6 +22,8 @@ export function SpuitregisterBrief({ meldingen }) {
     }
   };
 
+  const geenRfc3161 = melding && !melding.rfc3161?.timestamp;
+
   if (metPerceel.length === 0) {
     return (
       <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '4px 0' }}>
@@ -84,6 +86,12 @@ export function SpuitregisterBrief({ meldingen }) {
               style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.9rem', resize: 'vertical' }}
             />
           </div>
+
+          {geenRfc3161 && (
+            <div style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: '8px', padding: '10px 12px', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+              ⚠️ Deze melding heeft geen RFC 3161 tijdstempel. De brief is geldig maar heeft minder bewijskracht. Maak een nieuwe melding aan als u een tijdgestempeld bewijs wilt toevoegen.
+            </div>
+          )}
 
           <div>
             <div className="export-card-beschrijving" style={{ marginBottom: '6px' }}>Voorvertoning brief</div>
