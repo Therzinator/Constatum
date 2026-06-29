@@ -198,3 +198,97 @@ export async function extractEXIF(file) {
     return null;
   }
 }
+
+// ============================================================
+// VIDEO COMPRESSIE — verkleint grote video's via canvas + MediaRecorder
+// Hash moet al VOOR aanroep berekend zijn (zie useNieuweMeldingForm.js).
+// Retourneert het originele File-object als compressie niet mogelijk of
+// zinvol is (bestand al klein, geen codec-support, compressie leverde
+// geen winst). Audio wordt meegenomen via video.captureStream() indien
+// beschikbaar.
+// ============================================================
+const VIDEO_COMPRESSIE_DREMPEL_BYTES = 5 * 1024 * 1024; // 5 MB
+const VIDEO_MAX_BREEDTE = 1280;
+const VIDEO_MAX_HOOGTE  = 720;
+const VIDEO_BITRATE     = 1_500_000; // 1,5 Mbps
+
+export async function comprimeerVideo(file) {
+  if (file.size < VIDEO_COMPRESSIE_DREMPEL_BYTES) return file;
+  if (typeof MediaRecorder === 'undefined') {
+    console.warn('[Video] MediaRecorder niet beschikbaar — geen compressie');
+    return file;
+  }
+  const mimeType = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
+    .find((t) => MediaRecorder.isTypeSupported(t));
+  if (!mimeType) {
+    console.warn('[Video] Geen ondersteund compressie-formaat — geen compressie');
+    return file;
+  }
+
+  const url = URL.createObjectURL(file);
+  try {
+    const video = document.createElement('video');
+    video.src = url;
+    video.muted = true;
+    video.preload = 'metadata';
+    await new Promise((resolve, reject) => {
+      video.onloadedmetadata = resolve;
+      video.onerror = () => reject(new Error('Video laden mislukt'));
+    });
+
+    let w = video.videoWidth  || VIDEO_MAX_BREEDTE;
+    let h = video.videoHeight || VIDEO_MAX_HOOGTE;
+    if (w > VIDEO_MAX_BREEDTE || h > VIDEO_MAX_HOOGTE) {
+      const ratio = Math.min(VIDEO_MAX_BREEDTE / w, VIDEO_MAX_HOOGTE / h);
+      w = Math.round(w * ratio);
+      h = Math.round(h * ratio);
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const videoStream = canvas.captureStream(30);
+
+    try {
+      const capture = (video.captureStream || video.mozCaptureStream)?.bind(video);
+      if (capture) capture().getAudioTracks().forEach((t) => videoStream.addTrack(t));
+    } catch { /* Geen audio — doorgaan zonder */ }
+
+    const recorder = new MediaRecorder(videoStream, { mimeType, videoBitsPerSecond: VIDEO_BITRATE });
+    const chunks = [];
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+
+    const compressed = await new Promise((resolve) => {
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mimeType });
+        if (blob.size >= file.size) { resolve(file); return; }
+        const naam = file.name.replace(/\.[^.]+$/, '.webm');
+        const out  = new File([blob], naam, { type: mimeType, lastModified: file.lastModified });
+        console.log(`[Video] Gecomprimeerd: ${(file.size / 1024 / 1024).toFixed(1)} MB → ${(blob.size / 1024 / 1024).toFixed(1)} MB`);
+        resolve(out);
+      };
+      recorder.onerror = () => resolve(file);
+      recorder.start(200);
+      video.play().then(() => {
+        const frame = () => {
+          if (video.ended || video.paused) {
+            if (recorder.state === 'recording') recorder.stop();
+            return;
+          }
+          ctx.drawImage(video, 0, 0, w, h);
+          requestAnimationFrame(frame);
+        };
+        video.onended = () => { if (recorder.state === 'recording') recorder.stop(); };
+        frame();
+      }).catch(() => resolve(file));
+    });
+
+    return compressed;
+  } catch (err) {
+    console.warn('[Video] Compressie mislukt:', err.message, '— origineel gebruikt');
+    return file;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}

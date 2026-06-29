@@ -5,6 +5,8 @@ import { genereerDossierHTML, openDossierPDF } from '../../lib/export/pdf.js';
 import { downloadFile } from '../../lib/export/download.js';
 import { getStorageSize } from '../../lib/storage/localStorage.js';
 import { idbCountBijlagen } from '../../lib/storage/indexedDB.js';
+import { Collapsible } from '../ui/Collapsible.jsx';
+import { SpuitregisterBrief } from './SpuitregisterBrief.jsx';
 import { Toast } from '../ui/Toast.jsx';
 import './ExportPage.css';
 
@@ -149,6 +151,10 @@ export function ExportPage({ meldingenApi, thuislocatie }) {
         <div className="export-info-rij mt-2"><span>Eerste melding</span><span>{dates.length ? dates[0].toLocaleDateString('nl-NL', { timeZone: 'Europe/Amsterdam' }) : '—'}</span></div>
         <div className="export-info-rij"><span>Laatste melding</span><span>{dates.length ? dates[dates.length - 1].toLocaleDateString('nl-NL', { timeZone: 'Europe/Amsterdam' }) : '—'}</span></div>
       </div>
+
+      <Collapsible icoon="📬" titel="Spuitregister opvragen" badge={meldingen.filter((m) => m.perceelnummer).length || null}>
+        <SpuitregisterBrief meldingen={meldingen} />
+      </Collapsible>
 
       <Toast melding={melding} />
     </div>

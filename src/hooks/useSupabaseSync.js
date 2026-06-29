@@ -16,8 +16,10 @@ import { getMeldingen, saveMeldingen } from '../lib/storage/localStorage.js';
 export function useSupabaseSync(user, meldingenApi) {
   const [syncBezig, setSyncBezig] = useState(false);
   const [syncStatus, setSyncStatus] = useState('idle'); // idle | bezig | ok | fout | offline
-  const realtimeChannelRef = useRef(null);
+  const realtimeChannelRef = useRef(null); // { channelEigen, channelBuurt } of null
   const reloadTimerRef = useRef(null);
+  const retryTimerRef = useRef(null);  // Backoff-timer bij verbindingsfouten
+  const retryCountRef = useRef(0);     // Aantal opeenvolgende mislukte verbindingen
 
   const {
     offlineQueue,
@@ -126,53 +128,94 @@ export function useSupabaseSync(user, meldingenApi) {
     return resultaat;
   }, [user, herlaadMeldingen]);
 
-  const startRealtime = useCallback(() => {
-    const sb = sbClient();
-    if (!sb || !user || !SUPABASE_ENABLED) return;
-    if (realtimeChannelRef.current) return; // al actief
-
-    // TERUGGEDRAAID (2026-06-21): de eerdere versie hier gebruikte twee
-    // postgres_changes-listeners MET een `filter`-optie (user_id/
-    // opt_in_buurt) om minder Realtime-verkeer te krijgen. Dat is nooit
-    // tegen een echte Supabase-backend getest (lokaal staat
-    // SUPABASE_ENABLED altijd uit, zie lib/supabase/client.js) en bleek
-    // bij de eerste echte login een oneindige reconnect-lus te
-    // veroorzaken ("[Realtime] Status: CLOSED" continu herhaald, hele app
-    // bevroren) — vermoedelijk een door de server afgewezen filter die de
-    // client steeds opnieuw laat verbinden. Terug naar de eenvoudige,
-    // ongefilterde listener; de schaal-optimalisatie (minder verkeer bij
-    // veel gelijktijdige gebruikers) moet eerst apart, tegen een echte
-    // Supabase-omgeving, opnieuw uitgewerkt worden.
-    realtimeChannelRef.current = sb
-      .channel('entries-live')
-      .on('postgres_changes', {
-        event: '*',           // INSERT, UPDATE, DELETE
-        schema: 'public',
-        table: 'entries',
-      }, () => {
-        // Gedebounced i.p.v. een setTimeout per event — bij een burst van
-        // wijzigingen (bv. de admin-postcode-backfill die tientallen rijen
-        // achter elkaar update) joeg elk event een eigen volledige reload
-        // van alle meldingen (incl. N+1 bijlagen-queries) los, wat de app
-        // tijdens/na zo'n actie onbruikbaar traag maakte.
-        clearTimeout(reloadTimerRef.current);
-        reloadTimerRef.current = setTimeout(() => { laadVanCloud(); }, 800);
-      })
-      .subscribe(status => {
-        console.log('[Realtime] Status:', status);
-      });
-  }, [user, laadVanCloud]);
+  // Stabiele ref zodat startRealtime laadVanCloud kan aanroepen zonder
+  // laadVanCloud in zijn eigen useCallback-deps op te nemen. Dat was de
+  // root-oorzaak van de reconnect-lus (2026-06-21): laadVanCloud verandert
+  // elke render als herlaadMeldingen instabiel is → startRealtime
+  // verandert → useEffect trigt → stopRealtime + startRealtime → loop.
+  const laadVanCloudRef = useRef(laadVanCloud);
+  laadVanCloudRef.current = laadVanCloud;
 
   const stopRealtime = useCallback(() => {
     clearTimeout(reloadTimerRef.current);
+    clearTimeout(retryTimerRef.current);
     if (realtimeChannelRef.current) {
-      realtimeChannelRef.current.unsubscribe();
+      realtimeChannelRef.current.channelEigen?.unsubscribe();
+      realtimeChannelRef.current.channelBuurt?.unsubscribe();
       realtimeChannelRef.current = null;
     }
   }, []);
 
-  // Realtime start/stop volgt automatisch de inlogstatus
+  const startRealtime = useCallback(() => {
+    const sb = sbClient();
+    if (!sb || !user || !SUPABASE_ENABLED) return;
+    if (realtimeChannelRef.current) return; // al actief
+    if (retryCountRef.current >= 3) {
+      console.warn('[Realtime] Max herverbindingspogingen bereikt — realtime uitgeschakeld');
+      return;
+    }
+
+    // Gedebounced reload — voorkomt N+1-queries bij admin-backfill-bursts
+    const onWijziging = () => {
+      clearTimeout(reloadTimerRef.current);
+      reloadTimerRef.current = setTimeout(() => laadVanCloudRef.current?.(), 800);
+    };
+
+    // Eén fout-handler per channel-paar — de `errorGemeld` flag voorkomt
+    // dat beide channels tegelijk een retry starten bij gelijktijdige fouten.
+    let errorGemeld = false;
+    const handleStatus = (status) => {
+      console.log('[Realtime] Status:', status);
+      if (status === 'SUBSCRIBED') {
+        retryCountRef.current = 0;
+        errorGemeld = false;
+      } else if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && !errorGemeld) {
+        errorGemeld = true;
+        retryCountRef.current++;
+        const delay = 2000 * 2 ** (retryCountRef.current - 1); // 2s → 4s → 8s
+        console.warn(`[Realtime] Fout — retry ${retryCountRef.current}/3 na ${delay}ms`);
+        // Teardown verlopen channels zonder stopRealtime() aan te roepen
+        // (dat wist ook retryTimerRef, maar de timer staat er nog niet op)
+        realtimeChannelRef.current?.channelEigen?.unsubscribe();
+        realtimeChannelRef.current?.channelBuurt?.unsubscribe();
+        realtimeChannelRef.current = null;
+        retryTimerRef.current = setTimeout(() => startRealtime(), delay);
+      }
+    };
+
+    // Twee gefilterde channels:
+    // 1. Eigen meldingen (alle events op eigen user_id)
+    // 2. Buurt-meldingen (alleen INSERTs waarbij opt_in_buurt=true)
+    // De filter-waarden worden server-side toegepast door Supabase Realtime
+    // (postgres_changes CDC) — vereist dat de tabel REPLICA IDENTITY FULL
+    // heeft of dat de gefilterde kolom in de primary key zit.
+    realtimeChannelRef.current = {
+      channelEigen: sb
+        .channel(`entries-eigen-${user.id}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'entries',
+          filter: `user_id=eq.${user.id}`
+        }, onWijziging)
+        .subscribe(handleStatus),
+      channelBuurt: sb
+        .channel('entries-buurt')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'entries',
+          filter: 'opt_in_buurt=eq.true'
+        }, onWijziging)
+        .subscribe(handleStatus)
+    };
+  }, [user]); // Stabiel — laadVanCloud via ref, geen andere vluchtige deps
+
+  // Realtime start/stop volgt automatisch de inlogstatus.
+  // startRealtime is stabiel (enkel dep: user) dus dit effect trigt
+  // alleen bij login/logout — niet bij elke render.
   useEffect(() => {
+    retryCountRef.current = 0; // Reset teller bij wijziging van inlogstatus
     if (user) startRealtime();
     else stopRealtime();
     return () => stopRealtime();

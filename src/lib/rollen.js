@@ -2,6 +2,10 @@
 // Voorheen lazen deze functies de globals _gebruikerRol/_sbUser direct;
 // hier worden gebruikerRol/user als parameter meegegeven (afkomstig uit
 // hooks/useAuth.js) zodat dit pure, makkelijk te testen functies blijven.
+//
+// Toegestane rolwaarden: 'gebruiker', 'admin', 'coordinator'
+// Gesynchroniseerd met CHECK-constraint in migratie 0026 (user_roles_role_check).
+// Voeg nieuwe rollen hier én in die migratie toe.
 
 export function isAdmin(gebruikerRol) {
   return gebruikerRol === 'admin';

@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { generateId } from '../utils/format.js';
 import { degToCompass } from '../lib/drift/oordeel.js';
 import { sha256, hashFile } from '../lib/bewijsmateriaal/hash.js';
-import { extractEXIF, stripEXIFGPS } from '../lib/bewijsmateriaal/exif.js';
+import { extractEXIF, stripEXIFGPS, comprimeerVideo } from '../lib/bewijsmateriaal/exif.js';
 import { compressToThumbnail } from '../lib/media/thumbnail.js';
 import { vraagRFC3161Timestamp } from '../lib/supabase/rfc3161Relay.js';
 import { sbAuditLog } from '../lib/supabase/auditLog.js';
@@ -246,21 +246,27 @@ export function useNieuweMeldingForm({ user, thuislocatie, meldingenApi, syncNu 
         }
       }
 
-      const hash = await hashFile(file);
+      const hash = await hashFile(file); // Hash van origineel, VOOR compressie
       const exif = await extractEXIF(file);
+
+      if (isVideo && file.size >= 5 * 1024 * 1024) {
+        setWeerMelding({ id: Date.now(), tekst: '⏳ Video wordt geoptimaliseerd...', type: '' });
+      }
+      const fileVoorOpslag = isVideo ? await comprimeerVideo(file) : file;
+
       const rawDataUrl = await new Promise((resolve, reject) => {
         const r = new FileReader();
         r.onload = (e) => resolve(e.target.result);
         r.onerror = () => reject(new Error('Bestand lezen mislukt'));
-        r.readAsDataURL(file);
+        r.readAsDataURL(fileVoorOpslag);
       });
       const dataUrl = isVideo ? rawDataUrl : await stripEXIFGPS(rawDataUrl, file.type);
       const thumbnail = isVideo ? null : await compressToThumbnail(dataUrl, file.type);
 
       const obj = {
-        name: file.name,
-        type: file.type,
-        size: file.size,
+        name: fileVoorOpslag.name, // Naam van opgeslagen versie (kan .webm worden)
+        type: fileVoorOpslag.type,
+        size: file.size,           // Originele grootte — hash verwijst naar origineel
         lastModified: file.lastModified,
         hash,
         exif,
