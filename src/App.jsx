@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from './hooks/useAuth.js'
 import { isHandleidingGezien } from './lib/onboarding/handleidingStatus.js'
 import { HandleidingModal } from './components/onboarding/HandleidingModal.jsx'
@@ -30,7 +30,11 @@ function App() {
   const meldingenApi = useMeldingen()
   const thuislocatieApi = useThuislocatie(auth.user)
   const sync = useSupabaseSync(auth.user, meldingenApi)
-  const uitnodiging = useGroepUitnodigingToken(auth.user)
+  const onGroepGejoint = useCallback((groepId) => {
+    setPagina('groepen');
+    setActieveGroepId(groepId);
+  }, []);
+  const uitnodiging = useGroepUitnodigingToken(auth.user, onGroepGejoint)
   const [handleidingOpen, setHandleidingOpen] = useState(false)
   const overlayWasZichtbaarRef = useRef(false)
 

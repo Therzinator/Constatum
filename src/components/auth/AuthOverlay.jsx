@@ -47,7 +47,11 @@ export function AuthOverlay({ auth, uitnodiging }) {
       : await signup(email, password);
 
     if (!result.error && authMode === 'signup' && !result.data?.session) {
-      setSignupInfo('✓ Bevestigingsmail verstuurd. Controleer uw inbox.');
+      setSignupInfo(
+        uitnodiging
+          ? '✓ Bevestigingsmail verstuurd. Na het klikken op de bevestigingslink word je automatisch lid van de groep — je hoeft de uitnodigingslink niet opnieuw te openen.'
+          : '✓ Bevestigingsmail verstuurd. Controleer uw inbox.'
+      );
     }
   };
 
@@ -59,8 +63,9 @@ export function AuthOverlay({ auth, uitnodiging }) {
 
         {uitnodiging && (
           <div className="auth-info">
-            👋 Je bent uitgenodigd voor een groep op SpuitLogger. Maak een
-            account om mee te doen, je wordt na registreren automatisch lid.
+            👋 Je bent uitgenodigd voor een groep op SpuitLogger. Al een account?
+            Log dan in. Nieuw hier? Registreer — je wordt automatisch lid zodra
+            je je e-mailadres bevestigd hebt.
           </div>
         )}
 
