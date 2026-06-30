@@ -1,7 +1,7 @@
 ﻿import { JuridischModal } from './JuridischModal.jsx';
 
-const VERSIE = '1.1';
-const LAATST_GEWIJZIGD = '30-06-2026';
+const VERSIE = '1.2';
+const LAATST_GEWIJZIGD = '01-07-2026';
 
 export function PrivacyVerklaringModal({ onSluiten }) {
   return (
@@ -10,7 +10,7 @@ export function PrivacyVerklaringModal({ onSluiten }) {
 
 1. Wie zijn wij?
 Constatum is een registratieplatform voor burgers die spuitactiviteiten met gewasbeschermingsmiddelen in hun woonomgeving willen documenteren. Het platform dient als juridisch dossierinstrument — meldingen worden voorzien van RFC 3161 tijdstempels, SHA-256 cryptografische hashes en KNMI-gecertificeerde weerdata.
-Verantwoordelijke: Constatum Platform — contactgegevens: Constatum@protonmail.com
+Verantwoordelijke: Constatum Platform — contactgegevens: privacy@constatum.nl
 Toezichthouder: Autoriteit Persoonsgegevens (AP) — autoriteitpersoonsgegevens.nl
 
 2. Welke gegevens verwerken wij?
@@ -85,7 +85,7 @@ Belangrijk: Telers of andere betrokken partijen hebben geen toegang tot uw gegev
 • Row Level Security (RLS) — u ziet uitsluitend uw eigen data
 
 7. Uw rechten
-Op grond van de AVG heeft u de volgende rechten. U kunt deze uitoefenen via de app of via Constatum@protonmail.com.
+Op grond van de AVG heeft u de volgende rechten. U kunt deze uitoefenen via de app of via privacy@constatum.nl.
 
 7.1 Recht op inzage (art. 15)
 U kunt uw volledige dossier inzien en exporteren via de app (Instellingen → Exporteer mijn gegevens).
@@ -100,7 +100,7 @@ U kunt uw account en alle bijbehorende gegevens verwijderen via Instellingen →
 U kunt een JSON-export van al uw meldingen downloaden via Instellingen.
 
 7.5 Recht van bezwaar (art. 21)
-U kunt bezwaar maken tegen verwerking op basis van gerechtvaardigd belang. Neem contact op via Constatum@protonmail.com
+U kunt bezwaar maken tegen verwerking op basis van gerechtvaardigd belang. Neem contact op via privacy@constatum.nl
 
 7.6 Klachten
 U kunt een klacht indienen bij de Autoriteit Persoonsgegevens via autoriteitpersoonsgegevens.nl of per post: Postbus 93374, 2509 AJ Den Haag.

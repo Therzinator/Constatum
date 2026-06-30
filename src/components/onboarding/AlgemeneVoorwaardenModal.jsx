@@ -1,7 +1,7 @@
 ﻿import { JuridischModal } from './JuridischModal.jsx';
 
-const VERSIE = '1.0';
-const LAATST_GEWIJZIGD = '21-06-2026';
+const VERSIE = '1.1';
+const LAATST_GEWIJZIGD = '01-07-2026';
 
 export function AlgemeneVoorwaardenModal({ onSluiten }) {
   return (
@@ -64,9 +64,9 @@ Artikel 11 — Toepasselijk recht en geschillen
 Op deze algemene voorwaarden is uitsluitend Nederlands recht van toepassing. Geschillen voortvloeiend uit het gebruik van het platform worden bij uitsluiting voorgelegd aan de bevoegde rechter in Nederland. Alvorens een gerechtelijke procedure te starten verplichten partijen zich tot het voeren van overleg om tot een minnelijke schikking te komen. Voor klachten over de verwerking van persoonsgegevens kunt u terecht bij de Autoriteit Persoonsgegevens via autoriteitpersoonsgegevens.nl.
 
 Artikel 12 — Contact
-Voor vragen over deze algemene voorwaarden of de privacyverklaring kunt u contact opnemen via:
+Voor vragen over deze algemene voorwaarden kunt u contact opnemen via:
 Constatum
-Constatum@protonmail.com`}
+info@constatum.nl`}
     </JuridischModal>
   );
 }
