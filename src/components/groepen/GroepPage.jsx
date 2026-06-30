@@ -288,9 +288,9 @@ export function GroepPage({ groepId, user, onTerug }) {
 
       {magBeheren && (
         <div className="card p-4">
-          <div className="section-label mb-3">🛠️ Trust score van leden aanpassen</div>
-          <div className="export-card-beschrijving mb-2">Beperkt tot leden van deze groep, geen globale admin-actie.</div>
-          {leden.filter((l) => l.user_id !== user.id).map((l) => (
+          <div className="section-label mb-3">🛠️ Groep-vertrouwen van leden instellen</div>
+          <div className="export-card-beschrijving mb-2">Alleen van toepassing binnen deze groep — raakt de algemene trust-score van een gebruiker niet aan. Jouw eigen score en die van andere beheerders staan altijd op 100.</div>
+          {leden.filter((l) => l.user_id !== user.id && l.rol === 'lid').map((l) => (
             <div key={l.user_id} className="export-info-rij">
               <span>{l.user_id.slice(0, 8)}</span>
               <div className="flex gap-2">
