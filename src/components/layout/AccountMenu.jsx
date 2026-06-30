@@ -99,7 +99,7 @@ export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, l
         type="button"
         className="account-menu-knop"
         onClick={() => setOpen((o) => !o)}
-        aria-haspopup="true"
+        aria-haspopup="menu"
         aria-expanded={open}
         title="Instellingen"
       >
@@ -128,6 +128,7 @@ export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, l
 
           <button
             type="button"
+            role="menuitem"
             className={`account-menu-item account-menu-sync ${laatsteSyncResultaat ? `account-menu-sync-${laatsteSyncResultaat}` : ''}`}
             onClick={handleSync}
             disabled={!user || lokaalBezig || syncBezig}
@@ -155,12 +156,12 @@ export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, l
             </label>
           </div>
 
-          <button type="button" className="account-menu-item" onClick={handleInstellingen}>
+          <button type="button" role="menuitem" className="account-menu-item" onClick={handleInstellingen}>
             ⚙️ Mijn gegevens &amp; instellingen
           </button>
 
           {user && (
-            <button type="button" className="account-menu-item account-menu-uitloggen" onClick={handleUitloggen}>
+            <button type="button" role="menuitem" className="account-menu-item account-menu-uitloggen" onClick={handleUitloggen}>
               🚪 Uitloggen
             </button>
           )}

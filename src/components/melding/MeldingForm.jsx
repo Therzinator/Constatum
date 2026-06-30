@@ -431,9 +431,9 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
               {bedrijfSuggestiesZichtbaar && suggesties.length > 0 && (
                 <div className="mf-teler-suggesties">
                   {suggesties.map((naam) => (
-                    <div key={naam} className="mf-teler-suggestie" onClick={() => { form.zetVeld('bedrijfsnaam', naam); setBedrijfSuggestiesZichtbaar(false); }}>
+                    <button key={naam} type="button" className="mf-teler-suggestie" style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer' }} onClick={() => { form.zetVeld('bedrijfsnaam', naam); setBedrijfSuggestiesZichtbaar(false); }}>
                       🏢 {naam}
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
@@ -516,11 +516,11 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
           <p className="mf-foto-privacy-tekst mf-foto-privacy-waarschuwing">⚠️ Je deelt deze melding openbaar. Leg de waarneming vast vanuit een niet-herleidbare positie (raam, balkon, openbare weg) — niet direct vanuit je tuin of de exacte locatie van je woning, zodat foto's niet terugkoppelen naar jou.</p>
         )}
         <div className="mf-foto-buttons">
-          <label className="btn-outline px-3 py-2" style={{ cursor: 'pointer', textAlign: 'center', flex: 1 }}>
+          <label role="button" className="btn-outline px-3 py-2" style={{ cursor: 'pointer', textAlign: 'center', flex: 1 }}>
             📁 Kiezen
             <input type="file" multiple accept="image/*,video/*" className="mf-foto-input" onChange={handleFotoChange} />
           </label>
-          <label className="btn-outline px-3 py-2" style={{ cursor: 'pointer', textAlign: 'center', flex: 1 }}>
+          <label role="button" className="btn-outline px-3 py-2" style={{ cursor: 'pointer', textAlign: 'center', flex: 1 }}>
             📷 Camera
             <input type="file" accept="image/*" capture="environment" className="mf-foto-input" onChange={handleFotoChange} />
           </label>
@@ -539,7 +539,7 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
         )}
       </div>
 
-      {form.fout && <div className="mf-error">{form.fout}</div>}
+      {form.fout && <div className="mf-error" role="alert" aria-live="assertive">{form.fout}</div>}
 
       <button type="submit" className="btn-primary mf-submit" disabled={form.busy}>
         {form.busy ? (form.stap || 'Opslaan...') : 'Registratie opslaan'}

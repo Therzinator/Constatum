@@ -126,7 +126,7 @@ export function AuthOverlay({ auth, uitnodiging }) {
             </div>
           </div>
 
-          {authError && <div className="auth-error">{authError}</div>}
+          {authError && <div className="auth-error" role="alert">{authError}</div>}
           {signupInfo && <div className="auth-info">{signupInfo}</div>}
 
           <button type="submit" className="btn-primary auth-submit" disabled={authBusy}>

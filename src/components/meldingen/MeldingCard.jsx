@@ -92,7 +92,7 @@ export function MeldingCard({ melding, user, gebruikerRol, onVerwijderen, onSele
 
   return (
     <div className="card melding-card">
-      <div className="melding-card-body" onClick={() => onSelecteren(melding.id)} style={{ cursor: 'pointer' }}>
+      <button type="button" className="melding-card-body" onClick={() => onSelecteren(melding.id)} style={{ all: 'unset', display: 'block', width: '100%', cursor: 'pointer' }}>
         <div className="melding-card-row">
           <div className="melding-card-main">
             <div className="melding-card-top">
@@ -176,7 +176,7 @@ export function MeldingCard({ melding, user, gebruikerRol, onVerwijderen, onSele
             </div>
           )}
         </div>
-      </div>
+      </button>
 
       {!compact && magVerwijderenDeze && (
         <div className="melding-card-footer">
@@ -184,6 +184,7 @@ export function MeldingCard({ melding, user, gebruikerRol, onVerwijderen, onSele
             type="button"
             className="melding-card-delete"
             title="Verwijder registratie"
+            aria-label={`Verwijder registratie ${melding.id}`}
             onClick={() => onVerwijderen(melding.id)}
           >
             ✕

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { driftZones, focusDriftPct, windFactor } from '../../lib/drift/driftzone.js';
 import { degToCompass } from '../../lib/drift/oordeel.js';
 import { DriftZoneKaart } from './DriftZoneKaart.jsx';
@@ -5,6 +6,8 @@ import './DriftZoneModal.css';
 
 // React-versie van toonDriftZoneModal() uit docs/index.html.
 export function DriftZoneModal({ melding, onClose }) {
+  const sluitRef = useRef(null);
+  useEffect(() => { sluitRef.current?.focus(); }, []);
   const windDir = melding.weather?.wind_dir;
   const windKmh = melding.weather?.wind_speed;
 
@@ -15,8 +18,8 @@ export function DriftZoneModal({ melding, onClose }) {
 
   return (
     <div className="driftzone-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="driftzone-modal">
-        <button type="button" className="driftzone-close" onClick={onClose} aria-label="Sluiten">✕</button>
+      <div className="driftzone-modal" role="dialog" aria-modal="true" aria-label="Driftzone">
+        <button ref={sluitRef} type="button" className="driftzone-close" onClick={onClose} aria-label="Sluiten">✕</button>
         <div className="driftzone-title">🌬️ Driftzone Analyse</div>
         <div className="driftzone-datum">{datum}</div>
 

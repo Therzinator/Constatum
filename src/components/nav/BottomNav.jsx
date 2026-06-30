@@ -65,6 +65,7 @@ export function BottomNav({ pagina, onPaginaChange, gebruikerRol }) {
           key={naam}
           type="button"
           className={`bottom-nav-tab ${pagina === naam ? 'actief' : ''}`}
+          aria-current={pagina === naam ? 'page' : undefined}
           onClick={() => onPaginaChange(naam)}
         >
           {ICONEN[naam] ? (

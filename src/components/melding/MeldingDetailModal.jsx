@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { degToCompass, spuitWindOordeel } from '../../lib/drift/oordeel.js';
 import { idbGetBijlagen } from '../../lib/storage/indexedDB.js';
 import { laadBijlagenVanSupabase } from '../../lib/supabase/bijlagen.js';
@@ -49,6 +49,23 @@ export function MeldingDetailModal({ melding, alleMeldingen, user, onClose }) {
   const [driftZoneOpen, setDriftZoneOpen] = useState(false);
   const [knmiData, setKnmiData] = useState(null);
   const [knmiBezig, setKnmiBezig] = useState(false);
+  const sluitRef = useRef(null);
+
+  useEffect(() => { sluitRef.current?.focus(); }, []);
+
+  const handleTrap = (e) => {
+    if (e.key !== 'Tab') return;
+    const focusable = e.currentTarget.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last?.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first?.focus(); }
+    }
+  };
 
   const haalKNMIOp = async () => {
     if (!melding.gps?.lat || !melding.gps?.lng) return;
@@ -108,8 +125,8 @@ export function MeldingDetailModal({ melding, alleMeldingen, user, onClose }) {
 
   return (
     <div className="detail-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="detail-modal">
-        <button type="button" className="detail-modal-close" onClick={onClose} aria-label="Sluiten">✕</button>
+      <div className="detail-modal" role="dialog" aria-modal="true" aria-label="Melding detail" onKeyDown={handleTrap}>
+        <button ref={sluitRef} type="button" className="detail-modal-close" onClick={onClose} aria-label="Sluiten">✕</button>
 
         <div className="detail-modal-badges">
           <span className={`badge ${TYPE_BADGE[melding.type] || 'badge-muted'}`}>{TYPE_LABEL[melding.type] || melding.type}</span>
@@ -291,14 +308,14 @@ export function MeldingDetailModal({ melding, alleMeldingen, user, onClose }) {
                 const previewSrc = f.thumbnail || f.dataUrl;
                 const isVideo = f.type?.startsWith('video/');
                 return (
-                  <div key={`${f.name}-${idx}`} className="photo-grid-item" onClick={() => setLightboxIndex(idx)}>
+                  <button key={`${f.name}-${idx}`} type="button" className="photo-grid-item" onClick={() => setLightboxIndex(idx)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
                     {isVideo
                       ? <div className="photo-grid-video">🎥</div>
-                      : <img src={previewSrc} className="photo-grid-thumb" alt={f.name || ''} />}
+                      : <img src={previewSrc} className="photo-grid-thumb" alt={`Bijlage foto ${idx + 1}${f.name ? ': ' + f.name : ''}`} />}
                     <div className="photo-hash-badge" style={f.exif?.datetime_original ? { background: 'rgba(0,212,170,0.85)', bottom: 22 } : undefined}>
                       {f.exif?.datetime_original ? 'EXIF ✓' : 'SHA256'}
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>

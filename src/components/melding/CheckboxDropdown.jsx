@@ -43,6 +43,8 @@ export const CheckboxDropdown = forwardRef(function CheckboxDropdown(
         ref={ref}
         type="button"
         className={`cd-trigger ${fout ? 'cd-trigger-fout' : ''}`}
+        aria-expanded={open}
+        aria-haspopup="listbox"
         onClick={handleToggle}
       >
         <span style={{ color: geselecteerd.length ? 'var(--text-primary)' : 'var(--text-muted)' }}>{samenvatting}</span>
