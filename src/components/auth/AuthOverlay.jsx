@@ -63,7 +63,7 @@ export function AuthOverlay({ auth, uitnodiging }) {
           <img src={appIcon} alt="Constatum" className="auth-app-icon" />
           <div className="auth-title">Constatum</div>
         </div>
-        <div className="auth-sub">SPUITACTIVITEITEN DOSSIER · INLOGGEN</div>
+        <div className="auth-sub">GEOGRAFISCHE WAARNEMINGEN</div>
 
         {uitnodiging && (
           <div className="auth-info">
