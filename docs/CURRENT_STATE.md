@@ -4,7 +4,36 @@ Momentopname. Dit bestand veroudert sneller dan DOMAIN_KNOWLEDGE.md/
 DECISIONS.md — bij twijfel altijd verifiëren tegen de code (`git log`,
 grep), niet blind vertrouwen op een oude snapshot.
 
-Laatst bijgewerkt: 2026-06-30 (rebranding + kwetsbare groepen).
+Laatst bijgewerkt: 2026-06-30 (a11y-fixes, RFC 3161 sync-fix, Melder#-code in account-menu).
+
+## Accessibility-fixes, RFC 3161 sync-fix, UX (2026-06-30)
+
+- **RFC 3161 sync-fix** (`src/lib/supabase/entries.js`): `laadVanSupabase()`
+  mat `entry.rfc3161` niet terug naar het lokale melding-object — het veld
+  werd alleen bewaard via de `...(bestaand || {})` spread (werkt alleen op
+  hetzelfde apparaat). Nu expliciet gemapt als
+  `entry.rfc3161 || bestaand?.rfc3161 || null`, zodat meldingen ook op een
+  tweede apparaat of na localStorage-reset de TSA-tijdstempel tonen.
+- **Account-menu: Supabase user-ID vervangen door Melder#-code**
+  (`AccountMenu.jsx`): de UUID (`user.id`) is vervangen door
+  `melderCode(user.email)` — toont de anonieme `Melder#XXXXXX`-code.
+  Klikken kopieert de code. De `aria-haspopup` is gelijktijdig gecorrigeerd
+  naar `"menu"` en menu-items kregen `role="menuitem"`.
+- **19 accessibility-fixes** in 11 bestanden (commit `bc33074`):
+  - Klikbare `<div>`s → `<button>` in `MeldingCard`, `MeldingDetailModal`,
+    `MeldingForm` (foto-grid, suggesties).
+  - `role="dialog" aria-modal="true"` op `MeldingDetailModal`,
+    `DriftZoneModal`, `Lightbox`.
+  - Focus-trap + auto-focus op sluitknop in `MeldingDetailModal`, `Lightbox`.
+  - `aria-expanded` + `aria-haspopup="listbox"` op `CheckboxDropdown`.
+  - `role="alert"` op foutmeldingen in `MeldingForm` en `AuthOverlay`.
+  - `aria-current="page"` op actieve tab in `BottomNav`.
+  - `:focus-visible`-outlines voor knoppen/inputs in `theme.css`.
+  - `outline: none` → `outline: 2px solid transparent` (High Contrast Mode).
+  - `.sync-badge`/`.photo-hash-badge` vergroot naar minimaal `0.65rem`.
+  - Beschrijvende `alt`-tekst op foto's in `MeldingDetailModal`.
+  - Fix 8 (overlay `aria-hidden`) bewust overgeslagen — `aria-modal="true"`
+    op de inner div is de correcte aanpak.
 
 ## Rebranding SpuitLogger → Constatum (2026-06-30, commit 1c573c8)
 
