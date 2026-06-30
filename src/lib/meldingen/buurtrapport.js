@@ -2,13 +2,15 @@ import { degToCompass } from '../drift/oordeel.js';
 
 // Coordinatie & Admin systeem, Fase 6/7 — pure aggregatiefuncties voor het
 // buurtrapport. `gemeente` is de gemeentenaam (case-insensitief prefix-match).
+// groepEntries worden meegegeven met _vanGroep=true — die tellen mee zonder
+// dat ze opt_in_buurt=true hoeven te hebben (toestemming zit in groep-deelname).
 export function filterVoorBuurtrapport(entries, gemeente, vanaf, tot) {
   const vanafD = vanaf ? new Date(vanaf) : null;
   const totD = tot ? new Date(tot) : null;
   const gLower = gemeente.toLowerCase();
   return entries.filter((e) => {
     if (!e.gemeente?.toLowerCase().startsWith(gLower)) return false;
-    if (!e.opt_in_buurt) return false;
+    if (!e.opt_in_buurt && !e._vanGroep) return false;
     const t = new Date(e.timestamp_local);
     if (vanafD && t < vanafD) return false;
     if (totD && t > totD) return false;

@@ -80,7 +80,7 @@ export function CoordinatiePage({ user, thuislocatie, gebruikerRol }) {
   const verdeling = trustScoreVerdeling(profielen);
   const provincieOpties = provincies(entries);
   const gemeenteOpties = gemeentenInProvincie(entries, filterProvincie);
-  const alleGemeenten = [...new Set(entries.map((e) => e.gemeente).filter(Boolean))].sort();
+  const alleGemeenten = [...new Set(entries.filter((e) => e.opt_in_buurt).map((e) => e.gemeente).filter(Boolean))].sort();
   const entriesGefilterd = filterOpRegio(entries, filterProvincie, filterGemeente);
   const perceelStats = perceelStatistieken(entriesGefilterd);
   const windroosPerPerceel = windrichtingPerPerceel(entriesGefilterd);

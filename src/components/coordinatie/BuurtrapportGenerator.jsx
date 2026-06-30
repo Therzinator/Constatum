@@ -51,11 +51,20 @@ export function BuurtrapportGenerator({ user, voorgeselecteerdGemeente, gemeente
         haalGroepEntriesVoorBuurtrapport(gemeenteVoorAanvraag).catch(() => [])
       ]);
       const gedeeldeIds = new Set(ruweEntries.map((e) => e.id));
-      const gecombineerd = [...ruweEntries, ...groepEntries.filter((e) => !gedeeldeIds.has(e.id))];
+      // Groep-entries markeren als _vanGroep zodat filterVoorBuurtrapport ze
+      // doorlaat zonder opt_in_buurt=true — toestemming zit in de groep-deelname.
+      const gecombineerd = [
+        ...ruweEntries,
+        ...groepEntries.filter((e) => !gedeeldeIds.has(e.id)).map((e) => ({ ...e, _vanGroep: true }))
+      ];
       const entries = filterVoorBuurtrapport(gecombineerd, gemeenteVoorAanvraag, periodeVan, periodeTot);
 
       if (!entries.length) {
-        setFout('Geen meldingen gevonden voor deze gemeente/periode');
+        setFout(
+          `Geen geschikte meldingen gevonden voor ${gemeenteVoorAanvraag}. ` +
+          'Meldingen moeten "Deel met buurt" aangevinkt hebben (opt-in), ' +
+          'of gedeeld zijn met een groep.'
+        );
         setBezig(false);
         return;
       }
