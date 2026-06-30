@@ -1,5 +1,6 @@
 ﻿import { useLayoutEffect, useRef } from 'react';
 import { AccountMenu } from './AccountMenu.jsx';
+import headerLogo from '../../assets/app-icon/icon_title.png';
 import './AppHeader.css';
 
 // Vaste headerbalk met het Constatum-logo — de app had voorheen helemaal
@@ -30,7 +31,7 @@ export function AppHeader({ user, onNavigeerInstellingen, syncNu, syncBezig, laa
 
   return (
     <header className="app-header" ref={headerRef}>
-      <img src="/icons/header-logo.png" alt="Constatum" className="app-header-logo" />
+      <img src={headerLogo} alt="Constatum" className="app-header-logo" />
       <div className="app-header-tekst">
         <span className="app-header-titel">Constatum</span>
         <span className="app-header-subtitel">Spuitactiviteiten Dossier</span>

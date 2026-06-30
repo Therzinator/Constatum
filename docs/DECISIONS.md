@@ -1,4 +1,4 @@
-# Beslissingen — SpuitLogger
+# Beslissingen — Constatum
 
 Architectuur- en productbeslissingen, met de reden erbij. Geen taken hier
 (zie NEXT_STEPS.md). Nieuwe beslissing toevoegen onderaan, oudste boven.

@@ -1,4 +1,4 @@
-# Volgende stappen — SpuitLogger
+# Volgende stappen — Constatum
 
 Alleen openstaande werkzaamheden. Afgeronde taken hier verwijderen, niet
 laten staan met een ✅. Bij twijfel of iets nog open is: verifiëren tegen

@@ -18,13 +18,25 @@
   max-width: 360px;
 }
 
+.auth-branding {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.auth-app-icon {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
 .auth-title {
   font-family: var(--sans);
   font-weight: 800;
   font-size: 1.3rem;
   letter-spacing: -0.02em;
   color: var(--accent);
-  margin-bottom: 4px;
 }
 
 .auth-sub {

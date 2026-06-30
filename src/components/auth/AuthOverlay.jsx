@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState } from 'react';
 import { PrivacyVerklaringModal } from '../onboarding/PrivacyVerklaringModal.jsx';
 import { AlgemeneVoorwaardenModal } from '../onboarding/AlgemeneVoorwaardenModal.jsx';
+import appIcon from '../../assets/app-icon/icon_large.png';
 import './AuthOverlay.css';
 
 // React-versie van het #auth-overlay blok + authTab/authSubmit/authSkip uit
@@ -58,7 +59,10 @@ export function AuthOverlay({ auth, uitnodiging }) {
   return (
     <div className="auth-overlay">
       <div className="auth-card">
-        <div className="auth-title">Constatum</div>
+        <div className="auth-branding">
+          <img src={appIcon} alt="Constatum" className="auth-app-icon" />
+          <div className="auth-title">Constatum</div>
+        </div>
         <div className="auth-sub">SPUITACTIVITEITEN DOSSIER · INLOGGEN</div>
 
         {uitnodiging && (

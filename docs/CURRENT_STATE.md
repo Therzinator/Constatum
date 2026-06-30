@@ -1,10 +1,75 @@
-# Huidige staat — SpuitLogger
+# Huidige staat — Constatum (voorheen SpuitLogger)
 
 Momentopname. Dit bestand veroudert sneller dan DOMAIN_KNOWLEDGE.md/
 DECISIONS.md — bij twijfel altijd verifiëren tegen de code (`git log`,
 grep), niet blind vertrouwen op een oude snapshot.
 
-Laatst bijgewerkt: 2026-06-30 (bugfix-sessie).
+Laatst bijgewerkt: 2026-06-30 (rebranding + kwetsbare groepen).
+
+## Rebranding SpuitLogger → Constatum (2026-06-30, commit 1c573c8)
+
+- **22 bestanden hernoemd/bijgewerkt** — UI-tekst, modals, handleiding,
+  privacyverklaring, algemene voorwaarden, PDF/export-headers
+  ("Constatum — Juridisch Dossier"), PWA manifest (vite.config.js),
+  `<title>`, package.json (`"name": "constatum"`), CLAUDE.md.
+- **docs/index.html (legacy app)** bijgewerkt, versie 8.43 → 8.44.
+- **Bewust ongewijzigd**: localStorage keys (`spuitlogger_*`, `spuitlog_*`
+  prefix behouden — bestaande gebruikersdata intact), domeintermen
+  (`spuitdatum`, `spuitactiviteit` etc.), database kolom-/tabelnamen.
+- **Handmatige acties nog te doen**: DNS constatum.nl, Vercel
+  domeinkoppeling, GitHub repo hernoemen, drie .docx juridische
+  documenten herschrijven, e-mailadres Constatum@protonmail.com aanmaken.
+
+## Kwetsbare groepen profielinstelling (2026-06-30, migratie 0034)
+
+- **Juridische onderbouwing**: gerechtshof Den Bosch (Sevenum-zaak 2024,
+  hoger beroep) woog expliciet aanwezigheid en afstand van kwetsbare
+  bewoners (kinderen) mee in een spuitverbod.
+- **AVG art. 9** — bijzondere categorie persoonsgegevens. Progressive
+  disclosure-flow: uitleg eerst, uitdrukkelijke aparte toestemmings-
+  checkbox, daarna 10 categorieën in twee bewijssterkte-groepen
+  ("Sterk wetenschappelijk bewijs" / "Substantieel bewijs").
+- **Eenmalig profiel** in Instellingen → Gegevens & Privacy (Collapsible
+  "🛡️ Kwetsbare personen in huishouden", standaard dicht).
+- **Automatische koppeling**: elke nieuwe melding krijgt
+  `entries.kwetsbare_groep_aanwezig = true` als instelling actief is —
+  de specifieke categorieën blijven in `user_profiles.kwetsbare_groepen`
+  (JSONB), worden nooit naar entries gekopieerd.
+- **SHA-256 integriteit**: `kwetsbare_groep_aanwezig` staat vóór de
+  hash-berekening in `useNieuweMeldingForm.js` (regel 355 vs. 377) —
+  zit volledig in de hash-input. ✓
+- **PDF**: geel waarschuwingsblok bij `kwetsbare_groep_aanwezig=true`.
+- **Privacyverklaring**: sectie 2.5 toegevoegd (versie 1.1).
+- **Admin-afscherming**: `haalAlleProfielenAdmin()` selecteert de
+  kwetsbare-groepen-kolommen expliciet NIET.
+- **Migratie 0034** staat klaar — nog uit te voeren in Supabase.
+
+## Groep trust-score ontkoppeld (2026-06-30, migraties 0031/0032/0033)
+
+- **Migratie 0031** (`fn_groep_lid_trust_scores` SECURITY DEFINER):
+  beheerders kunnen via RPC trust-scores van leden ophalen zonder dat
+  RLS de query blokkeert. Retourneert 100 voor beheerder/hoofdbeheerder,
+  `groep_trust_score` voor leden. **Uitgevoerd.**
+- **Migratie 0032** (`user_profiles`-aanmaak-trigger): `fn_handle_new_user()`
+  trigger op `auth.users` + backfill voor bestaande gebruikers. Nodig
+  omdat `user_profiles` 0 rijen had (geen signup-trigger bestond).
+  **Nog uit te voeren.**
+- **Migratie 0033** (`groep_trust_score` kolom ontkoppelen):
+  `groep_leden.groep_trust_score` (integer, default 75) toegevoegd.
+  `fn_groep_trust_score_wijzigen` schrijft nu naar deze kolom, NIET
+  naar `user_profiles.trust_score` — voorkomt dat groepsbeheerder de
+  globale trust-score kan omzeilen. **Nog uit te voeren.**
+
+## Buurtrapport + gemeente-dropdown fixes (2026-06-30)
+
+- **`haalBuurtrapportGemeenten()`** (admin.js): nieuwe query die
+  gemeenten ophaalt uit BEIDE `opt_in_buurt=true`-meldingen EN meldingen
+  in een groep (`entries_groepen!inner`) — BuurtrapportGenerator toont
+  nu een echte dropdown i.p.v. vrij tekstveld.
+- **Groep-entries in buurtrapport**: `_vanGroep: true` vlag zorgt dat
+  `filterVoorBuurtrapport` groep-meldingen doorlaat zonder `opt_in_buurt`.
+- **`melder-overzicht` trust-score**: controlled input + expliciete
+  "Opslaan"-knop toegevoegd (patroon gelijk aan GroepPage, voor mobiel).
 
 ## Zes bugfixes (2026-06-30)
 

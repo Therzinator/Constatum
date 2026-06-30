@@ -1,4 +1,4 @@
-# Domeinkennis — SpuitLogger
+# Domeinkennis — Constatum
 
 Relatief stabiele kennis die zelden verandert. Doel: voorkomen dat een
 sessie zonder geheugen opnieuw moet uitzoeken wat hier al vaststaat.
