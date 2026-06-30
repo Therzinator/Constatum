@@ -14,21 +14,18 @@ export async function haalGroepLeden(groepId) {
   return data || [];
 }
 
-// Haalt trust_score op voor een lijst user-IDs via user_profiles.
-// Voor admin/coordinator: alle profielen zichtbaar (RLS 0011).
-// Voor gewone beheerder: alleen eigen profiel — rest wordt niet teruggegeven.
+// Haalt trust_score op voor alle leden van een groep via fn_groep_lid_trust_scores
+// (migratie 0031). SECURITY DEFINER omzeilt de user_profiles-RLS voor
+// groepsbeheerders — de functie verifieert zelf of de aanvrager beheerder is.
 // Retourneert een Map userId → trust_score (null als onbekend).
-export async function haalTrustScoresVoorLeden(userIds) {
+export async function haalTrustScoresVoorLeden(groepId) {
   const sb = sbClient();
-  if (!sb || !userIds.length) return new Map();
+  if (!sb || !groepId) return new Map();
 
-  const { data } = await sb
-    .from('user_profiles')
-    .select('id, trust_score')
-    .in('id', userIds);
+  const { data } = await sb.rpc('fn_groep_lid_trust_scores', { p_groep_id: groepId });
 
   const map = new Map();
-  (data || []).forEach((p) => map.set(p.id, p.trust_score ?? null));
+  (data || []).forEach((p) => map.set(p.user_id, p.trust_score ?? null));
   return map;
 }
 

@@ -59,7 +59,7 @@ export function GroepPage({ groepId, user, onTerug }) {
       setMaxBeheerders(g?.max_beheerders || 1);
       const eigenLidRol = l.find((lid) => lid.user_id === user.id)?.rol;
       if (isGroepBeheerder(eigenLidRol)) {
-        const scores = await haalTrustScoresVoorLeden(l.map((lid) => lid.user_id));
+        const scores = await haalTrustScoresVoorLeden(groepId);
         setLedenTrustScores(scores);
       }
     } catch (err) {
@@ -92,7 +92,7 @@ export function GroepPage({ groepId, user, onTerug }) {
         setMaxBeheerders(g?.max_beheerders || 1);
         const eigenLidRol = l.find((lid) => lid.user_id === user.id)?.rol;
         if (isGroepBeheerder(eigenLidRol)) {
-          const scores = await haalTrustScoresVoorLeden(l.map((lid) => lid.user_id));
+          const scores = await haalTrustScoresVoorLeden(groepId);
           if (actief) setLedenTrustScores(scores);
         }
       } catch (err) {
@@ -164,8 +164,13 @@ export function GroepPage({ groepId, user, onTerug }) {
     }
     try {
       const gelukt = await wijzigTrustScoreInGroep(groepId, targetUserId, num);
-      if (!gelukt) toon('Trust score wijzigen niet gelukt.', 'error');
-      else toon('Trust score opgeslagen.', 'success');
+      if (!gelukt) {
+        toon('Trust score wijzigen niet gelukt.', 'error');
+      } else {
+        toon('Trust score opgeslagen.', 'success');
+        const scores = await haalTrustScoresVoorLeden(groepId);
+        setLedenTrustScores(scores);
+      }
     } catch (err) {
       toon(`Trust score wijzigen mislukt: ${err.message}`, 'error');
     }

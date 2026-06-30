@@ -5,7 +5,7 @@ import './CheckboxDropdown.css';
 // (toggleDriftDropdown/toggleActiviteitDropdown/toggleGezondheid e.d.):
 // een knop met samenvatting die, ingeklapt, een paneel met checkboxes toont.
 export const CheckboxDropdown = forwardRef(function CheckboxDropdown(
-  { label, opties, geselecteerd, onToggle, placeholder = 'Niets geselecteerd', fout, labelMap, onClose },
+  { label, opties, geselecteerd, onToggle, placeholder = 'Niets geselecteerd', fout, labelMap, onClose, sluitNaSelectie },
   ref
 ) {
   const [open, setOpen] = useState(false);
@@ -55,7 +55,10 @@ export const CheckboxDropdown = forwardRef(function CheckboxDropdown(
               <input
                 type="checkbox"
                 checked={geselecteerd.includes(waarde)}
-                onChange={() => onToggle(waarde)}
+                onChange={() => {
+                  onToggle(waarde);
+                  if (sluitNaSelectie) { setOpen(false); onClose?.(); }
+                }}
               />
               {optieLabel}
             </label>

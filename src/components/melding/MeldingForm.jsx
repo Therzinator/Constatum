@@ -367,6 +367,7 @@ export function MeldingForm({ user, thuislocatie, meldingenApi, syncNu, onOpgesl
           opties={DRIFT_OPTIES}
           geselecteerd={veld.driftWaarneming}
           onToggle={form.toggleDrift}
+          sluitNaSelectie
         />
       </div>
 
