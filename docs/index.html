@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="nl" class="dark">
 <head>
   <meta charset="UTF-8">
@@ -10,13 +10,13 @@
   <meta name="theme-color" content="#010510">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="SpuitLogger">
+  <meta name="apple-mobile-web-app-title" content="Constatum">
   <meta name="description" content="Juridisch dossieropbouw systeem voor pesticiden drift en spuitactiviteiten registratie">
   <!-- Cache-control: voorkom dat browsers deze HTML oneindig cachen -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>SpuitLogger — Spuitactiviteiten Dossier</title>
+  <title>Constatum — Spuitactiviteiten Dossier</title>
 
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -698,7 +698,7 @@
 <body>
 
 <div id="splash-screen" style="position:fixed;inset:0;z-index:9999;background:#010510;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;transition:opacity 0.4s ease;">
-  <img src="icons/splash.png" style="width:220px;height:220px;object-fit:contain;" alt="SpuitLogger">
+  <img src="icons/splash.png" style="width:220px;height:220px;object-fit:contain;" alt="Constatum">
   <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:0.95rem;color:#7a90b0;text-align:center;max-width:200px;line-height:1.4;">Registreer spuitactiviteiten in uw omgeving.</div>
   <div class="spinner" style="width:20px;height:20px;border-width:2px;margin-top:8px;"></div>
 </div>
@@ -708,7 +708,7 @@
 <div id="update-banner" role="alert" aria-live="polite">
   <div class="update-banner-text">
     <strong>🔄 Nieuwe versie beschikbaar</strong>
-    <span id="update-version-label">SpuitLogger is bijgewerkt.</span>
+    <span id="update-version-label">Constatum is bijgewerkt.</span>
   </div>
   <div style="display:flex;gap:8px;flex-shrink:0;">
     <button class="update-dismiss-btn" onclick="dismissUpdateBanner()" aria-label="Sluiten">Later</button>
@@ -719,7 +719,7 @@
 <!-- ── AUTH OVERLAY ── -->
 <div id="auth-overlay">
   <div class="auth-card">
-    <div class="auth-title">SpuitLogger</div>
+    <div class="auth-title">Constatum</div>
     <div class="auth-sub">SPUITACTIVITEITEN DOSSIER — INLOGGEN</div>
 
     <!-- Tabs: inloggen / registreren -->
@@ -764,10 +764,10 @@
   <!-- Header -->
   <header style="background:#010510; border-bottom:1px solid var(--border);" class="px-4 py-3 flex items-center justify-between flex-shrink-0">
     <div class="flex items-center gap-3">
-      <img src="icons/header-logo.png" width="40" height="40" style="flex-shrink:0;border-radius:4px;" alt="SpuitLogger logo">
+      <img src="icons/header-logo.png" width="40" height="40" style="flex-shrink:0;border-radius:4px;" alt="Constatum logo">
       <div>
         <div style="font-family:var(--sans); font-weight:800; font-size:1rem; letter-spacing:-0.02em; display:flex; align-items:baseline; gap:6px;">
-          SpuitLogger
+          Constatum
           <span id="header-versie" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-muted);font-weight:400;letter-spacing:0;">v8.43</span>
         </div>
         <div style="font-family:var(--mono); font-size:0.55rem; color:var(--text-muted); margin-top:-2px;" id="app-version-label">SPUITACTIVITEITEN DOSSIER</div>
@@ -1661,7 +1661,7 @@
 <div id="lightbox" role="dialog" aria-modal="true" aria-label="Foto viewer">
   <!-- Topbalk -->
   <div class="lightbox-bar">
-    <div style="font-family:var(--mono);font-size:0.7rem;color:rgba(255,255,255,0.5);">SpuitLogger Fotobewijs</div>
+    <div style="font-family:var(--mono);font-size:0.7rem;color:rgba(255,255,255,0.5);">Constatum Fotobewijs</div>
     <button class="lightbox-close" onclick="closeLightbox()" aria-label="Sluiten">✕</button>
   </div>
   <!-- Inhoud -->
@@ -2670,16 +2670,16 @@ function saveMeldingen(data) {
   try {
     safeSetLocalStorage('spuitlog_meldingen', stripped);
   } catch (err) {
-    console.error('[SpuitLogger] localStorage opslag mislukt:', err);
+    console.error('[Constatum] localStorage opslag mislukt:', err);
     // Noodplan: sla op zonder bijlagen-thumbnails
     const ultraLight = stripped.map(m => ({ ...m, bestanden: (m.bestanden || []).map(f => ({
       name: f.name, type: f.type, size: f.size, hash: f.hash, thumbnail: null, dataUrl: null
     })) }));
     try {
       safeSetLocalStorage('spuitlog_meldingen', ultraLight);
-      console.warn('[SpuitLogger] Opgeslagen zonder thumbnails vanwege opslaglimiet');
+      console.warn('[Constatum] Opgeslagen zonder thumbnails vanwege opslaglimiet');
     } catch (err2) {
-      console.error('[SpuitLogger] Kon niet opslaan, ook niet zonder thumbnails:', err2);
+      console.error('[Constatum] Kon niet opslaan, ook niet zonder thumbnails:', err2);
       throw err2;
     }
   }
@@ -2744,7 +2744,7 @@ async function idbSaveBijlage(record) {
       tx.onerror    = e => reject(e.target.error);
     });
   } catch (err) {
-    console.warn('[SpuitLogger] IndexedDB opslaan mislukt:', err);
+    console.warn('[Constatum] IndexedDB opslaan mislukt:', err);
     return false;
   }
 }
@@ -3740,7 +3740,7 @@ async function idbGetBijlagen(meldingId) {
       }
     });
   } catch (err) {
-    console.warn('[SpuitLogger] IndexedDB ophalen mislukt:', err);
+    console.warn('[Constatum] IndexedDB ophalen mislukt:', err);
     return [];
   }
 }
@@ -3754,7 +3754,7 @@ async function idbDeleteBijlagen(meldingId) {
     const store = tx.objectStore(IDB_STORE);
     bestaand.forEach(b => store.delete(b.id));
   } catch (err) {
-    console.warn('[SpuitLogger] IndexedDB verwijderen mislukt:', err);
+    console.warn('[Constatum] IndexedDB verwijderen mislukt:', err);
   }
 }
 
@@ -4595,10 +4595,10 @@ async function fetchWeather() {
     if (spinner) spinner.style.display = 'none';
     if (statusText) { statusText.textContent = 'Actueel'; statusText.style.color = 'var(--accent)'; }
 
-    console.log(`[SpuitLogger] Weerdata geladen: wind ${c.wind_speed_10m} km/h uit ${c.wind_direction_10m}°`);
+    console.log(`[Constatum] Weerdata geladen: wind ${c.wind_speed_10m} km/h uit ${c.wind_direction_10m}°`);
 
   } catch (e) {
-    console.warn('[SpuitLogger] Weerdata niet beschikbaar:', e.message);
+    console.warn('[Constatum] Weerdata niet beschikbaar:', e.message);
     if (spinner) spinner.style.display = 'none';
     if (statusText) {
       statusText.textContent = navigator.onLine ? 'Fout bij ophalen' : 'Offline — geen weerdata';
@@ -5540,7 +5540,7 @@ async function submitMelding() {
     const meldingen = getMeldingen();
     meldingen.unshift(melding);
     saveMeldingen(meldingen);  // gooit error als te groot
-    console.log(`[SpuitLogger] Metadata opgeslagen: ${meldingId}, hash: ${melding.hash}`);
+    console.log(`[Constatum] Metadata opgeslagen: ${meldingId}, hash: ${melding.hash}`);
 
     // ── FASE 3: Sla bijlagen op in IndexedDB ─────────────────
     if (geldigeBestanden.length > 0) {
@@ -5571,7 +5571,7 @@ async function submitMelding() {
         }
         toast('⚠️ Melding opgeslagen — bijlagen niet bewaard', 'error');
       } else {
-        console.log(`[SpuitLogger] ${geldigeBestanden.length} bijlage(n) opgeslagen in IndexedDB`);
+        console.log(`[Constatum] ${geldigeBestanden.length} bijlage(n) opgeslagen in IndexedDB`);
       }
     }
 
@@ -5645,7 +5645,7 @@ async function submitMelding() {
     showPage('tijdlijn');
 
   } catch (error) {
-    console.error('[SpuitLogger] Opslaan mislukt:', error);
+    console.error('[Constatum] Opslaan mislukt:', error);
     toast(`Opslaan mislukt: ${error.message || 'Onbekende fout'}`, 'error');
   } finally {
     btn.disabled = false;
@@ -6727,7 +6727,7 @@ async function exportJSON() {
   const backup = {
     export_timestamp: new Date().toISOString(),
     version: APP_VERSION_CLIENT,
-    source: 'SpuitLogger PWA',
+    source: 'Constatum PWA',
     location: HOME_NAME,
     total_meldingen: verrijkt.length,
     meldingen: verrijkt
@@ -6852,7 +6852,7 @@ async function exportPDF() {
 <html lang="nl">
 <head>
   <meta charset="UTF-8">
-  <title>SpuitLogger — Juridisch Dossier</title>
+  <title>Constatum — Juridisch Dossier</title>
   <style>
     ${fontFaceCSS}
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -6922,9 +6922,9 @@ async function exportPDF() {
   <!-- Header -->
   <div class="header">
     <div class="header-left">
-      ${logoDataUrl ? `<img src="${logoDataUrl}" class="header-logo" alt="SpuitLogger logo">` : ''}
+      ${logoDataUrl ? `<img src="${logoDataUrl}" class="header-logo" alt="Constatum logo">` : ''}
       <div>
-        <div class="header-title">SpuitLogger</div>
+        <div class="header-title">Constatum</div>
         <div class="header-sub">JURIDISCH DOSSIER — SPUITACTIVITEITEN REGISTRATIE</div>
       </div>
     </div>
@@ -6947,7 +6947,7 @@ async function exportPDF() {
         <div><div class="label">Export datum</div><div class="value">${new Date().toLocaleDateString('nl-NL', { timeZone: 'Europe/Amsterdam' })}</div></div>
         <div><div class="label">Totaal meldingen</div><div class="value">${verrijkt.length}</div></div>
         <div><div class="label">Periode</div><div class="value">${verrijkt.length ? new Date(verrijkt[verrijkt.length-1].timestamp_local).toLocaleDateString('nl-NL', { timeZone: 'Europe/Amsterdam' }) + ' — ' + new Date(verrijkt[0].timestamp_local).toLocaleDateString('nl-NL', { timeZone: 'Europe/Amsterdam' }) : '—'}</div></div>
-        <div><div class="label">Dossier versie</div><div class="value">SpuitLogger v${APP_VERSION_CLIENT}</div></div>
+        <div><div class="label">Dossier versie</div><div class="value">Constatum v${APP_VERSION_CLIENT}</div></div>
         <div><div class="label">Weerdata bron</div><div class="value">${Object.values(knmiData).some(k => k !== null)
           ? `✓ KNMI Open Data (CC BY 4.0) — ${Object.values(knmiData).filter(k=>k!==null).length}/${verrijkt.length} meldingen gedekt`
           : 'Open-Meteo (open source) — geen KNMI API key'
@@ -7210,7 +7210,7 @@ async function opslagOpschonen() {
     toast(`✓ ${verouderd.length} verouderde bijlagen verwijderd`, 'success');
     updateExportInfo();
   } catch (err) {
-    console.error('[SpuitLogger] Opschonen mislukt:', err);
+    console.error('[Constatum] Opschonen mislukt:', err);
     toast('Opschonen mislukt: ' + err.message, 'error');
   }
 }
@@ -7257,7 +7257,7 @@ window.addEventListener('offline', updateOnlineStatus);
 // ============================================================
 // SERVICE WORKER — REGISTRATIE & UPDATE MANAGEMENT
 // ============================================================
-const APP_VERSION_CLIENT = '8.43';
+const APP_VERSION_CLIENT = '8.44';
 
 let _swRegistration  = null;   // actieve SW registratie
 let _updateCheckTimer = null;  // interval ID voor periodieke check
@@ -7343,7 +7343,7 @@ function toonUpdateBanner(versie) {
   const banner = document.getElementById('update-banner');
   const label  = document.getElementById('update-version-label');
   if (!banner) return;
-  if (label) label.textContent = `SpuitLogger v${versie || APP_VERSION_CLIENT} is klaar om te installeren.`;
+  if (label) label.textContent = `Constatum v${versie || APP_VERSION_CLIENT} is klaar om te installeren.`;
   banner.classList.add('visible');
   // Push content omlaag zodat banner niet over header valt
   const header = document.querySelector('header');

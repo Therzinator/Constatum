@@ -1,4 +1,4 @@
-import { JuridischModal } from './JuridischModal.jsx';
+﻿import { JuridischModal } from './JuridischModal.jsx';
 
 const VERSIE = '1.1';
 const LAATST_GEWIJZIGD = '30-06-2026';
@@ -6,11 +6,11 @@ const LAATST_GEWIJZIGD = '30-06-2026';
 export function PrivacyVerklaringModal({ onSluiten }) {
   return (
     <JuridischModal titel="Privacyverklaring" versie={VERSIE} laatstGewijzigd={LAATST_GEWIJZIGD} onSluiten={onSluiten}>
-      {`SpuitLogger neemt uw privacy serieus. Deze verklaring legt in begrijpelijke taal uit welke gegevens wij verwerken, waarom, hoe lang, en welke rechten u heeft. De verklaring is opgesteld conform de Algemene Verordening Gegevensbescherming (AVG/GDPR) en de Nederlandse Uitvoeringswet AVG (UAVG).
+      {`Constatum neemt uw privacy serieus. Deze verklaring legt in begrijpelijke taal uit welke gegevens wij verwerken, waarom, hoe lang, en welke rechten u heeft. De verklaring is opgesteld conform de Algemene Verordening Gegevensbescherming (AVG/GDPR) en de Nederlandse Uitvoeringswet AVG (UAVG).
 
 1. Wie zijn wij?
-SpuitLogger is een registratieplatform voor burgers die spuitactiviteiten met gewasbeschermingsmiddelen in hun woonomgeving willen documenteren. Het platform dient als juridisch dossierinstrument — meldingen worden voorzien van RFC 3161 tijdstempels, SHA-256 cryptografische hashes en KNMI-gecertificeerde weerdata.
-Verantwoordelijke: SpuitLogger Platform — contactgegevens: SpuitLogger@protonmail.com
+Constatum is een registratieplatform voor burgers die spuitactiviteiten met gewasbeschermingsmiddelen in hun woonomgeving willen documenteren. Het platform dient als juridisch dossierinstrument — meldingen worden voorzien van RFC 3161 tijdstempels, SHA-256 cryptografische hashes en KNMI-gecertificeerde weerdata.
+Verantwoordelijke: Constatum Platform — contactgegevens: Constatum@protonmail.com
 Toezichthouder: Autoriteit Persoonsgegevens (AP) — autoriteitpersoonsgegevens.nl
 
 2. Welke gegevens verwerken wij?
@@ -43,7 +43,7 @@ Via Instellingen → Kwetsbare personen kunt u aangeven welke categorieën kwets
 3. Waarom verwerken wij uw gegevens?
 
 3.1 Juridische documentatie (gerechtvaardigd belang)
-Het primaire doel van SpuitLogger is het ondersteunen van bewoners bij het opbouwen van juridisch bewijsmateriaal. Dit belang weegt zwaarder dan het privacy-nadeel omdat: (a) u zich vrijwillig aanmeldt, (b) de data uitsluitend uw eigen meldingen betreft, (c) het alternatief — geen documentatiemogelijkheid — u in een zwakkere positie laat bij juridische procedures.
+Het primaire doel van Constatum is het ondersteunen van bewoners bij het opbouwen van juridisch bewijsmateriaal. Dit belang weegt zwaarder dan het privacy-nadeel omdat: (a) u zich vrijwillig aanmeldt, (b) de data uitsluitend uw eigen meldingen betreft, (c) het alternatief — geen documentatiemogelijkheid — u in een zwakkere positie laat bij juridische procedures.
 
 3.2 Buurtdossier (toestemming)
 Als u actief kiest voor deelname aan het buurtdossier (opt-in), worden uw geanonimiseerde meldingen samengevoegd met die van andere melders in uw gemeente. Dit doel vereist uw expliciete toestemming, die u te allen tijde kunt intrekken via Instellingen.
@@ -73,7 +73,7 @@ Wij verkopen uw gegevens nooit aan derden. Uw gegevens worden uitsluitend gedeel
 • Met rechterlijke instanties — uitsluitend op uw verzoek of op grond van een rechtbankbevel
 • Met NVWA of omgevingsdiensten — uitsluitend op uw initiatief, als onderdeel van een handhavingsverzoek
 • Met onderzoekers — uitsluitend volledig geanonimiseerde, geaggregeerde data als u hiervoor opt-in heeft gegeven
-Belangrijk: Telers of andere betrokken partijen hebben geen toegang tot uw gegevens via SpuitLogger. Bij een rechtbankbevel tot openbaarmaking is uitsluitend de betrokken melder identificeerbaar, niet alle andere melders.
+Belangrijk: Telers of andere betrokken partijen hebben geen toegang tot uw gegevens via Constatum. Bij een rechtbankbevel tot openbaarmaking is uitsluitend de betrokken melder identificeerbaar, niet alle andere melders.
 
 6. Hoe beveiligen wij uw gegevens?
 • Versleutelde opslag via AES-256 (Supabase)
@@ -85,7 +85,7 @@ Belangrijk: Telers of andere betrokken partijen hebben geen toegang tot uw gegev
 • Row Level Security (RLS) — u ziet uitsluitend uw eigen data
 
 7. Uw rechten
-Op grond van de AVG heeft u de volgende rechten. U kunt deze uitoefenen via de app of via SpuitLogger@protonmail.com.
+Op grond van de AVG heeft u de volgende rechten. U kunt deze uitoefenen via de app of via Constatum@protonmail.com.
 
 7.1 Recht op inzage (art. 15)
 U kunt uw volledige dossier inzien en exporteren via de app (Instellingen → Exporteer mijn gegevens).
@@ -100,13 +100,13 @@ U kunt uw account en alle bijbehorende gegevens verwijderen via Instellingen →
 U kunt een JSON-export van al uw meldingen downloaden via Instellingen.
 
 7.5 Recht van bezwaar (art. 21)
-U kunt bezwaar maken tegen verwerking op basis van gerechtvaardigd belang. Neem contact op via SpuitLogger@protonmail.com
+U kunt bezwaar maken tegen verwerking op basis van gerechtvaardigd belang. Neem contact op via Constatum@protonmail.com
 
 7.6 Klachten
 U kunt een klacht indienen bij de Autoriteit Persoonsgegevens via autoriteitpersoonsgegevens.nl of per post: Postbus 93374, 2509 AJ Den Haag.
 
 8. Cookies en tracking
-SpuitLogger gebruikt geen tracking cookies, advertentietrackers of analyticsdiensten van derden. Uitsluitend een functionele sessiecookie van Supabase Auth wordt gebruikt om u ingelogd te houden. Deze cookie is strikt noodzakelijk en vereist geen toestemming.
+Constatum gebruikt geen tracking cookies, advertentietrackers of analyticsdiensten van derden. Uitsluitend een functionele sessiecookie van Supabase Auth wordt gebruikt om u ingelogd te houden. Deze cookie is strikt noodzakelijk en vereist geen toestemming.
 
 9. Wijzigingen in deze verklaring
 Bij wezenlijke wijzigingen ontvangt u een melding in de app minimaal 14 dagen voor de ingangsdatum. U kunt altijd de actuele versie raadplegen via Instellingen → Juridisch → Privacyverklaring.`}

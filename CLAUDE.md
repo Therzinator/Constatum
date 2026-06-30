@@ -1,7 +1,7 @@
-# SpuitLogger
+# Constatum
 
 ## Project context
-SpuitLogger is een GIS-webapp voor het registreren van bestrijdingsmiddelen-spuitactiviteit 
+Constatum is een GIS-webapp voor het registreren van bestrijdingsmiddelen-spuitactiviteit 
 near residential areas in Nederland. Doel: juridisch bewijsmateriaal genereren voor burgers.
 
 ## Technische stack

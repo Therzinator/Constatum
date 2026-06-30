@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { haalGebruikersProfiel, slaKwetsbareGroepenOp } from '../../lib/supabase/profiel.js';
 import { Toast } from '../ui/Toast.jsx';
 
@@ -168,7 +168,7 @@ export function KwetsbareGroepen({ user }) {
           AVG artikel 9 — bijzondere categorie persoonsgegevens
         </strong>
         <div className="export-card-beschrijving mt-1">
-          Gezondheidsgegevens vallen onder een verhoogd beschermingsniveau. SpuitLogger
+          Gezondheidsgegevens vallen onder een verhoogd beschermingsniveau. Constatum
           slaat deze gegevens uitsluitend op in uw eigen profiel — ze worden nooit
           gedeeld met andere gebruikers, groepen of buurtgenoten. Alleen u en de
           beheerder kunnen ze inzien.
@@ -183,7 +183,7 @@ export function KwetsbareGroepen({ user }) {
           <span style={{ fontSize: '0.85rem' }}>
             Ik begrijp dat dit gezondheidsgegevens zijn (AVG art. 9) en geef{' '}
             <strong>uitdrukkelijke toestemming</strong> voor de verwerking hiervan
-            door SpuitLogger, uitsluitend voor het doel van juridische documentatie.
+            door Constatum, uitsluitend voor het doel van juridische documentatie.
           </span>
         </label>
       </div>

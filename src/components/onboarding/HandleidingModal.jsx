@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { markeerHandleidingGezien } from '../../lib/onboarding/handleidingStatus.js';
 import { PrivacyVerklaringModal } from './PrivacyVerklaringModal.jsx';
 import './HandleidingModal.css';
@@ -7,7 +7,7 @@ const AANTAL_STAPPEN = 7;
 
 // Welkomst-/handleiding-wizard. Verschijnt automatisch bij de eerste keer
 // dat de app wordt gebruikt (zie App.jsx, gate op handleidingStatus.js) en
-// is via Instellingen → "Over SpuitLogger" altijd opnieuw te openen.
+// is via Instellingen → "Over Constatum" altijd opnieuw te openen.
 export function HandleidingModal({ onSluiten }) {
   const [stap, setStap] = useState(0);
   const [privacyOpen, setPrivacyOpen] = useState(false);
@@ -34,7 +34,7 @@ export function HandleidingModal({ onSluiten }) {
         className="handleiding-modal"
         role="dialog"
         aria-modal="true"
-        aria-label="Welkom bij SpuitLogger"
+        aria-label="Welkom bij Constatum"
         onClick={(e) => e.stopPropagation()}
       >
         <button type="button" className="handleiding-close" onClick={sluiten} aria-label="Sluiten">×</button>
@@ -42,9 +42,9 @@ export function HandleidingModal({ onSluiten }) {
         {stap === 0 && (
           <>
             <div className="handleiding-icoon">🌿</div>
-            <div className="handleiding-titel">Welkom bij SpuitLogger</div>
+            <div className="handleiding-titel">Welkom bij Constatum</div>
             <div className="handleiding-tekst">
-              SpuitLogger is een buurtregistratietool waarmee u spuitactiviteiten met
+              Constatum is een buurtregistratietool waarmee u spuitactiviteiten met
               gewasbeschermingsmiddelen bij uw woning kunt documenteren. Uw registraties
               zijn juridisch onderbouwd met tijdstempels, weerdata en locatiegegevens,
               klaar om als bewijsmateriaal te dienen.
@@ -80,7 +80,7 @@ export function HandleidingModal({ onSluiten }) {
           <>
             <div className="handleiding-titel">Samen sterker</div>
             <div className="handleiding-tekst">
-              {`SpuitLogger is het krachtigst als meerdere bewoners in uw buurt registreren. Een patroon van meldingen over tijd, van meerdere adressen, met consistente weersomstandigheden, staat juridisch veel sterker dan één enkele melding.
+              {`Constatum is het krachtigst als meerdere bewoners in uw buurt registreren. Een patroon van meldingen over tijd, van meerdere adressen, met consistente weersomstandigheden, staat juridisch veel sterker dan één enkele melding.
 
 Zo werkt buurtregistratie:
 • Elke melder bouwt een eigen privédossier
@@ -126,7 +126,7 @@ Elke melding krijgt een status (🔴 Onbehandeld, 🟡 In behandeling, 🟢 Afge
           <>
             <div className="handleiding-titel">U blijft buiten schot</div>
             <div className="handleiding-tekst">
-              {`SpuitLogger is gebouwd met privacy als fundament:
+              {`Constatum is gebouwd met privacy als fundament:
 🔐 Uw thuislocatie wordt nooit exact gedeeld, alleen afgerond tot op ~1 km
 📧 Uw e-mailadres wordt versleuteld opgeslagen (SHA-256)
 📷 GPS-coördinaten worden automatisch uit uw foto's verwijderd

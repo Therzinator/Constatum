@@ -1,4 +1,4 @@
-import { APP_VERSION_CLIENT } from '../version.js';
+﻿import { APP_VERSION_CLIENT } from '../version.js';
 
 // Coordinatie & Admin systeem, Fase 7 — collectief, geanonimiseerd
 // buurtrapport. In tegenstelling tot genereerDossierHTML (pdf.js, één
@@ -45,7 +45,7 @@ export function genereerBuurtrapportHTML(rapport) {
 </head>
 <body>
   <button class="print-knop" onclick="window.print()">🖨️ Afdrukken als PDF</button>
-  <h1>SpuitLogger — Collectief buurtrapport</h1>
+  <h1>Constatum — Collectief buurtrapport</h1>
   <p><em>Geanonimiseerd — toont alleen geaggregeerde cijfers, geen individuele melder-identificatie.</em></p>
 
   <table class="meta-table">
@@ -56,7 +56,7 @@ export function genereerBuurtrapportHTML(rapport) {
     <tr><td>Meldingen met RFC 3161-tijdstempel</td><td>${rfc3161Percentage}%</td></tr>
     <tr><td>Weerarchief-dekking (Open-Meteo)</td><td>${knmiPercentage != null ? `${knmiPercentage}%` : 'niet gecontroleerd'}</td></tr>
     <tr><td>Gegenereerd op</td><td>${new Date().toLocaleString('nl-NL', { timeZone: 'Europe/Amsterdam' })}</td></tr>
-    <tr><td>SpuitLogger versie</td><td>${escapeHTML(APP_VERSION_CLIENT)}</td></tr>
+    <tr><td>Constatum versie</td><td>${escapeHTML(APP_VERSION_CLIENT)}</td></tr>
   </table>
 
   <h3>Bewijswaardescore</h3>

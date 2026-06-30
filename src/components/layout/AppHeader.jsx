@@ -1,8 +1,8 @@
-import { useLayoutEffect, useRef } from 'react';
+﻿import { useLayoutEffect, useRef } from 'react';
 import { AccountMenu } from './AccountMenu.jsx';
 import './AppHeader.css';
 
-// Vaste headerbalk met het SpuitLogger-logo — de app had voorheen helemaal
+// Vaste headerbalk met het Constatum-logo — de app had voorheen helemaal
 // geen header (zie ook OnlineIndicator.jsx), waardoor er nergens merk-
 // herkenning was en losse paginatitels (bv. ExportPage) zonder omlijnende
 // kaart op de onderliggende paginakleur bleven staan.
@@ -30,9 +30,9 @@ export function AppHeader({ user, onNavigeerInstellingen, syncNu, syncBezig, laa
 
   return (
     <header className="app-header" ref={headerRef}>
-      <img src="/icons/header-logo.png" alt="SpuitLogger" className="app-header-logo" />
+      <img src="/icons/header-logo.png" alt="Constatum" className="app-header-logo" />
       <div className="app-header-tekst">
-        <span className="app-header-titel">SpuitLogger</span>
+        <span className="app-header-titel">Constatum</span>
         <span className="app-header-subtitel">Spuitactiviteiten Dossier</span>
       </div>
       <div className="app-header-acties">

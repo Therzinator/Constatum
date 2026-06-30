@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { PrivacyVerklaringModal } from '../onboarding/PrivacyVerklaringModal.jsx';
 import { AlgemeneVoorwaardenModal } from '../onboarding/AlgemeneVoorwaardenModal.jsx';
 import './AuthOverlay.css';
@@ -58,12 +58,12 @@ export function AuthOverlay({ auth, uitnodiging }) {
   return (
     <div className="auth-overlay">
       <div className="auth-card">
-        <div className="auth-title">SpuitLogger</div>
+        <div className="auth-title">Constatum</div>
         <div className="auth-sub">SPUITACTIVITEITEN DOSSIER · INLOGGEN</div>
 
         {uitnodiging && (
           <div className="auth-info">
-            👋 Je bent uitgenodigd voor een groep op SpuitLogger.{' '}
+            👋 Je bent uitgenodigd voor een groep op Constatum.{' '}
             Al een account?{' '}
             <button type="button" className="auth-consent-link" onClick={() => kiesTab('login')}>
               Log hier in

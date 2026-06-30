@@ -1,4 +1,4 @@
-function escapeHTML(str) {
+﻿function escapeHTML(str) {
   return String(str ?? '').replace(/[&<>"']/g, (c) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]));
@@ -71,7 +71,7 @@ heeft waargenomen in de directe nabijheid van mijn woning.
 
 ONDERBOUWING
 Ter onderbouwing van mijn verzoek voeg ik bij:
-- Een dossier-PDF gegenereerd door SpuitLogger, voorzien van RFC 3161
+- Een dossier-PDF gegenereerd door Constatum, voorzien van RFC 3161
   tijdstempel (onweerlegbaar tijdstip) en SHA-256 integriteitsborging
 - Meteorologische data van ${weerBron}
   op het moment van de waarneming
@@ -92,7 +92,7 @@ heeft geen automatische schorsende werking. Volg de voortgang via
 metenweten.nl.
 
 ---
-Gegenereerd door SpuitLogger — spuitlogger.nl
+Gegenereerd door Constatum — Constatum.nl
 Melding-ID: ${melding.id}
 ${tijdstempel}`;
 }
@@ -117,7 +117,7 @@ export function genereerSpuitregisterBrief(melding, naamMelder, adresMelder) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Spuitregister opvraagbrief — SpuitLogger</title>
+<title>Spuitregister opvraagbrief — Constatum</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; line-height: 1.55; background: #fff; color: #111; }
@@ -154,8 +154,8 @@ export function genereerSpuitregisterBrief(melding, naamMelder, adresMelder) {
       ${adresHTML}
     </div>
     <div class="logo-blok">
-      <div class="logo-naam">SpuitLogger</div>
-      spuitlogger.nl
+      <div class="logo-naam">Constatum</div>
+      Constatum.nl
     </div>
   </div>
 
@@ -196,7 +196,7 @@ export function genereerSpuitregisterBrief(melding, naamMelder, adresMelder) {
   <h3>Onderbouwing</h3>
   <p>Ter onderbouwing van mijn verzoek voeg ik bij:</p>
   <ul>
-    <li>Een dossier-PDF gegenereerd door SpuitLogger, voorzien van RFC&nbsp;3161 tijdstempel (onweerlegbaar tijdstip) en SHA-256 integriteitsborging</li>
+    <li>Een dossier-PDF gegenereerd door Constatum, voorzien van RFC&nbsp;3161 tijdstempel (onweerlegbaar tijdstip) en SHA-256 integriteitsborging</li>
     <li>Meteorologische data van ${escapeHTML(weerBron)} op het moment van de waarneming</li>
   </ul>
 
@@ -215,7 +215,7 @@ export function genereerSpuitregisterBrief(melding, naamMelder, adresMelder) {
   </div>
 
   <div class="voetnoot">
-    <span>Gegenereerd door SpuitLogger &mdash; spuitlogger.nl &nbsp;&middot;&nbsp; Melding-ID: ${escapeHTML(melding.id)}</span>
+    <span>Gegenereerd door Constatum &mdash; Constatum.nl &nbsp;&middot;&nbsp; Melding-ID: ${escapeHTML(melding.id)}</span>
     <span>${escapeHTML(rfc3161Tekst)}</span>
   </div>
 </div>

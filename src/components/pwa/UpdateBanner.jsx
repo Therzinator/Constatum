@@ -1,4 +1,4 @@
-import { usePWA } from '../../hooks/usePWA.js';
+﻿import { usePWA } from '../../hooks/usePWA.js';
 import './UpdateBanner.css';
 
 // Komt overeen met #update-banner uit docs/index.html
@@ -13,8 +13,8 @@ export function UpdateBanner() {
     <div className="update-banner">
       <span className="update-banner-text">
         {needRefresh
-          ? 'SpuitLogger heeft een nieuwe update klaar staan.'
-          : 'SpuitLogger is klaar voor offline gebruik.'}
+          ? 'Constatum heeft een nieuwe update klaar staan.'
+          : 'Constatum is klaar voor offline gebruik.'}
       </span>
       {needRefresh && (
         <button type="button" className="btn-primary update-banner-reload" onClick={bijwerken}>

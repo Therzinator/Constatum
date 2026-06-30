@@ -1,4 +1,4 @@
-import { idbGetBijlagen } from '../storage/indexedDB.js';
+﻿import { idbGetBijlagen } from '../storage/indexedDB.js';
 import { melderCode } from '../../utils/format.js';
 import { APP_VERSION_CLIENT } from '../version.js';
 
@@ -174,7 +174,7 @@ export async function genereerDossierHTML(meldingen, locatieLabel, gemeente = nu
     var blob = new Blob([document.documentElement.outerHTML], {type:'text/html;charset=utf-8'});
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'spuitlogger-dossier-' + new Date().toISOString().split('T')[0] + '.html';
+    a.download = 'Constatum-dossier-' + new Date().toISOString().split('T')[0] + '.html';
     a.click();
   }
   document.addEventListener('keydown', function(e) {
@@ -188,7 +188,7 @@ export async function genereerDossierHTML(meldingen, locatieLabel, gemeente = nu
 <html lang="nl">
 <head>
 <meta charset="utf-8">
-<title>SpuitLogger Dossier — ${escapeHTML(locatieRegel || '')}</title>
+<title>Constatum Dossier — ${escapeHTML(locatieRegel || '')}</title>
 <style>
   body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #111; max-width: 800px; margin: 0 auto; padding: 24px; }
   h1 { font-size: 20px; border-bottom: 2px solid #111; padding-bottom: 8px; }
@@ -239,14 +239,14 @@ export async function genereerDossierHTML(meldingen, locatieLabel, gemeente = nu
   <button onclick="downloadHtml()">💾 Opslaan als HTML-bestand</button>
 </div>
 
-<h1>SpuitLogger — Juridisch dossier</h1>
+<h1>Constatum — Juridisch dossier</h1>
 <table class="meta-table">
   <tr><td>Locatie</td><td>${escapeHTML(locatieLabel || 'Onbekend')}</td></tr>
   ${gemeente ? `<tr><td>Gemeente</td><td>${escapeHTML(gemeente)}</td></tr>` : ''}
   <tr><td>Aantal meldingen</td><td>${meldingen.length}</td></tr>
   <tr><td>Periode</td><td>${datums.length ? `${datums[0].toLocaleDateString('nl-NL')} — ${datums[datums.length - 1].toLocaleDateString('nl-NL')}` : '—'}</td></tr>
   <tr><td>Gegenereerd op</td><td>${new Date().toLocaleString('nl-NL', { timeZone: 'Europe/Amsterdam' })}</td></tr>
-  <tr><td>SpuitLogger versie</td><td>${escapeHTML(APP_VERSION_CLIENT)}</td></tr>
+  <tr><td>Constatum versie</td><td>${escapeHTML(APP_VERSION_CLIENT)}</td></tr>
 </table>
 
 ${tocHTML}

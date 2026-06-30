@@ -1,4 +1,4 @@
-import { byteSize } from '../../utils/format.js';
+﻿import { byteSize } from '../../utils/format.js';
 
 export function safeSetLocalStorage(key, value) {
   const json = JSON.stringify(value);
@@ -59,16 +59,16 @@ export function saveMeldingen(data) {
   try {
     safeSetLocalStorage('spuitlog_meldingen', stripped);
   } catch (err) {
-    console.error('[SpuitLogger] localStorage opslag mislukt:', err);
+    console.error('[Constatum] localStorage opslag mislukt:', err);
     // Noodplan: sla op zonder bijlagen-thumbnails
     const ultraLight = stripped.map(m => ({ ...m, bestanden: (m.bestanden || []).map(f => ({
       name: f.name, type: f.type, size: f.size, hash: f.hash, thumbnail: null, dataUrl: null
     })) }));
     try {
       safeSetLocalStorage('spuitlog_meldingen', ultraLight);
-      console.warn('[SpuitLogger] Opgeslagen zonder thumbnails vanwege opslaglimiet');
+      console.warn('[Constatum] Opgeslagen zonder thumbnails vanwege opslaglimiet');
     } catch (err2) {
-      console.error('[SpuitLogger] Kon niet opslaan, ook niet zonder thumbnails:', err2);
+      console.error('[Constatum] Kon niet opslaan, ook niet zonder thumbnails:', err2);
       throw err2;
     }
   }

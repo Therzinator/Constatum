@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { idbCountBijlagen, idbVerwijderVerweesdeBijlagen } from '../../lib/storage/indexedDB.js';
 import { Toast } from '../ui/Toast.jsx';
 import { Collapsible } from '../ui/Collapsible.jsx';
@@ -71,7 +71,7 @@ export function InstellingenPage({ meldingenApi, gebruikerRol, user, laadVanClou
         </button>
       </div>
 
-      <Collapsible icoon="🌿" titel="Over SpuitLogger">
+      <Collapsible icoon="🌿" titel="Over Constatum">
         <button type="button" className="btn-outline export-knop" onClick={onOpenHandleiding}>
           📖 Handleiding opnieuw bekijken
         </button>

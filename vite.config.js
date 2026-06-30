@@ -9,8 +9,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt',
       manifest: {
-        name: 'SpuitLogger',
-        short_name: 'SpuitLogger',
+        name: 'Constatum',
+        short_name: 'Constatum',
         description: 'Juridisch dossieropbouw systeem voor pesticiden drift en spuitactiviteiten registratie',
         start_url: '/',
         display: 'standalone',

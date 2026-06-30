@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from './hooks/useAuth.js'
 import { isHandleidingGezien } from './lib/onboarding/handleidingStatus.js'
 import { HandleidingModal } from './components/onboarding/HandleidingModal.jsx'
@@ -57,7 +57,7 @@ function App() {
   // SUPABASE_ENABLED=false blijft authOverlayVisible vanaf de eerste render
   // al op false staan — zonder deze ref ging de handleiding dan al open
   // vóórdat de gebruiker daadwerkelijk naar het dashboard genavigeerd was.
-  // Instellingen → "Over SpuitLogger" kan hem ook handmatig weer openen
+  // Instellingen → "Over Constatum" kan hem ook handmatig weer openen
   // (zie InstellingenPage.jsx).
   useEffect(() => {
     if (auth.authOverlayVisible) {

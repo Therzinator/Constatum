@@ -1,4 +1,4 @@
-import { idbGetBijlagen } from '../storage/indexedDB.js';
+﻿import { idbGetBijlagen } from '../storage/indexedDB.js';
 import { APP_VERSION_CLIENT } from '../version.js';
 
 // Komt overeen met exportJSON() uit docs/index.html — verrijkt elke melding
@@ -18,7 +18,7 @@ export async function meldingenNaarJSONBackup(meldingen, locatieLabel) {
   return {
     export_timestamp: new Date().toISOString(),
     version: APP_VERSION_CLIENT,
-    source: 'SpuitLogger PWA',
+    source: 'Constatum PWA',
     location: locatieLabel || null,
     total_meldingen: verrijkt.length,
     meldingen: verrijkt

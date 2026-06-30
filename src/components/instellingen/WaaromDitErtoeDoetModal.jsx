@@ -1,4 +1,4 @@
-import { JuridischModal } from '../onboarding/JuridischModal.jsx';
+﻿import { JuridischModal } from '../onboarding/JuridischModal.jsx';
 
 // Bronnen voor de claims in het verhaal hieronder — op verzoek toegevoegd
 // (2026-06-23) na het signaleren dat de oorspronkelijke tekst geen
@@ -35,7 +35,7 @@ const BRONNEN = [
   },
   {
     label: 'ScienceDirect: Residential proximity to crops and mortality (Nederland, jan. 2022)',
-    relevantie: 'Epidemiologisch onderzoek naar sterfte/ziektepatronen in relatie tot afstand tot agrarische percelen, een voorbeeld van het type onderzoek waar SpuitLogger-data aanvullende waarde voor heeft.',
+    relevantie: 'Epidemiologisch onderzoek naar sterfte/ziektepatronen in relatie tot afstand tot agrarische percelen, een voorbeeld van het type onderzoek waar Constatum-data aanvullende waarde voor heeft.',
     urls: ['https://www.sciencedirect.com/science/article/pii/S0048969722000213']
   }
 ];
@@ -59,17 +59,17 @@ export function WaaromDitErtoeDoetModal({ onSluiten }) {
 
 Bewoners rond bollenvelden in de Bollenstreek maakten zich al jaren zorgen, maar er was vrijwel geen wetenschappelijk bewijs over pesticiderisico's voor omwonenden. Onderzoekers wisten simpelweg niet hoeveel mensen blootstonden en wanneer. Een groep bewoners verenigde zich, documenteerde systematisch en drong aan op onderzoek. Het resultaat: de Gezondheidsraad gaf opdracht tot onderzoek, het RIVM voerde het uit, en voor het eerst in Nederland werd aangetoond dat bewoners nabij gespoten velden meetbaar meer bestrijdingsmiddelen binnenkrijgen dan andere mensen.
 
-Dat onderzoek bestond omdat bewoners hun stem lieten horen met data. SpuitLogger doet hetzelfde, maar dan structureel, met juridische tijdstempels en weerdata erbij.
+Dat onderzoek bestond omdat bewoners hun stem lieten horen met data. Constatum doet hetzelfde, maar dan structureel, met juridische tijdstempels en weerdata erbij.
 
 Wat onderzoekers met uw data kunnen doen:
 Ongeveer 27% van alle woningen in Nederland staat binnen 250 meter van een bebouwd agrarisch perceel. Over de gezondheidsrisico's voor deze groep is nog altijd weinig bekend. Lopend RIVM-onderzoek (gestart in 2023) onderzoekt nu of mensen die dicht bij landbouwgrond wonen vaker bepaalde ziektes krijgen, zoals Parkinson en bepaalde vormen van kanker.
 
-Dat onderzoek heeft één fundamenteel probleem: het weet niet precies wanneer er gespoten is, met welke windrichting, en of bewoners op dat moment buiten waren. SpuitLogger-data vult precies dat gat, geolocaliseerd, meteorologisch onderbouwd en tijdgestempeld.
+Dat onderzoek heeft één fundamenteel probleem: het weet niet precies wanneer er gespoten is, met welke windrichting, en of bewoners op dat moment buiten waren. Constatum-data vult precies dat gat, geolocaliseerd, meteorologisch onderbouwd en tijdgestempeld.
 
 Concrete impact die al bereikt is:
 Neuroloog Jorrit Hoff, gespecialiseerd in Parkinson, stelt ondubbelzinnig dat verschillende wetenschappelijke onderzoeken aantonen dat blootstelling aan pesticiden de kans op Parkinson vergroot, en dat boeren en daarna omwonenden degenen zijn die het meeste risico lopen. Deze kennis heeft meegespeeld in Europese beleidsbeslissingen en rechtszaken.
 
-PAN Europe en Nederlandse milieuorganisaties voeren momenteel een juridische procedure bij het Europees Hof van Justitie tegen de hergoedkeuring van glyfosaat. Eén van de zeven juridische argumenten is de onvolledigheid van de blootstellingsdata waarop de Europese Commissie haar besluit heeft gebaseerd. Precies het soort data dat SpuitLogger structureel verzamelt.
+PAN Europe en Nederlandse milieuorganisaties voeren momenteel een juridische procedure bij het Europees Hof van Justitie tegen de hergoedkeuring van glyfosaat. Eén van de zeven juridische argumenten is de onvolledigheid van de blootstellingsdata waarop de Europese Commissie haar besluit heeft gebaseerd. Precies het soort data dat Constatum structureel verzamelt.
 
 Wat u deelt, en wat niet:
 Uw naam, adres en e-mailadres worden nooit gedeeld. Wat onderzoekers ontvangen is: datum, type waarneming, windrichting, weerdata en gemeente. Geen enkel gegeven is herleidbaar naar u persoonlijk. U kunt deelname op elk moment uitschakelen via Instellingen.`}

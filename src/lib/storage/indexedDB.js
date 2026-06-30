@@ -1,4 +1,4 @@
-// ── IndexedDB: bijlagen (dataUrls) ───────────────────────────
+﻿// ── IndexedDB: bijlagen (dataUrls) ───────────────────────────
 const IDB_NAME    = 'spuitlog_idb';
 const IDB_VERSION = 3;             // v3: meldingId index toegevoegd
 const IDB_STORE   = 'bijlagen';
@@ -57,7 +57,7 @@ export async function idbSaveBijlage(record) {
       tx.onerror    = e => reject(e.target.error);
     });
   } catch (err) {
-    console.warn('[SpuitLogger] IndexedDB opslaan mislukt:', err);
+    console.warn('[Constatum] IndexedDB opslaan mislukt:', err);
     return false;
   }
 }
@@ -90,7 +90,7 @@ export async function idbGetBijlagen(meldingId) {
       }
     });
   } catch (err) {
-    console.warn('[SpuitLogger] IndexedDB ophalen mislukt:', err);
+    console.warn('[Constatum] IndexedDB ophalen mislukt:', err);
     return [];
   }
 }
@@ -104,7 +104,7 @@ export async function idbDeleteBijlagen(meldingId) {
     const store = tx.objectStore(IDB_STORE);
     bestaand.forEach(b => store.delete(b.id));
   } catch (err) {
-    console.warn('[SpuitLogger] IndexedDB verwijderen mislukt:', err);
+    console.warn('[Constatum] IndexedDB verwijderen mislukt:', err);
   }
 }
 
