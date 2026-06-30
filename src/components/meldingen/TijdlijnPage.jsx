@@ -152,7 +152,7 @@ export function TijdlijnPage({ meldingenApi, user, gebruikerRol }) {
 
       {geselecteerd && (
         <Suspense fallback={null}>
-          <MeldingDetailModal melding={geselecteerd} alleMeldingen={meldingen} onClose={() => setGeselecteerdId(null)} />
+          <MeldingDetailModal melding={geselecteerd} alleMeldingen={meldingen} user={user} onClose={() => setGeselecteerdId(null)} />
         </Suspense>
       )}
     </div>

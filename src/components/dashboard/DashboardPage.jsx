@@ -103,7 +103,7 @@ export function DashboardPage({ meldingenApi, user, gebruikerRol, thuislocatie }
 
       {geselecteerd && (
         <Suspense fallback={null}>
-          <MeldingDetailModal melding={geselecteerd} alleMeldingen={meldingenInBereik} onClose={() => setGeselecteerdId(null)} />
+          <MeldingDetailModal melding={geselecteerd} alleMeldingen={meldingenInBereik} user={user} onClose={() => setGeselecteerdId(null)} />
         </Suspense>
       )}
     </div>

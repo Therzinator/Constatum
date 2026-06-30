@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { degToCompass, spuitWindOordeel } from '../../lib/drift/oordeel.js';
 import { idbGetBijlagen } from '../../lib/storage/indexedDB.js';
+import { laadBijlagenVanSupabase } from '../../lib/supabase/bijlagen.js';
 import { melderCode } from '../../utils/format.js';
 import { haalKNMIWeerdata } from '../../lib/weather/knmi.js';
 import { perceelStatistieken } from '../../lib/meldingen/statistieken.js';
@@ -42,7 +43,7 @@ const DRIFT_LABELS = {
 // perceelFrequentieBadge/spuitpatroonHTML/Natura2000 — die horen bij een
 // latere fase). Laadt ontbrekende foto-dataUrls uit IndexedDB voor de
 // foto-grid en lightbox, net als openLightboxFromSaved().
-export function MeldingDetailModal({ melding, alleMeldingen, onClose }) {
+export function MeldingDetailModal({ melding, alleMeldingen, user, onClose }) {
   const [bestanden, setBestanden] = useState(melding.bestanden || []);
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [driftZoneOpen, setDriftZoneOpen] = useState(false);
@@ -65,17 +66,45 @@ export function MeldingDetailModal({ melding, alleMeldingen, onClose }) {
 
   useEffect(() => {
     let actief = true;
-    idbGetBijlagen(melding.id).then((idbBijlagen) => {
+
+    async function laadFotos() {
+      // Stap 1: probeer IndexedDB (lokaal, snel)
+      const idbBijlagen = await idbGetBijlagen(melding.id);
       if (!actief) return;
-      setBestanden((huidige) =>
+
+      const naBijlagen = (huidige) =>
         huidige.map((f) => {
           const idb = idbBijlagen.find((b) => b.hash === f.hash || b.name === f.name);
-          return idb ? { ...f, dataUrl: idb.dataUrl } : f;
-        })
-      );
-    });
+          return idb?.dataUrl ? { ...f, dataUrl: idb.dataUrl, thumbnail: idb.thumbnail || f.thumbnail } : f;
+        });
+
+      setBestanden(naBijlagen);
+
+      // Stap 2: haal ontbrekende dataUrls op van Supabase als fallback
+      if (!user) return;
+      setBestanden((huidige) => {
+        const heeftOntbrekend = huidige.some((f) => !f.dataUrl);
+        if (!heeftOntbrekend) return huidige;
+
+        // Async laden buiten setBestanden — updaten zodra binnen
+        laadBijlagenVanSupabase(melding.id, user).then((sbBijlagen) => {
+          if (!actief || !sbBijlagen?.length) return;
+          setBestanden((cur) =>
+            cur.map((f) => {
+              if (f.dataUrl) return f;
+              const sb = sbBijlagen.find((b) => b.hash === f.hash || b.name === f.name);
+              return sb?.dataUrl ? { ...f, dataUrl: sb.dataUrl, thumbnail: sb.thumbnail || f.thumbnail } : f;
+            })
+          );
+        }).catch(() => {});
+
+        return huidige;
+      });
+    }
+
+    laadFotos();
     return () => { actief = false; };
-  }, [melding.id]);
+  }, [melding.id, user]);
 
   return (
     <div className="detail-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
