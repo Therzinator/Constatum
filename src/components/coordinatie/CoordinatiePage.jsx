@@ -49,6 +49,7 @@ export function CoordinatiePage({ user, thuislocatie, gebruikerRol }) {
   const [gemeenteBackfillStatus, setGemeenteBackfillStatus] = useState(null);
   const [filterProvincie, setFilterProvincie] = useState('');
   const [filterGemeente, setFilterGemeente] = useState('');
+  const [trustWaarden, setTrustWaarden] = useState({});
 
   const laad = async () => {
     try {
@@ -333,18 +334,28 @@ export function CoordinatiePage({ user, thuislocatie, gebruikerRol }) {
                   );
                 })()}
               </span>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                defaultValue={m.trustScore ?? 75}
-                disabled={bezigId === m.userId}
-                className="coordinatie-trust-input"
-                onBlur={(e) => {
-                  const waarde = parseInt(e.target.value, 10);
-                  if (!Number.isNaN(waarde) && waarde !== m.trustScore) handleTrustScore(m.userId, waarde);
-                }}
-              />
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={trustWaarden[m.userId] ?? m.trustScore ?? 75}
+                  disabled={bezigId === m.userId}
+                  className="coordinatie-trust-input"
+                  onChange={(e) => setTrustWaarden((w) => ({ ...w, [m.userId]: e.target.value }))}
+                />
+                <button
+                  type="button"
+                  className="btn-outline px-2 py-1"
+                  disabled={bezigId === m.userId}
+                  onClick={() => {
+                    const waarde = parseInt(trustWaarden[m.userId] ?? m.trustScore ?? 75, 10);
+                    if (!Number.isNaN(waarde)) handleTrustScore(m.userId, waarde);
+                  }}
+                >
+                  {bezigId === m.userId ? '…' : 'Opslaan'}
+                </button>
+              </div>
             </div>
           </div>
         ))}
