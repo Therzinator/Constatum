@@ -6,6 +6,23 @@ de code, niet tegen het geheugen van een eerdere sessie.
 
 ## Hoog
 
+- **Gebeurtenissen-clustering-fix in Groepen (2026-07-01) testen met
+  echte groepsdata.** Kon niet lokaal geverifieerd worden (geen
+  Supabase-sessie/groepen in dev — wel bevestigd met een geïsoleerde
+  test van de kernlogica). Controleer met een niet-beheerder-lid (of
+  trust score < 80): meerdere meldingen op hetzelfde perceel binnen 8u
+  moeten nu als 1 gebeurtenis in de "🔗 Tijdlijn"-weergave verschijnen,
+  i.p.v. losse kaarten. Controleer ook dat er geen exacte locatie/
+  perceelnummer lekt voor zo'n lager-trust-lid (moet nog steeds
+  verborgen blijven, alleen de koppeling zelf is gefixt).
+- **Als gebeurtenissen-clustering op de persoonlijke Tijdlijn ook nog
+  niet goed aanvoelt na de Groepen-fix hierboven, concrete voorbeeld-
+  meldingen (perceel, tijdstip) van de gebruiker opvragen.** De
+  kernlogica (`clusterMeldingen()`) is los getest en groepeert correct
+  bij zelfde perceel/GPS binnen 300m + tijdvenster van 8u — als dat op
+  de Tijdlijn niet zo aanvoelt, ligt het waarschijnlijk aan de
+  specifieke testdata (ander perceel, verder dan 300m, of meer dan 8u
+  ertussen) i.p.v. een codefout.
 - **Deel-app-knop (2026-07-01) op een echt mobiel toestel testen.**
   Lokaal/Playwright heeft geen `navigator.share`, dus alleen het
   klembord-kopieer-pad is getest. Controleer op een telefoon dat de

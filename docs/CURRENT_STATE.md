@@ -4,7 +4,38 @@ Momentopname. Dit bestand veroudert sneller dan DOMAIN_KNOWLEDGE.md/
 DECISIONS.md — bij twijfel altijd verifiëren tegen de code (`git log`,
 grep), niet blind vertrouwen op een oude snapshot.
 
-Laatst bijgewerkt: 2026-07-01 (post-COVID kwetsbare groep, auto-cleanup uitnodigingen, logout→loginscherm, PWA install-banner, contactadressen AV/Privacy, app-iconen vernieuwd, typografie-audit + font-size-tokensysteem, GitHub-repo hernoemd naar Constatum, crash-bij-uitloggen gefixt + ErrorBoundary, Dashboard-groepsfilter, Groepen Recent/Tijdlijn, app-iconen opnieuw uit icon_background.png, achteraf melding delen met groep, AV v2.0 + neutrale terminologie in Handleiding, opruiming + BottomNav-smalscherm-fix, kaartweergave groepsfilter, BottomNav-tekst-uitlijning, icoon-marge + OG-image-fix, Dashboard-groepsfilter herzien naar DashboardKaart, vercel.json-rewrite-bug voor statische bestanden gefixt, WhatsApp-preview-onderzoek: apex-domein-redirect, deel-app-knop in header).
+Laatst bijgewerkt: 2026-07-01 (post-COVID kwetsbare groep, auto-cleanup uitnodigingen, logout→loginscherm, PWA install-banner, contactadressen AV/Privacy, app-iconen vernieuwd, typografie-audit + font-size-tokensysteem, GitHub-repo hernoemd naar Constatum, crash-bij-uitloggen gefixt + ErrorBoundary, Dashboard-groepsfilter, Groepen Recent/Tijdlijn, app-iconen opnieuw uit icon_background.png, achteraf melding delen met groep, AV v2.0 + neutrale terminologie in Handleiding, opruiming + BottomNav-smalscherm-fix, kaartweergave groepsfilter, BottomNav-tekst-uitlijning, icoon-marge + OG-image-fix, Dashboard-groepsfilter herzien naar DashboardKaart, vercel.json-rewrite-bug voor statische bestanden gefixt, WhatsApp-preview-onderzoek: apex-domein-redirect, deel-app-knop in header, gebeurtenissen-clustering-bug in Groepen gefixt).
+
+## Bug gevonden en gefixt: gebeurtenissen-clustering in Groepen werkte niet voor de meeste leden (2026-07-01)
+
+- **Oorzaak**: `useGroepMeldingen.js`'s `naarVeiligeWeergave()` zet
+  `perceelnummer`/`gps` op `null` tenzij `toon.exacteLocatie` waar is —
+  dat geldt alleen bij trust-niveau 'hoog' (score 80-100).
+  `GroepMeldingenLijst.jsx` riep `clusterMeldingen()` voorheen aan op
+  deze AL GEREDIGEERDE lijst — zonder perceelnummer/gps kan
+  `clusterMeldingen()` (lib/meldingen/clustering.js, matcht op zelfde
+  perceel of GPS binnen 300m + tijdvenster 8u) nooit een match vinden,
+  dus werd elke melding zijn eigen "cluster" van 1. Trof alle leden
+  behalve beheerders en leden met trust score ≥ 80 — dus in de praktijk
+  bijna iedereen (standaard-fallback bij ontbrekende score is 75,
+  'gemiddeld', geen exacteLocatie).
+- **Fix**: `useGroepMeldingen.js` clustert nu op de RUWE (ongeredigeerde)
+  data (nieuwe helper `metGenesteGps()` voor de vorm die
+  `clusterMeldingen()` verwacht) en redigeert dan pas de meldingen
+  BINNEN elk cluster voor weergave. De koppeling (welke meldingen bij
+  elkaar horen) hangt zo niet meer af van het trust-niveau; welke
+  VELDEN daarbinnen zichtbaar zijn nog steeds wel (`GroepClusterKaart.jsx`
+  gate't bv. `cluster.perceelnummer` al zelf op `toon.exacteLocatie`,
+  dat bleef ongewijzigd — geen nieuwe leak).
+  Hook geeft nu ook `clusters` terug; `GroepMeldingenLijst.jsx` roept
+  `clusterMeldingen()` niet meer zelf aan.
+- Persoonlijke Tijdlijn (`TijdlijnPage.jsx`) gebruikt geen redactie en
+  riep `clusterMeldingen()` altijd al aan op de ruwe lokale meldingen —
+  geverifieerd met een test met realistische data (zelfde perceel,
+  binnen 8u): clustert correct. Als clustering daar ook niet werkt,
+  ligt dat aan de testdata zelf (ander perceel, >300m uit elkaar, of
+  >8u ertussen — bewust ontwerp, geen bug) — nog niet apart bevestigd
+  met de gebruiker.
 
 ## Deel-app-knop in header (2026-07-01)
 

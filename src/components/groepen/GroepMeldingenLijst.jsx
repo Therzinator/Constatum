@@ -1,6 +1,5 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
 import { verwijderMeldingUitGroep } from '../../lib/groepen/groepen.js';
-import { clusterMeldingen } from '../../lib/meldingen/clustering.js';
 import { useGroepMeldingen } from '../../hooks/useGroepMeldingen.js';
 import { GroepMeldingKaart } from './GroepMeldingKaart.jsx';
 import { GroepClusterKaart } from './GroepClusterKaart.jsx';
@@ -35,7 +34,7 @@ const RECENT_AANTAL = 5;
 // (clusterMeldingen(), zelfde perceel/locatie + tijdvenster van 8u als de
 // persoonlijke Tijdlijn) via GroepClusterKaart.jsx.
 export function GroepMeldingenLijst({ groepId, viewerTrustScore, viewerUserId, user, isBeheerder, toonKaart = true }) {
-  const { meldingen: veilig, toon, niveau, laden, fout, verwijderLokaal } = useGroepMeldingen(groepId, { viewerTrustScore, isBeheerder });
+  const { meldingen: veilig, clusters: alleClusters, toon, niveau, laden, fout, verwijderLokaal } = useGroepMeldingen(groepId, { viewerTrustScore, isBeheerder });
   const [geopend, setGeopend] = useState(null);
   const [verwijderenId, setVerwijderenId] = useState(null);
   const [modus, setModus] = useState('recent');
@@ -54,7 +53,7 @@ export function GroepMeldingenLijst({ groepId, viewerTrustScore, viewerUserId, u
   };
 
   const recent = useMemo(() => veilig.slice(0, RECENT_AANTAL), [veilig]);
-  const clusters = useMemo(() => (modus === 'tijdlijn' ? clusterMeldingen(veilig) : null), [modus, veilig]);
+  const clusters = modus === 'tijdlijn' ? alleClusters : null;
 
   if (fout) return <div className="export-card-beschrijving" style={{ color: 'var(--danger)' }}>Meldingen laden mislukt: {fout}</div>;
   if (laden) return <div className="export-card-beschrijving">Meldingen laden...</div>;

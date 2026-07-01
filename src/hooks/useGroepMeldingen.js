@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { haalMeldingenVoorGroep } from '../lib/groepen/groepen.js';
 import { bepaalZichtbaarheidsniveau, velden } from '../lib/groepen/trustZichtbaarheid.js';
+import { clusterMeldingen } from '../lib/meldingen/clustering.js';
 
 // Zet een ruwe entries_groepen-rij (haalMeldingenVoorGroep) om naar een
 // veilige weergavevorm die zowel kaart-/kaartweergave-componenten
@@ -20,6 +21,24 @@ function naarVeiligeWeergave(entry, toon) {
     gps_lng: heeftLocatie ? entry.gps_lng : null,
     perceelnummer: heeftLocatie ? entry.perceelnummer : null,
     gps: heeftLocatie ? { lat: entry.gps_lat, lng: entry.gps_lng } : null
+  };
+}
+
+// clusterMeldingen() (lib/meldingen/clustering.js) verwacht een geneste
+// gps.lat/gps.lng — ruwe entries_groepen-rijen hebben platte gps_lat/
+// gps_lng (zie de select in groepen.js). Puur een vorm-aanpassing, GEEN
+// redactie: clustering moet altijd op de echte locatie/het echte perceel
+// gebeuren. Als hier eerst geredigeerd zou worden (naarVeiligeWeergave
+// zet perceelnummer/gps op null onder 'hoog'-niveau), kan een lagere-
+// trust-kijker nooit gekoppelde meldingen te zien krijgen — precies de
+// bug die hier gefixt is (was voorheen: clusterMeldingen() kreeg de al
+// geredigeerde `veilig`-lijst, dus elke melding werd zijn eigen cluster
+// zodra exacteLocatie niet toegestaan was, wat voor de meeste
+// leden/de standaard-trust-score-fallback het geval is).
+function metGenesteGps(entry) {
+  return {
+    ...entry,
+    gps: entry.gps_lat != null && entry.gps_lng != null ? { lat: entry.gps_lat, lng: entry.gps_lng } : null
   };
 }
 
@@ -52,12 +71,27 @@ export function useGroepMeldingen(groepId, { viewerTrustScore, isBeheerder } = {
     [ruw, toon]
   );
 
+  // Clusteren op de RUWE (ongeredigeerde) data — zie metGenesteGps()
+  // hierboven — daarna pas per melding binnen elk cluster redigeren voor
+  // weergave. Zo blijft de koppeling zelf (welke meldingen bij elkaar
+  // horen) onafhankelijk van het trust-niveau, terwijl welke VELDEN
+  // daarbinnen zichtbaar zijn dat niet is (GroepClusterKaart.jsx gate't
+  // bv. cluster.perceelnummer al zelf op toon.exacteLocatie).
+  const clusters = useMemo(() => {
+    if (!ruw) return null;
+    return clusterMeldingen(ruw.map(metGenesteGps)).map((c) => ({
+      ...c,
+      meldingen: c.meldingen.map((m) => naarVeiligeWeergave(m, toon))
+    }));
+  }, [ruw, toon]);
+
   const verwijderLokaal = (meldingId) => {
     setRuw((prev) => (prev || []).filter((m) => m.id !== meldingId));
   };
 
   return {
     meldingen,
+    clusters,
     toon,
     niveau,
     laden: Boolean(groepId) && ruw == null && !fout,
