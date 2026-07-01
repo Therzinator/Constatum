@@ -40,20 +40,31 @@ de code, niet tegen het geheugen van een eerdere sessie.
   groepen met `deel_meldingen` aan, de checkbox-toggle voegt/verwijdert
   daadwerkelijk een `entries_groepen`-rij, en de melding verschijnt
   daarna in de `GroepMeldingenLijst` van die groep.
-- **OG-deelicoon + PWA-manifest/service-worker (2026-07-01) live
-  verifiëren na deploy.** De eerste fix (relatief pad) loste niet de
-  echte oorzaak op: `vercel.json`'s catch-all SPA-rewrite gaf voor
-  ELK pad (dus ook `/icons/icon-512.png`, `/manifest.webmanifest`,
-  `/sw.js`) de HTML-appshell terug i.p.v. het echte bestand. Nu
-  gecorrigeerd (rewrite sluit paden met een bestandsextensie uit) maar
-  niet lokaal te testen (Vercel-specifiek gedrag). Na deploy
-  controleren:
-  - `curl -I https://www.constatum.nl/icons/icon-512.png` → moet
-    `Content-Type: image/png` teruggeven, niet `text/html`.
-  - Een OG-debugtool (Facebook Sharing Debugger of metatags.io) om te
-    bevestigen dat de preview-afbeelding daadwerkelijk wordt opgepikt.
-  - PWA "Zet op beginscherm"/service-worker-registratie nog werkt (was
-    mogelijk ook stilzwijgend getroffen door dezelfde rewrite-bug).
+- **OG-preview werkt op Signal/Discord, nog niet op WhatsApp — keuze
+  nodig over primair domein.** De vercel.json-rewrite-fix werkt
+  (bevestigd: `icon-512.png` geeft nu `Content-Type: image/png`
+  terug). Vermoedelijke resterende oorzaak: `https://constatum.nl`
+  (zonder www) redirect (308) naar `https://www.constatum.nl` en toont
+  zelf geen enkele meta-tag; WhatsApp's crawler volgt cross-domain-
+  redirects minder betrouwbaar dan Discord/Signal. Twee opties, een
+  productbeslissing voor de gebruiker (geen codewijziging mogelijk
+  zonder een keuze):
+  1. Apex-domein (`constatum.nl`) primair maken in de Vercel-
+     domeininstellingen i.p.v. `www.constatum.nl` — dan is er geen
+     redirect meer nodig voor het kale domein. Vereist ook
+     `og:url`/`og:image`/`twitter:image` in `index.html` aan te passen
+     naar het apex-domein.
+  2. Www-redirect laten staan, maar bewust altijd de `www.`-link delen/
+     aanraden (minder robuust, mensen typen/delen vaak de kale variant).
+  - Test na een keuze met de Facebook Sharing Debugger
+    (developers.facebook.com/tools/debug/, zelfde crawler-familie als
+    WhatsApp) op zowel `constatum.nl` als `www.constatum.nl` — deze
+    tool toont exact wat de crawler ziet en heeft een "Scrape
+    Again"-knop om een eventuele stale cache van vóór de fix te
+    forceren te verversen.
+  - PWA "Zet op beginscherm"/service-worker-registratie ook nog
+    controleren (was mogelijk stilzwijgend getroffen door dezelfde
+    rewrite-bug, nog niet apart bevestigd).
 - **Een gebruiker een `coordinator`-rol toekennen om te testen.** Reden:
   migraties 0008-0011 zijn op 2026-06-21 uitgevoerd (bevestigd, geen
   foutmeldingen), maar er is nog geen account met de rol `coordinator`;

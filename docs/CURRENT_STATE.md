@@ -4,7 +4,30 @@ Momentopname. Dit bestand veroudert sneller dan DOMAIN_KNOWLEDGE.md/
 DECISIONS.md — bij twijfel altijd verifiëren tegen de code (`git log`,
 grep), niet blind vertrouwen op een oude snapshot.
 
-Laatst bijgewerkt: 2026-07-01 (post-COVID kwetsbare groep, auto-cleanup uitnodigingen, logout→loginscherm, PWA install-banner, contactadressen AV/Privacy, app-iconen vernieuwd, typografie-audit + font-size-tokensysteem, GitHub-repo hernoemd naar Constatum, crash-bij-uitloggen gefixt + ErrorBoundary, Dashboard-groepsfilter, Groepen Recent/Tijdlijn, app-iconen opnieuw uit icon_background.png, achteraf melding delen met groep, AV v2.0 + neutrale terminologie in Handleiding, opruiming + BottomNav-smalscherm-fix, kaartweergave groepsfilter, BottomNav-tekst-uitlijning, icoon-marge + OG-image-fix, Dashboard-groepsfilter herzien naar DashboardKaart, vercel.json-rewrite-bug voor statische bestanden gefixt).
+Laatst bijgewerkt: 2026-07-01 (post-COVID kwetsbare groep, auto-cleanup uitnodigingen, logout→loginscherm, PWA install-banner, contactadressen AV/Privacy, app-iconen vernieuwd, typografie-audit + font-size-tokensysteem, GitHub-repo hernoemd naar Constatum, crash-bij-uitloggen gefixt + ErrorBoundary, Dashboard-groepsfilter, Groepen Recent/Tijdlijn, app-iconen opnieuw uit icon_background.png, achteraf melding delen met groep, AV v2.0 + neutrale terminologie in Handleiding, opruiming + BottomNav-smalscherm-fix, kaartweergave groepsfilter, BottomNav-tekst-uitlijning, icoon-marge + OG-image-fix, Dashboard-groepsfilter herzien naar DashboardKaart, vercel.json-rewrite-bug voor statische bestanden gefixt, WhatsApp-preview-onderzoek: apex-domein-redirect).
+
+## OG-preview werkt op Signal/Discord, nog niet op WhatsApp — vermoedelijke oorzaak: apex-domein-redirect (2026-07-01)
+
+- **Bevestigd via live curl-onderzoek**: `https://constatum.nl/` (zonder
+  www) geeft een 308-redirect naar `https://www.constatum.nl/` met een
+  kale "Redirecting..."-body — **geen enkele meta-tag**.
+  `https://www.constatum.nl/` zelf serveert wél alle juiste
+  `og:image`/`og:url`-tags (geverifieerd, `icon-512.png` geeft nu
+  correct `Content-Type: image/png` terug — de vercel.json-fix werkt).
+- **Vermoedelijke oorzaak**: WhatsApp's link-preview-crawler (onderdeel
+  van Meta's `facebookexternalhit`-familie) staat bekend om minder
+  betrouwbaar cross-domain-redirects (apex → www) te volgen dan Discord/
+  Signal. Als iemand het kale `constatum.nl` deelt (waarschijnlijker om
+  te typen/delen dan de www-variant), ziet WhatsApp's crawler mogelijk
+  nooit de pagina met de meta-tags.
+- **`og:image:secure_url` toegevoegd** aan `index.html` — historisch
+  aanbevolen/vereist voor Facebook/WhatsApp-achtige crawlers naast
+  `og:image`, ongeacht de redirect-kwestie.
+- **Niet zelf op te lossen vanuit de code** — dit is een
+  Vercel-domein-configuratiekeuze (welk domein is primair/canonical).
+  Twee opties liggen bij de gebruiker, zie NEXT_STEPS.md: apex-domein
+  primair maken (geen redirect meer nodig), of bewust altijd de
+  www-link delen/aanraden.
 
 ## Echte oorzaak "verdwenen" deel-icoon: vercel.json-rewrite ving ook statische bestanden (2026-07-01)
 
