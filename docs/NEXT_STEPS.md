@@ -40,14 +40,20 @@ de code, niet tegen het geheugen van een eerdere sessie.
   groepen met `deel_meldingen` aan, de checkbox-toggle voegt/verwijdert
   daadwerkelijk een `entries_groepen`-rij, en de melding verschijnt
   daarna in de `GroepMeldingenLijst` van die groep.
-- **OG-deelicoon (2026-07-01) live verifiëren na deploy.** De
-  waarschijnlijke oorzaak van het "verdwenen" deelicoon (relatief pad
-  i.p.v. absolute URL) is gecorrigeerd, maar dit is niet te testen
-  zonder een echte productie-deploy + een link delen in WhatsApp/
-  Telegram/Discord/iMessage. Gebruik zo nodig een OG-debugtool
-  (bv. Facebook Sharing Debugger of metatags.io) om te controleren of
-  `https://www.constatum.nl/icons/icon-512.png` daadwerkelijk als
-  preview-afbeelding wordt opgepikt.
+- **OG-deelicoon + PWA-manifest/service-worker (2026-07-01) live
+  verifiëren na deploy.** De eerste fix (relatief pad) loste niet de
+  echte oorzaak op: `vercel.json`'s catch-all SPA-rewrite gaf voor
+  ELK pad (dus ook `/icons/icon-512.png`, `/manifest.webmanifest`,
+  `/sw.js`) de HTML-appshell terug i.p.v. het echte bestand. Nu
+  gecorrigeerd (rewrite sluit paden met een bestandsextensie uit) maar
+  niet lokaal te testen (Vercel-specifiek gedrag). Na deploy
+  controleren:
+  - `curl -I https://www.constatum.nl/icons/icon-512.png` → moet
+    `Content-Type: image/png` teruggeven, niet `text/html`.
+  - Een OG-debugtool (Facebook Sharing Debugger of metatags.io) om te
+    bevestigen dat de preview-afbeelding daadwerkelijk wordt opgepikt.
+  - PWA "Zet op beginscherm"/service-worker-registratie nog werkt (was
+    mogelijk ook stilzwijgend getroffen door dezelfde rewrite-bug).
 - **Een gebruiker een `coordinator`-rol toekennen om te testen.** Reden:
   migraties 0008-0011 zijn op 2026-06-21 uitgevoerd (bevestigd, geen
   foutmeldingen), maar er is nog geen account met de rol `coordinator`;

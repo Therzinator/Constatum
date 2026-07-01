@@ -4,7 +4,30 @@ Momentopname. Dit bestand veroudert sneller dan DOMAIN_KNOWLEDGE.md/
 DECISIONS.md — bij twijfel altijd verifiëren tegen de code (`git log`,
 grep), niet blind vertrouwen op een oude snapshot.
 
-Laatst bijgewerkt: 2026-07-01 (post-COVID kwetsbare groep, auto-cleanup uitnodigingen, logout→loginscherm, PWA install-banner, contactadressen AV/Privacy, app-iconen vernieuwd, typografie-audit + font-size-tokensysteem, GitHub-repo hernoemd naar Constatum, crash-bij-uitloggen gefixt + ErrorBoundary, Dashboard-groepsfilter, Groepen Recent/Tijdlijn, app-iconen opnieuw uit icon_background.png, achteraf melding delen met groep, AV v2.0 + neutrale terminologie in Handleiding, opruiming + BottomNav-smalscherm-fix, kaartweergave groepsfilter, BottomNav-tekst-uitlijning, icoon-marge + OG-image-fix, Dashboard-groepsfilter herzien naar DashboardKaart).
+Laatst bijgewerkt: 2026-07-01 (post-COVID kwetsbare groep, auto-cleanup uitnodigingen, logout→loginscherm, PWA install-banner, contactadressen AV/Privacy, app-iconen vernieuwd, typografie-audit + font-size-tokensysteem, GitHub-repo hernoemd naar Constatum, crash-bij-uitloggen gefixt + ErrorBoundary, Dashboard-groepsfilter, Groepen Recent/Tijdlijn, app-iconen opnieuw uit icon_background.png, achteraf melding delen met groep, AV v2.0 + neutrale terminologie in Handleiding, opruiming + BottomNav-smalscherm-fix, kaartweergave groepsfilter, BottomNav-tekst-uitlijning, icoon-marge + OG-image-fix, Dashboard-groepsfilter herzien naar DashboardKaart, vercel.json-rewrite-bug voor statische bestanden gefixt).
+
+## Echte oorzaak "verdwenen" deel-icoon: vercel.json-rewrite ving ook statische bestanden (2026-07-01)
+
+- **`vercel.json`'s SPA-rewrite was een blanco catch-all**:
+  `{ "source": "/(.*)", "destination": "/index.html" }` matcht LETTERLIJK
+  elk pad, ook `/icons/icon-512.png`, `/manifest.webmanifest`, `/sw.js`.
+  Een crawler (of browser) die deze bestanden opvraagt kreeg dus de
+  HTML-appshell terug i.p.v. de daadwerkelijke afbeelding/het manifest —
+  de eerdere absolute-URL-fix op `og:image` loste dus niet de echte
+  oorzaak op, want de URL zelf klopte allang, de server gaf alleen het
+  verkeerde bestand terug.
+- **Fix**: rewrite-pattern aangepast naar
+  `/((?!.*\..*).*)"` — een negative lookahead die elk pad met een punt
+  erin (dus elk bestand met een extensie: `.png`, `.js`, `.webmanifest`,
+  enz.) buiten de SPA-fallback houdt. Root `/` en eventuele toekomstige
+  extensieloze routes blijven gewoon naar `index.html` gaan.
+  Gecontroleerd met een los regex-testje tegen alle relevante paden.
+- **Bredere impact van de bug**: dit trof mogelijk niet alleen het
+  OG-deelicoon, maar potentieel ook het ophalen van het PWA-manifest en
+  de service-worker-registratie in productie — nog niet apart
+  bevestigd, maar wel dezelfde onderliggende oorzaak.
+- **Niet live geverifieerd** (vereist een nieuwe Vercel-deploy), zie
+  NEXT_STEPS.md.
 
 ## Dashboard-groepsfilter herzien: kaart blijft altijd zichtbaar (2026-07-01)
 
