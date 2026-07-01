@@ -2,6 +2,7 @@ import { sbClient } from './client.js';
 import { sha256 } from '../bewijsmateriaal/hash.js';
 import { getMeldingen, saveMeldingen } from '../storage/localStorage.js';
 import { laadBijlagenMetadataBatch } from './bijlagen.js';
+import { idbDeleteBijlagen } from '../storage/indexedDB.js';
 
 // Komt overeen met sbSyncMelding() — user wordt meegegeven i.p.v. _sbUser global
 export async function sbSyncMelding(melding, user) {
@@ -177,9 +178,26 @@ export async function laadVanSupabase(user, force = false, deleteQueue = []) {
     query = query.gte('updated_at', lastSyncAt);
   }
 
-  const { data: opgehaald, error } = await query;
+  // Cross-device delete-propagatie: dit apparaat kan een melding al lokaal
+  // hebben staan die op EEN ANDER apparaat inmiddels is verwijderd. Zonder
+  // deze query zou zo'n lokale kopie voor altijd blijven staan — de
+  // hoofdquery hierboven filtert 'm juist weg (deleted=false), dus afwezigheid
+  // in dat resultaat is geen signaal, alleen een expliciete "wel degelijk
+  // verwijderd"-lijst is dat.
+  let verwijderdQuery = sb
+    .from('entries')
+    .select('id')
+    .eq('deleted', true)
+    .or(`user_id.eq.${user.id},opt_in_buurt.eq.true`);
+  if (lastSyncAt) {
+    verwijderdQuery = verwijderdQuery.gte('updated_at', lastSyncAt);
+  }
+
+  const [{ data: opgehaald, error }, { data: verwijderdOpServer, error: verwijderdError }] =
+    await Promise.all([query, verwijderdQuery]);
 
   if (error) throw error;
+  if (verwijderdError) console.warn('[Supabase] Opvragen server-verwijderingen mislukt:', verwijderdError.message);
 
   // Sla lokaal-in-behandeling-zijnde verwijderingen over — zie toelichting
   // bij de functie-declaratie hierboven.
@@ -266,12 +284,24 @@ export async function laadVanSupabase(user, force = false, deleteQueue = []) {
     if (bestaand) bijgewerkt++; else nieuw++;
   }
 
-  if (nieuw > 0 || bijgewerkt > 0) {
+  // Lokale kopieën opruimen van meldingen die elders inmiddels zijn
+  // verwijderd (zie toelichting bij verwijderdQuery hierboven). Niet nodig
+  // voor ID's die al in deleteQueue staan — die zijn al lokaal verwijderd.
+  let verwijderdLokaal = 0;
+  for (const { id } of verwijderdOpServer || []) {
+    if (deleteSet.has(id)) continue;
+    if (lokaalMap.delete(id)) {
+      verwijderdLokaal++;
+      idbDeleteBijlagen(id);
+    }
+  }
+
+  if (nieuw > 0 || bijgewerkt > 0 || verwijderdLokaal > 0) {
     const gesorteerd = [...lokaalMap.values()]
       .sort((a, b) => new Date(b.timestamp_local) - new Date(a.timestamp_local));
     saveMeldingen(gesorteerd);
   }
 
   localStorage.setItem(checkpointKey, syncStartedAt);
-  return { nieuw, bijgewerkt };
+  return { nieuw, bijgewerkt, verwijderd: verwijderdLokaal };
 }

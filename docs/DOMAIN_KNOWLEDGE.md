@@ -69,10 +69,10 @@ handhavingsinstrument, geen overheidstool.
   langdurig verminderde weerstand/afweerfunctie overhoudt aan de
   infectie, wat extra vatbaarheid voor gezondheidseffecten van
   bestrijdingsmiddelenblootstelling kan geven — niet omdat COVID zelf
-  relevant is. Categorieën met een minder vanzelfsprekende link naar
-  pesticideblootstelling hebben een `toelichting`-veld (zie
-  `SUBSTANTIEEL`-array) dat als grijze subtekst onder het label
-  verschijnt, zowel in het bewerkformulier als de opgeslagen samenvatting.
+  relevant is. Alleen het label staat in de UI (`KwetsbareGroepen.jsx`);
+  een eerdere versie toonde deze uitleg ook als subtekst, maar dat is op
+  verzoek weer verwijderd (2026-07-01) — deze regel is puur de
+  achterliggende reden, geen UI-beschrijving.
 
 ## GIS
 

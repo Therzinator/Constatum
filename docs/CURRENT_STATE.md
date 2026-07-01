@@ -22,12 +22,23 @@ zendt een Postgres Realtime-event uit, en dat start (na 800ms debounce)
 een `laadVanCloud()` — precies het moment waarop een nog-niet-bevestigde
 verwijdering weer kon terugkomen.
 
-**Fix**: `laadVanSupabase(user, force, deleteQueue)` heeft een derde
-parameter gekregen — ID's in `deleteQueue` worden bij het mergen van
-server-data overgeslagen. `useSupabaseSync.js`'s `laadVanCloud()` geeft
-de actuele `deleteQueue` (uit `useMeldingen.js`) nu mee bij elke aanroep.
-Geen wijziging aan de delete-flow zelf nodig — de retry van de
-server-side soft-delete op de volgende `syncNu()` blijft ongewijzigd.
+**Fix (zelfde-toestel-race)**: `laadVanSupabase(user, force, deleteQueue)`
+heeft een derde parameter gekregen — ID's in `deleteQueue` worden bij het
+mergen van server-data overgeslagen. `useSupabaseSync.js`'s
+`laadVanCloud()` geeft de actuele `deleteQueue` (uit `useMeldingen.js`)
+nu mee bij elke aanroep. Geen wijziging aan de delete-flow zelf nodig —
+de retry van de server-side soft-delete op de volgende `syncNu()` blijft
+ongewijzigd.
+
+**Fix (cross-device-gat)**: er was nog een tweede, apart gat — als
+apparaat A een melding verwijdert, had apparaat B geen enkele manier om
+dat ooit te ontdekken (afwezigheid in een `deleted=false`-resultaat is
+geen signaal). `laadVanSupabase()` doet nu een tweede, parallelle query
+naar recent (`updated_at >= checkpoint`) verwijderde entries binnen
+dezelfde eigendom/buurt-scope, en verwijdert bijpassende lokale kopieën
+(incl. IndexedDB-bijlagen via `idbDeleteBijlagen`) — behalve ID's die al
+in de eigen `deleteQueue` staan (die zijn al lokaal weg). Retourwaarde
+kreeg er een derde veld `verwijderd` bij naast `nieuw`/`bijgewerkt`.
 
 ## Sentry actief in productie (2026-07-01)
 
