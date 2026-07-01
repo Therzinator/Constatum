@@ -28,21 +28,21 @@
 
 .driftzone-datum {
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
   margin-bottom: 12px;
 }
 
 .driftzone-info {
   font-family: var(--mono);
-  font-size: 0.7rem;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
   margin: 12px 0 8px;
 }
 
 .driftzone-model-note {
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
   margin-bottom: 10px;
 }
@@ -58,8 +58,8 @@
   border-radius: 6px;
   padding: 6px 10px;
 }
-.driftzone-zone-label { font-weight: 700; font-size: 0.75rem; }
-.driftzone-zone-sub { font-family: var(--mono); font-size: 0.6rem; color: var(--text-muted); }
+.driftzone-zone-label { font-weight: 700; font-size: var(--font-size-sm); }
+.driftzone-zone-sub { font-family: var(--mono); font-size: var(--font-size-xs); color: var(--text-muted); }
 
 .driftzone-woning {
   background: rgba(239, 68, 68, 0.1);
@@ -68,12 +68,12 @@
   padding: 8px 12px;
   margin-bottom: 10px;
 }
-.driftzone-woning-titel { font-size: 0.8rem; font-weight: 700; color: var(--danger); }
-.driftzone-woning-detail { font-family: var(--mono); font-size: 0.65rem; color: var(--text-muted); margin-top: 3px; }
+.driftzone-woning-titel { font-size: var(--font-size-sm); font-weight: 700; color: var(--danger); }
+.driftzone-woning-detail { font-family: var(--mono); font-size: var(--font-size-xs); color: var(--text-muted); margin-top: 3px; }
 
 .driftzone-disclaimer {
   font-family: var(--mono);
-  font-size: 0.6rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
   line-height: 1.5;
   border-top: 1px solid var(--border);

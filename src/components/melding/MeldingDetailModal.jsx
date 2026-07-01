@@ -148,7 +148,7 @@ export function MeldingDetailModal({ melding, alleMeldingen, user, onClose }) {
             <div className="detail-card-row mb-2">
               <div className="section-label">Locatie &amp; Driftzone</div>
               {melding.weather?.wind_dir != null && (
-                <button type="button" className="btn-outline px-2 py-1" style={{ fontFamily: 'var(--mono)', fontSize: '0.6rem' }} onClick={() => setDriftZoneOpen(true)}>
+                <button type="button" className="btn-outline px-2 py-1" style={{ fontFamily: 'var(--mono)', fontSize: 'var(--font-size-sm)' }} onClick={() => setDriftZoneOpen(true)}>
                   🔍 Volledig
                 </button>
               )}
@@ -163,7 +163,7 @@ export function MeldingDetailModal({ melding, alleMeldingen, user, onClose }) {
 
         <div className="card p-3">
           <div className="section-label mb-2">Omschrijving</div>
-          <div style={{ fontSize: '0.85rem', lineHeight: 1.6 }}>{melding.description}</div>
+          <div style={{ fontSize: 'var(--font-size-sm)', lineHeight: 1.6 }}>{melding.description}</div>
         </div>
 
         <div className="card p-3">
@@ -177,14 +177,14 @@ export function MeldingDetailModal({ melding, alleMeldingen, user, onClose }) {
           {melding.gezondheidsklachten?.length > 0 && (
             <div className="mt-2">
               <div className="section-label">Gezondheid</div>
-              <div style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: 4 }}>{melding.gezondheidsklachten.join(', ')}</div>
+              <div style={{ color: 'var(--danger)', fontSize: 'var(--font-size-sm)', marginTop: 4 }}>{melding.gezondheidsklachten.join(', ')}</div>
             </div>
           )}
 
           {melding.activiteiten?.length > 0 && (
             <div className="mt-2">
               <div className="section-label">Activiteiten</div>
-              <div style={{ color: 'var(--warning)', fontSize: '0.75rem', marginTop: 4 }}>{melding.activiteiten.join(', ')}</div>
+              <div style={{ color: 'var(--warning)', fontSize: 'var(--font-size-sm)', marginTop: 4 }}>{melding.activiteiten.join(', ')}</div>
             </div>
           )}
 
@@ -229,7 +229,7 @@ export function MeldingDetailModal({ melding, alleMeldingen, user, onClose }) {
           {melding.drift_waarneming?.length > 0 && (
             <div className="detail-drift-block">
               <div className="section-label" style={{ color: 'var(--danger)', marginBottom: 4 }}>Drift &amp; Overlast</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--danger)' }}>
+              <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--danger)' }}>
                 {melding.drift_waarneming.map((v) => DRIFT_LABELS[v] || v).join(' · ')}
               </div>
             </div>
@@ -239,7 +239,7 @@ export function MeldingDetailModal({ melding, alleMeldingen, user, onClose }) {
         {melding.natura2000 && (
           <div className="card p-3 detail-natura2000-block">
             <div className="section-label mb-2">🌿 Natura 2000</div>
-            <div style={{ fontSize: '0.8rem' }}>Nabij: {melding.natura2000.naam}</div>
+            <div style={{ fontSize: 'var(--font-size-sm)' }}>Nabij: {melding.natura2000.naam}</div>
             {melding.natura2000.lat != null && (
               <div className="detail-mono-block" style={{ marginTop: 4 }}>
                 {melding.natura2000.lat.toFixed(6)}°N · {melding.natura2000.lng.toFixed(6)}°E
@@ -251,7 +251,7 @@ export function MeldingDetailModal({ melding, alleMeldingen, user, onClose }) {
         {melding.kwetsbare_locaties?.length > 0 && (
           <div className="card p-3 detail-kwetsbaar-block">
             <div className="section-label mb-2" style={{ color: 'var(--danger)' }}>⚠️ Kwetsbare locaties in de buurt</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
               {melding.kwetsbare_locaties.map((tekst) => <div key={tekst}>• {tekst}</div>)}
             </div>
           </div>
@@ -283,13 +283,13 @@ export function MeldingDetailModal({ melding, alleMeldingen, user, onClose }) {
 
             <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
               {!knmiData ? (
-                <button type="button" className="btn-outline px-2 py-1" style={{ fontSize: '0.6rem' }} onClick={haalKNMIOp} disabled={knmiBezig}>
+                <button type="button" className="btn-outline px-2 py-1" style={{ fontSize: 'var(--font-size-sm)' }} onClick={haalKNMIOp} disabled={knmiBezig}>
                   {knmiBezig ? '⏳ Ophalen...' : '🌦️ Verificeer met archief-weerdata'}
                 </button>
               ) : knmiData.leeg ? (
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Geen weerdata gevonden voor dit tijdstip/locatie</div>
+                <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>Geen weerdata gevonden voor dit tijdstip/locatie</div>
               ) : (
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontFamily: 'var(--mono)' }}>
+                <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', fontFamily: 'var(--mono)' }}>
                   <div style={{ color: 'var(--accent)', fontWeight: 700, marginBottom: 4 }}>✓ Weerarchief: {knmiData.station}</div>
                   <div>Wind: {knmiData.windsnelheid} m/s · {knmiData.windrichting}°</div>
                   <div>Temperatuur: {knmiData.temperatuur}°C · Vochtigheid: {knmiData.luchtvochtigheid}%</div>
@@ -324,21 +324,21 @@ export function MeldingDetailModal({ melding, alleMeldingen, user, onClose }) {
 
         <div className="card p-3">
           <div className="section-label mb-2">Integriteitsverificatie</div>
-          <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: 4 }}>SHA-256 Hash</div>
+          <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)', marginBottom: 4 }}>SHA-256 Hash</div>
           <div className="hash-display">{melding.hash}</div>
           {melding.rfc3161 ? (
             <div className="detail-rfc3161-ok">
-              <div style={{ fontFamily: 'var(--mono)', fontSize: '0.6rem', fontWeight: 700, color: 'var(--accent)', marginBottom: 4 }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 'var(--font-size-sm)', fontWeight: 700, color: 'var(--accent)', marginBottom: 4 }}>
                 ✓ RFC 3161 Tijdstempel
               </div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: '0.6rem', color: 'var(--text-secondary)' }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
                 🕐 {new Date(melding.rfc3161.timestamp).toLocaleString('nl-NL', { timeZone: 'Europe/Amsterdam' })}
               </div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: 2 }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)', marginTop: 2 }}>
                 TSA: {melding.rfc3161.tsa}
               </div>
               {melding.rfc3161.serial && (
-                <div style={{ fontFamily: 'var(--mono)', fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)', marginTop: 2 }}>
                   Serial: {melding.rfc3161.serial}
                 </div>
               )}

@@ -58,7 +58,7 @@ export function PrullenbakCard({ gebruikerRol, user, laadVanCloud }) {
             </button>
           </div>
 
-          {fout && <div style={{ color: 'var(--danger)', fontFamily: 'var(--mono)', fontSize: '0.7rem', marginBottom: 8 }}>{fout}</div>}
+          {fout && <div style={{ color: 'var(--danger)', fontFamily: 'var(--mono)', fontSize: 'var(--font-size-sm)', marginBottom: 8 }}>{fout}</div>}
 
           {items != null && (
             items.length === 0 ? (
@@ -76,7 +76,7 @@ export function PrullenbakCard({ gebruikerRol, user, laadVanCloud }) {
                         <div className="prullenbak-item-omschrijving">{item.description || '—'}</div>
                         <div className="prullenbak-item-melder">{melderCode(item.melder_email || item.user_id)}</div>
                       </div>
-                      <button type="button" className="btn-outline px-3 py-1" style={{ fontSize: '0.7rem', whiteSpace: 'nowrap', flexShrink: 0 }} onClick={() => herstel(item.id)}>
+                      <button type="button" className="btn-outline px-3 py-1" style={{ fontSize: 'var(--font-size-sm)', whiteSpace: 'nowrap', flexShrink: 0 }} onClick={() => herstel(item.id)}>
                         ↩ Herstel
                       </button>
                     </div>

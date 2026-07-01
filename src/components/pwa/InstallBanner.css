@@ -6,7 +6,7 @@
   background: #131929;
   border-bottom: 1px solid var(--border);
   font-family: var(--mono);
-  font-size: 0.75rem;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }
 
@@ -18,7 +18,7 @@
 .install-banner-knop {
   flex-shrink: 0;
   padding: 6px 14px;
-  font-size: 0.75rem;
+  font-size: var(--font-size-sm);
 }
 
 .install-banner-sluiten {
@@ -27,7 +27,7 @@
   border: none;
   cursor: pointer;
   color: var(--text-muted);
-  font-size: 16px;
+  font-size: var(--font-size-base);
   line-height: 1;
   padding: 0 2px;
 }

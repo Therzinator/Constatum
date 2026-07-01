@@ -31,7 +31,8 @@
   align-items: flex-start;
   gap: 8px;
   margin-bottom: 8px;
-  font-size: 0.78rem;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
   color: var(--text-secondary);
   cursor: pointer;
 }
@@ -52,7 +53,7 @@
   border: none;
   color: var(--text-muted);
   font-family: var(--mono);
-  font-size: 0.62rem;
+  font-size: var(--font-size-sm);
   cursor: pointer;
   padding: 0;
 }
@@ -82,15 +83,15 @@
   border-radius: 8px;
   padding: 7px 10px;
   font-family: var(--sans);
-  font-size: 0.68rem;
-  line-height: 1.3;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
   text-align: left;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
 }
 .mf-standaardzin-chip-emoji {
   flex-shrink: 0;
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
 }
 .mf-standaardzin-chip:hover {
   border-color: var(--accent);
@@ -113,7 +114,8 @@
   border-radius: 8px;
   font-family: var(--sans);
   padding: 10px 12px;
-  font-size: 0.85rem;
+  font-size: var(--font-size-base);
+  line-height: 1.5;
   resize: vertical;
 }
 .mf-textarea:focus {
@@ -129,7 +131,7 @@
   border-radius: 8px;
   font-family: var(--sans);
   padding: 12px;
-  font-size: 0.9rem;
+  font-size: var(--font-size-base);
   min-height: 48px;
 }
 
@@ -137,7 +139,7 @@
 .mf-foto-input { display: none; }
 
 .mf-foto-privacy-tekst {
-  font-size: 0.68rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
   margin: 0;
 }
@@ -178,7 +180,7 @@
   border-radius: 50%;
   width: 20px;
   height: 20px;
-  font-size: 0.7rem;
+  font-size: var(--font-size-xs);
   line-height: 1;
   cursor: pointer;
 }
@@ -191,7 +193,7 @@
 
 .mf-weer-status {
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
 }
 .mf-weer-status-ok { color: var(--accent); }
@@ -205,12 +207,12 @@
 
 .mf-weer-waarde {
   font-family: var(--mono);
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   margin-top: 2px;
 }
 
 .mf-weer-bron {
-  font-size: 0.65rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
 }
 
@@ -220,20 +222,20 @@
   border-radius: 6px;
   border: 1px solid;
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: var(--font-size-sm);
 }
 
 .mf-weer-pasquill {
   margin-top: 8px;
   font-family: var(--mono);
-  font-size: 0.7rem;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }
 
 .mf-weer-refresh {
   margin-top: 8px;
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: var(--font-size-sm);
 }
 
 .mf-error {
@@ -241,7 +243,8 @@
   border: 1px solid rgba(239, 68, 68, 0.3);
   color: var(--danger);
   font-family: var(--mono);
-  font-size: 0.75rem;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
   border-radius: 8px;
   padding: 10px 12px;
 }
@@ -249,7 +252,7 @@
 .mf-submit {
   width: 100%;
   padding: 14px;
-  font-size: 0.95rem;
+  font-size: var(--font-size-base);
 }
 
 .mf-teler-toggle {
@@ -263,7 +266,7 @@
   text-align: left;
   padding: 8px 0;
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: var(--font-size-sm);
   letter-spacing: 0.05em;
   color: #fff;
   text-transform: uppercase;
@@ -276,7 +279,7 @@
 }
 
 .mf-teler-chevron {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
   transition: transform 0.2s;
 }
@@ -311,7 +314,7 @@
 
 .mf-teler-suggestie {
   padding: 10px 14px;
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   cursor: pointer;
   border-bottom: 1px solid var(--border);
 }

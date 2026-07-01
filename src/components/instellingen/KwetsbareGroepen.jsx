@@ -125,7 +125,7 @@ export function KwetsbareGroepen({ user }) {
           <strong>Geselecteerde categorieën:</strong>
           <ul style={{ margin: '8px 0 0 16px', padding: 0 }}>
             {geselecteerd.map((id) => (
-              <li key={id} style={{ fontSize: '0.85rem', marginBottom: 2 }}>
+              <li key={id} style={{ fontSize: 'var(--font-size-sm)', marginBottom: 2 }}>
                 {labelVoorId(id)}
               </li>
             ))}
@@ -165,7 +165,7 @@ export function KwetsbareGroepen({ user }) {
         className="card p-3 mb-3"
         style={{ borderColor: 'var(--warning)', background: 'rgba(234,179,8,0.06)' }}
       >
-        <strong style={{ fontSize: '0.8rem', color: 'var(--warning)' }}>
+        <strong style={{ fontSize: 'var(--font-size-sm)', color: 'var(--warning)' }}>
           AVG artikel 9 — bijzondere categorie persoonsgegevens
         </strong>
         <div className="export-card-beschrijving mt-1">
@@ -181,7 +181,7 @@ export function KwetsbareGroepen({ user }) {
             onChange={(e) => setToestemming(e.target.checked)}
             style={{ marginTop: 2, flexShrink: 0 }}
           />
-          <span style={{ fontSize: '0.85rem' }}>
+          <span style={{ fontSize: 'var(--font-size-sm)' }}>
             Ik begrijp dat dit gezondheidsgegevens zijn (AVG art. 9) en geef{' '}
             <strong>uitdrukkelijke toestemming</strong> voor de verwerking hiervan
             door Constatum, uitsluitend voor het doel van juridische documentatie.
@@ -191,7 +191,7 @@ export function KwetsbareGroepen({ user }) {
 
       {toestemming && (
         <>
-          <div className="section-label mb-2" style={{ fontSize: '0.8rem' }}>
+          <div className="section-label mb-2">
             Sterk wetenschappelijk bewijs
           </div>
           {STERK.map((c) => (
@@ -201,11 +201,11 @@ export function KwetsbareGroepen({ user }) {
                 checked={conceptKeuze.includes(c.id)}
                 onChange={() => toggleCategorie(c.id)}
               />
-              <span style={{ fontSize: '0.85rem' }}>{c.label}</span>
+              <span style={{ fontSize: 'var(--font-size-sm)' }}>{c.label}</span>
             </label>
           ))}
 
-          <div className="section-label mb-2 mt-3" style={{ fontSize: '0.8rem' }}>
+          <div className="section-label mb-2 mt-3">
             Substantieel bewijs
           </div>
           {SUBSTANTIEEL.map((c) => (
@@ -215,7 +215,7 @@ export function KwetsbareGroepen({ user }) {
                 checked={conceptKeuze.includes(c.id)}
                 onChange={() => toggleCategorie(c.id)}
               />
-              <span style={{ fontSize: '0.85rem' }}>{c.label}</span>
+              <span style={{ fontSize: 'var(--font-size-sm)' }}>{c.label}</span>
             </label>
           ))}
         </>

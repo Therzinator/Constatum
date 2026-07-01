@@ -132,22 +132,22 @@ export function MeldingCard({ melding, user, gebruikerRol, onVerwijderen, onSele
                 <div className="melding-card-desc">{omschrijving}</div>
                 <div className="melding-card-meta">
                   {melding.weather?.wind_speed != null && (
-                    <span style={{ color: 'var(--info)', fontSize: '0.65rem' }}>
+                    <span style={{ color: 'var(--info)', fontSize: 'var(--font-size-xs)' }}>
                       💨 {melding.weather.wind_speed} km/h {degToCompass(melding.weather.wind_dir)}
                     </span>
                   )}
                   {melding.gezondheidsklachten?.length > 0 && (
-                    <span style={{ color: 'var(--danger)', fontSize: '0.65rem' }}>
+                    <span style={{ color: 'var(--danger)', fontSize: 'var(--font-size-xs)' }}>
                       🏥 {melding.gezondheidsklachten.length} klacht(en)
                     </span>
                   )}
                   {melding.bestanden?.length > 0 && (
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-xs)' }}>
                       📎 {melding.bestanden.length} bestand(en)
                     </span>
                   )}
                   {melding.melder_email && (
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.6rem' }}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-xs)' }}>
                       {melderCode(melding.melder_email)}
                     </span>
                   )}

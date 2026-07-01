@@ -4,9 +4,74 @@ Momentopname. Dit bestand veroudert sneller dan DOMAIN_KNOWLEDGE.md/
 DECISIONS.md — bij twijfel altijd verifiëren tegen de code (`git log`,
 grep), niet blind vertrouwen op een oude snapshot.
 
-Laatst bijgewerkt: 2026-07-01 (post-COVID kwetsbare groep, auto-cleanup uitnodigingen, logout→loginscherm, PWA install-banner, contactadressen AV/Privacy).
+Laatst bijgewerkt: 2026-07-01 (post-COVID kwetsbare groep, auto-cleanup uitnodigingen, logout→loginscherm, PWA install-banner, contactadressen AV/Privacy, app-iconen vernieuwd, typografie-audit + font-size-tokensysteem).
+
+## Typografie-audit en font-size-tokensysteem (2026-07-01)
+
+Naar aanleiding van `src/audit/typografie-audit-2026-07-01.md` (mobiele
+leesbaarheid buiten, WCAG 2.1 AA/Apple HIG/Material 3/NNG als referentie).
+Alleen presentatielaag (CSS/inline-`style`) — geen SHA-256/RFC3161-logica,
+PDOK/BAG-koppelingen of Supabase-schema aangeraakt.
+
+- **Nieuw font-size-tokensysteem** in `src/styles/theme.css` (`:root`):
+  `--font-size-xs` (12px) t/m `--font-size-2xl` (32px). Bijna alle
+  hardcoded `font-size`-waarden onder 14px in `src/**/*.css` en inline
+  `fontSize` in `src/**/*.jsx` zijn vervangen door deze tokens — geleide
+  vuistregel: mono-metadata (hashes, timestamps, melder-codes,
+  coördinaten) → `--font-size-xs`, tekst die de gebruiker actief moet
+  lezen (formulierlabels, foutmeldingen, beschrijvingen, juridische
+  tekst) → minimaal `--font-size-sm` (14px). Decoratieve icoon-chevrons
+  en het versie-/copyright-voetnootje in `JuridischModal.css` zijn
+  bewust ongemoeid gelaten.
+- **`.section-label`** (theme.css) — het daadwerkelijke formulierlabel in
+  `MeldingForm.jsx` (Locatie, Omschrijving, Geurintensiteit, etc.) en
+  hergebruikt als sectiekopje elders — ging van 10.4px naar 14px.
+  `.collapsible-header` (Collapsible.css, gebruikt door alle
+  Collapsible-secties in Coördinatie/Groepen/Instellingen) kreeg
+  dezelfde fix; dit was in de audit zelf nog gemist.
+- **`--text-muted`-contrastfix**: was `#4a5d78` (2,9:1 tegen
+  `--bg-primary`, faalde zelfs de WCAG-eis voor grote tekst), is nu
+  `#77839c` (~5,1:1 tegen `--bg-primary`, ~4,6:1 tegen `--bg-card`). Eén
+  tokenwijziging, werkt door op alle ~30+ plekken die de variabele
+  gebruiken (melder-codes, timestamps, GPS-coördinaten, etc.).
+- **Trust-tier-badge-contrastfix** (`CoordinatiePage.jsx`,
+  `GroepPage.jsx`): witte badge-tekst op de vier tier-kleuren
+  (`trustScore.js`, ongewijzigd) haalde 1,9–3,8:1 contrast. Tekstkleur
+  vervangen door donker (`#0a0e17`) i.p.v. wit → 5–10:1 op alle vier
+  tiers, plus font-size van 8,8–9,6px naar `--font-size-xs` (12px).
+- **BottomNav-tab-labels**: van 12,2px (9,8px op schermen < 420px) naar
+  `--font-size-xs` (12px) op beide breakpoints. Let op: dit was eerder
+  bewust verkleind om labeloverlap te voorkomen (zie comment in
+  `BottomNav.css`) — visueel controleren op zeer smalle schermen of
+  labels nog passen; zo niet, labels inkorten, niet verder verkleinen.
+- Volledige lijst met bevindingen en de vóór/na-waarden staat in
+  `src/audit/typografie-audit-2026-07-01.md`. Prioriteit 3 uit dat
+  rapport (exhaustieve `--text-muted`-doorlichting, hardcoded
+  `#00d4aa`/oude-teal-consolidatie) is **niet** uitgevoerd — blijft
+  aanbeveling.
 
 ## Nieuwe features (2026-07-01)
+
+### App-iconen vervangen door Constatum-branding (`public/icons/`, `vite.config.js`, `index.html`)
+- Volledige icon-set (favicon 16/32px, Apple touch-icons 152/167/180px, Android
+  72-512px + maskable-varianten 192/512px) opnieuw gegenereerd vanuit
+  `src/assets/app-icon/icon_large.png` (nieuwe dependency `sharp`,
+  `devDependencies`, alleen build-time gebruikt) — dit bronbestand was al de
+  header-/inlog-logo (`AppHeader.jsx`/`AuthOverlay.jsx`, sinds de rebranding
+  van 2026-06-30) maar de PWA-icon-set zelf (`public/icons/*`,
+  `vite.config.js`'s `VitePWA`-manifest, `index.html`-favicons) was nog nooit
+  bijgewerkt en verwees naar oudere SpuitLogger-assets.
+- **`background_color`/`theme_color`** in het PWA-manifest en
+  `index.html`'s `<meta name="theme-color">` gecorrigeerd van het
+  verouderde `#010510` naar `#0a0e17` — gelijk aan `--bg-primary`
+  (`theme.css`), dat al sinds 2026-06-23 dit exacte donkerblauw gebruikt;
+  de manifest-kleur was toen niet meegenomen.
+- **Oude, nu ongebruikte bestanden** (bewust niet verwijderd, ter beoordeling):
+  `public/icons/icon_16px.png`, `icon_32px.png`, `icon_small.png`,
+  `header-logo.png`, `public/favicon.svg`, `public/icons.svg` — geen van
+  alle nog gerefereerd in code/config na deze wijziging.
+
+## Overige features (2026-07-01)
 
 ### Post-COVID / Long COVID toegevoegd aan kwetsbare groepen (`KwetsbareGroepen.jsx`)
 - `{ id: 'post_covid', label: 'Post-COVID / Long COVID' }` toegevoegd aan de

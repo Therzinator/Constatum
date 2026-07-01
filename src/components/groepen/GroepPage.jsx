@@ -262,7 +262,7 @@ export function GroepPage({ groepId, user, onTerug }) {
                 const score = ledenTrustScores.get(l.user_id);
                 const tier = trustScoreTier(score);
                 return (
-                  <span style={{ fontSize: '0.55rem', padding: '1px 5px', borderRadius: 8, background: tier.kleur, color: '#fff', fontWeight: 600 }}>
+                  <span style={{ fontSize: 'var(--font-size-xs)', padding: '1px 5px', borderRadius: 8, background: tier.kleur, color: '#0a0e17', fontWeight: 600 }}>
                     {score ?? 75} · {tier.label}
                   </span>
                 );

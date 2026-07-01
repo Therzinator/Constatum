@@ -77,7 +77,7 @@ Uw naam, adres en e-mailadres worden nooit gedeeld. Wat onderzoekers ontvangen i
 
       <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
         <div style={{ color: '#ffffff', fontWeight: 700, marginBottom: 8 }}>Bronnen</div>
-        <ol style={{ color: '#ffffff', fontSize: '0.75rem', lineHeight: 1.5, paddingLeft: 18, margin: 0 }}>
+        <ol style={{ color: '#ffffff', fontSize: 'var(--font-size-sm)', lineHeight: 1.5, paddingLeft: 18, margin: 0 }}>
           {BRONNEN.map((bron) => (
             <li key={bron.label} style={{ marginBottom: 10 }}>
               <div>{bron.label}</div>
@@ -92,7 +92,7 @@ Uw naam, adres en e-mailadres worden nooit gedeeld. Wat onderzoekers ontvangen i
         </ol>
 
         <div style={{ color: '#ffffff', fontWeight: 700, margin: '12px 0 8px' }}>Achtergrondcontext (niet als citaat gebruikt)</div>
-        <ul style={{ fontSize: '0.75rem', lineHeight: 1.5, paddingLeft: 18, margin: 0 }}>
+        <ul style={{ fontSize: 'var(--font-size-sm)', lineHeight: 1.5, paddingLeft: 18, margin: 0 }}>
           {ACHTERGRONDCONTEXT.map((bron) => (
             <li key={bron.url} style={{ marginBottom: 6 }}>
               <span style={{ color: '#ffffff' }}>{bron.label}</span>{' '}

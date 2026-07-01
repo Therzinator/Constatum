@@ -39,9 +39,12 @@
   border: none;
   cursor: pointer;
   font-family: var(--mono);
-  /* -15% (was 0.9rem), op verzoek — samen met de letter-spacing
-     hieronder de belangrijkste reden dat labels elkaar nog raakten. */
-  font-size: 0.765rem;
+  /* Was 0.765rem — verhoogd naar het font-size-xs-token (12px, de
+     ondergrens voor leesbare labels), zie typografie-audit-2026-07-01.md.
+     Als dit op smalle schermen weer tot overlap leidt: labels inkorten of
+     lay-out aanpassen, niet verder verkleinen onder deze token-ondergrens. */
+  font-size: var(--font-size-xs);
+  font-weight: 700;
   letter-spacing: -0.03em;
   white-space: nowrap;
   overflow: hidden;
@@ -83,8 +86,10 @@
 @media (max-width: 420px) {
   .bottom-nav-tab {
     padding: 12px 2px;
-    /* -15% van de al verkleinde 0.72rem die hier stond */
-    font-size: 0.612rem;
+    /* Was 0.612rem — zelfde font-size-xs-ondergrens als de basisregel
+       hierboven; controleer visueel op zeer smalle schermen of labels
+       nog passen (zie comment daar). */
+    font-size: var(--font-size-xs);
     letter-spacing: -0.03em;
   }
   .bottom-nav-icoon-img {

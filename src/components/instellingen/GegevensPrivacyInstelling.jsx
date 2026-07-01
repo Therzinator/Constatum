@@ -70,7 +70,7 @@ export function GegevensPrivacyInstelling({ user, meldingenApi, thuislocatie, on
           </div>
           <button
             type="button"
-            style={{ marginTop: 4, fontSize: '0.7rem', background: 'none', border: 'none', color: 'var(--accent)', textDecoration: 'underline', cursor: 'pointer', padding: 0 }}
+            style={{ marginTop: 4, fontSize: 'var(--font-size-sm)', background: 'none', border: 'none', color: 'var(--accent)', textDecoration: 'underline', cursor: 'pointer', padding: 0 }}
             onClick={(e) => { e.preventDefault(); setWaaromOpen(true); }}
           >
             Waarom dit ertoe doet →

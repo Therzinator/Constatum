@@ -82,14 +82,14 @@ export function GroepMeldingDetailModal({ melding, toon, isEigen, user, onClose 
         <div className="card p-3">
           <div className="section-label mb-2">Omschrijving</div>
           {toon.metadata && melding.description ? (
-            <div style={{ fontSize: '0.85rem', lineHeight: 1.6 }}>{melding.description}</div>
+            <div style={{ fontSize: 'var(--font-size-sm)', lineHeight: 1.6 }}>{melding.description}</div>
           ) : (
             <div className="export-card-beschrijving">Omschrijving pas zichtbaar bij een hogere trust score.</div>
           )}
           {toon.metadata && melding.weather?.wind_speed != null && (
             <div className="card p-2 mt-2">
-              <div className="section-label mb-1" style={{ fontSize: '0.65rem' }}>Weerdata op moment van melding</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', fontSize: '0.75rem' }}>
+              <div className="section-label mb-1" style={{ fontSize: 'var(--font-size-xs)' }}>Weerdata op moment van melding</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', fontSize: 'var(--font-size-sm)' }}>
                 <span>Wind</span><span>{melding.weather.wind_speed} km/h {melding.richting_compass || ''}</span>
                 {melding.weather.temperature != null && <><span>Temperatuur</span><span>{melding.weather.temperature}°C</span></>}
                 {melding.weather.humidity != null && <><span>Luchtvochtigheid</span><span>{melding.weather.humidity}%</span></>}

@@ -176,7 +176,7 @@ export function GroepenPage({ user, thuislocatie, onOpenGroep }) {
         {!formOpen && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button type="button" className="btn-primary groepen-knop" onClick={openFormulier}>Nieuwe groep aanmaken</button>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Klik hier om een privé/openbare groep te starten.</span>
+            <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>Klik hier om een privé/openbare groep te starten.</span>
           </div>
         )}
         {formOpen && (

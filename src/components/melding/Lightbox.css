@@ -54,7 +54,7 @@
   right: 0;
   text-align: center;
   font-family: var(--mono);
-  font-size: 0.7rem;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }
 .lightbox-counter { margin-bottom: 2px; }

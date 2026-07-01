@@ -54,7 +54,7 @@
 .uitnodiging-knop {
   min-height: 44px;
   padding: 8px 14px;
-  font-size: 0.75rem;
+  font-size: var(--font-size-sm);
 }
 
 .groepen-formulier-acties {
@@ -67,7 +67,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.8rem;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }
 
@@ -108,7 +108,7 @@
 
 .groepen-kaart-beschrijving {
   margin-bottom: 8px;
-  font-size: 0.75rem;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }
 
@@ -137,7 +137,7 @@
 
 .groepen-stat-label {
   font-family: var(--mono);
-  font-size: 0.6rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -148,7 +148,7 @@
   align-items: center;
   justify-content: space-between;
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: var(--font-size-xs);
   color: var(--text-secondary);
 }
 
@@ -167,7 +167,7 @@
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--border);
-  font-size: 0.75rem;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
   cursor: pointer;
 }

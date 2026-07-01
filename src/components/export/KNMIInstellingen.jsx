@@ -42,7 +42,7 @@ export function KNMIInstellingen() {
         <button type="button" className="btn-primary px-3 py-2" onClick={opslaan}>Opslaan</button>
       </div>
       {status && (
-        <div style={{ fontFamily: 'var(--mono)', fontSize: '0.6rem', color: status.kleur, marginTop: 6 }}>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 'var(--font-size-sm)', color: status.kleur, marginTop: 6 }}>
           {status.tekst}
         </div>
       )}

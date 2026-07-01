@@ -48,7 +48,7 @@
   border-radius: 8px;
   padding: 5px 10px;
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: var(--font-size-sm);
   cursor: pointer;
 }
 .locatie-kaart-meet-btn:hover:not(:disabled) { border-color: #00d4aa; color: #00d4aa; }
@@ -57,7 +57,7 @@
 
 .locatie-kaart-status {
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
   margin-top: 6px;
 }
@@ -75,13 +75,13 @@
   border-radius: 8px;
   padding: 10px 12px;
   font-family: var(--mono);
-  font-size: 0.8rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
   margin-top: 8px;
 }
 
 .locatie-kaart-woning-coords {
-  font-size: 0.65rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
   margin-top: 4px;
 }
@@ -93,7 +93,7 @@
   padding: 8px 12px;
   margin-top: 8px;
   font-family: var(--mono);
-  font-size: 0.7rem;
+  font-size: var(--font-size-sm);
   font-weight: 700;
   color: var(--danger);
 }
@@ -104,13 +104,13 @@
   border-radius: 8px;
   padding: 10px 12px;
   margin-top: 8px;
-  font-size: 0.8rem;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }
 
 .locatie-kaart-natura2000-coords {
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
   margin-top: 4px;
 }
@@ -121,13 +121,13 @@
   border-radius: 8px;
   padding: 10px 12px;
   margin-top: 8px;
-  font-size: 0.72rem;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
   line-height: 1.6;
 }
 
 .locatie-kaart-kwetsbaar-titel {
-  font-size: 0.8rem;
+  font-size: var(--font-size-sm);
   font-weight: 700;
   color: var(--danger);
   margin-bottom: 4px;

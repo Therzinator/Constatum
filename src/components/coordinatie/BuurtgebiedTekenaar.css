@@ -15,6 +15,6 @@
 
 .buurtgebied-tekenaar-oppervlakte {
   font-family: var(--mono);
-  font-size: 0.7rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
 }

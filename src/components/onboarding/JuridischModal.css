@@ -49,7 +49,7 @@
 .juridisch-modal-close:hover { color: var(--text-primary); }
 
 .juridisch-modal-body {
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   line-height: 1.6;
   color: var(--text-secondary);
   white-space: pre-line;

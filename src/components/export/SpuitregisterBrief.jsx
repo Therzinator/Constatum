@@ -26,7 +26,7 @@ export function SpuitregisterBrief({ meldingen }) {
 
   if (metPerceel.length === 0) {
     return (
-      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '4px 0' }}>
+      <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)', padding: '4px 0' }}>
         Voeg een perceelnummer toe aan een melding om een brief te genereren.
       </p>
     );
@@ -69,7 +69,7 @@ export function SpuitregisterBrief({ meldingen }) {
               placeholder="Voor- en achternaam"
               value={naam}
               onChange={(e) => setNaam(e.target.value)}
-              style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.9rem' }}
+              style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: 'var(--font-size-base)' }}
             />
           </div>
 
@@ -83,12 +83,12 @@ export function SpuitregisterBrief({ meldingen }) {
               value={adres}
               onChange={(e) => setAdres(e.target.value)}
               rows={3}
-              style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.9rem', resize: 'vertical' }}
+              style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: 'var(--font-size-base)', resize: 'vertical' }}
             />
           </div>
 
           {geenRfc3161 && (
-            <div style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: '8px', padding: '10px 12px', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+            <div style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: '8px', padding: '10px 12px', fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
               ⚠️ Deze melding heeft geen RFC 3161 tijdstempel. De brief is geldig maar heeft minder bewijskracht. Maak een nieuwe melding aan als u een tijdgestempeld bewijs wilt toevoegen.
             </div>
           )}
@@ -108,7 +108,7 @@ export function SpuitregisterBrief({ meldingen }) {
                 color: naam.trim() && adres.trim() ? 'var(--text-primary)' : 'var(--text-muted)',
                 border: '1px solid var(--border)',
                 borderRadius: '8px',
-                fontSize: '0.72rem',
+                fontSize: 'var(--font-size-sm)',
                 fontFamily: 'var(--mono)',
                 resize: 'vertical',
               }}
@@ -128,10 +128,10 @@ export function SpuitregisterBrief({ meldingen }) {
       </button>
 
       {fout && (
-        <p style={{ color: 'var(--danger, #ef4444)', fontSize: '0.8rem' }}>{fout}</p>
+        <p style={{ color: 'var(--danger, #ef4444)', fontSize: 'var(--font-size-sm)' }}>{fout}</p>
       )}
 
-      <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 12px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+      <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 12px', fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
         ℹ️ Stuur deze brief per aangetekende post of e-mail naar het Ministerie van LVVN of de NVWA.
         Voeg een kopie van uw dossier-PDF toe als onderbouwing.
       </div>

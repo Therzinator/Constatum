@@ -13,12 +13,12 @@
 
 .cluster-card-titel {
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: var(--font-size-base);
 }
 
 .cluster-card-tijd {
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
   margin-top: 2px;
 }
@@ -34,7 +34,7 @@
   border-radius: 4px;
   padding: 2px 8px;
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   background: rgba(245, 158, 11, 0.2);
   color: var(--warning);
@@ -52,7 +52,7 @@
   flex-wrap: wrap;
   margin-bottom: 8px;
   font-family: var(--mono);
-  font-size: 0.6rem;
+  font-size: var(--font-size-xs);
   align-items: center;
 }
 
@@ -83,7 +83,7 @@
 
 .cluster-card-tijdlijn-label {
   font-family: var(--mono);
-  font-size: 0.6rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
   margin-bottom: 6px;
 }
@@ -112,14 +112,14 @@
 
 .cluster-card-tijdlijn-tijd {
   font-family: var(--mono);
-  font-size: 0.55rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
   margin-top: 3px;
 }
 
 .cluster-card-tijdlijn-wind {
   font-family: var(--mono);
-  font-size: 0.5rem;
+  font-size: var(--font-size-xs);
 }
 
 .cluster-card-tijdlijn-lijn {
@@ -139,7 +139,7 @@
   border-radius: 6px;
   padding: 5px;
   font-family: var(--mono);
-  font-size: 0.6rem;
+  font-size: var(--font-size-sm);
   cursor: pointer;
 }
 

@@ -23,7 +23,7 @@
 
 .export-subtitel {
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
   margin-bottom: 8px;
 }
@@ -65,7 +65,7 @@
 
 .export-stat-tegel-label {
   font-family: var(--mono);
-  font-size: 0.6rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -74,11 +74,11 @@
 
 .export-card-titel {
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: var(--font-size-base);
 }
 
 .export-card-beschrijving {
-  font-size: 0.75rem;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
   margin-top: 2px;
 }
@@ -87,7 +87,7 @@
   display: flex;
   justify-content: space-between;
   font-family: var(--mono);
-  font-size: 0.7rem;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }
 

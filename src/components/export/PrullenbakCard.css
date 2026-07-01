@@ -4,13 +4,13 @@
 
 .prullenbak-titel {
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: var(--font-size-base);
   color: var(--warning);
 }
 
 .prullenbak-label {
   font-family: var(--mono);
-  font-size: 0.7rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
   margin-bottom: 8px;
 }
@@ -28,7 +28,7 @@
   border-radius: 8px;
   font-family: var(--sans);
   padding: 8px;
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   flex: 1;
 }
 
@@ -46,12 +46,12 @@
 
 .prullenbak-item-tijd {
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: var(--font-size-xs);
   color: var(--accent);
 }
 
 .prullenbak-item-omschrijving {
-  font-size: 0.8rem;
+  font-size: var(--font-size-sm);
   color: var(--text-primary);
   margin: 4px 0;
   line-height: 1.4;
@@ -60,7 +60,7 @@
 
 .prullenbak-item-melder {
   font-family: var(--mono);
-  font-size: 0.6rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
 }
 
@@ -68,13 +68,13 @@
   text-align: center;
   padding: 20px;
   font-family: var(--mono);
-  font-size: 0.7rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
 }
 
 .prullenbak-info {
   margin-top: 8px;
   font-family: var(--mono);
-  font-size: 0.6rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
 }

@@ -48,7 +48,7 @@
 
 .detail-mono-block {
   font-family: var(--mono);
-  font-size: 0.7rem;
+  font-size: var(--font-size-xs);
   color: var(--text-secondary);
   line-height: 1.5;
 }
@@ -59,7 +59,7 @@
   grid-template-columns: repeat(2, 1fr);
   gap: 6px;
   font-family: var(--mono);
-  font-size: 0.75rem;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }
 
@@ -75,7 +75,7 @@
   border-radius: 8px;
   padding: 8px 10px;
   margin-top: 8px;
-  font-size: 0.75rem;
+  font-size: var(--font-size-sm);
 }
 
 .detail-weer-oordeel {
@@ -84,7 +84,7 @@
   border-radius: 6px;
   border: 1px solid;
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: var(--font-size-sm);
 }
 
 .detail-rfc3161-ok {
@@ -98,13 +98,13 @@
 .detail-rfc3161-geen {
   margin-top: 8px;
   font-family: var(--mono);
-  font-size: 0.6rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
 }
 
 .detail-perceel-frequentie {
   font-family: var(--mono);
-  font-size: 0.6rem;
+  font-size: var(--font-size-xs);
   margin-top: 8px;
 }
 
@@ -113,7 +113,7 @@
   flex-wrap: wrap;
   gap: 6px;
   font-family: var(--mono);
-  font-size: 0.6rem;
+  font-size: var(--font-size-xs);
   margin-top: 6px;
 }
 

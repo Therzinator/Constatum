@@ -118,7 +118,7 @@ export function GroepMeldingenLijst({ groepId, viewerTrustScore, viewerUserId, u
 
               {toon.melderInfo && !isEigen && m.melder_email && (
                 <div className="melding-card-meta mt-1">
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.6rem' }}>{melderCode(m.melder_email)}</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-xs)' }}>{melderCode(m.melder_email)}</span>
                 </div>
               )}
             </div>
@@ -127,7 +127,7 @@ export function GroepMeldingenLijst({ groepId, viewerTrustScore, viewerUserId, u
                 <button
                   type="button"
                   className="btn-outline"
-                  style={{ fontSize: '0.65rem', padding: '2px 10px', minHeight: 0, color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                  style={{ fontSize: 'var(--font-size-sm)', padding: '2px 10px', minHeight: 0, color: 'var(--danger)', borderColor: 'var(--danger)' }}
                   disabled={verwijderenId === m.id}
                   onClick={(e) => handleVerwijder(e, m.id)}
                 >

@@ -13,7 +13,7 @@
 
 .tijdlijn-count {
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
   margin-top: 6px;
 }
@@ -25,7 +25,7 @@
 
 .tijdlijn-modus-btn {
   font-family: var(--mono);
-  font-size: 0.6rem;
+  font-size: var(--font-size-sm);
   border-radius: 6px;
   padding: 4px 10px;
   cursor: pointer;
@@ -61,12 +61,12 @@
   border-radius: 8px;
   font-family: var(--sans);
   padding: 8px;
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
 }
 
 .tijdlijn-leeg {
   font-family: var(--mono);
-  font-size: 0.75rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
   text-align: center;
   padding: 32px 12px;

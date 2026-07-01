@@ -52,7 +52,7 @@
 }
 
 .handleiding-tekst {
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   line-height: 1.6;
   color: var(--text-secondary);
   white-space: pre-line;
@@ -82,13 +82,13 @@
   text-align: center;
 }
 .handleiding-grid-icoon { font-size: 1.4rem; margin-bottom: 4px; }
-.handleiding-grid-label { font-size: 0.75rem; color: var(--text-secondary); }
+.handleiding-grid-label { font-size: var(--font-size-sm); color: var(--text-secondary); }
 
 .handleiding-link-knop {
   background: none;
   border: none;
   color: var(--accent);
-  font-size: 0.8rem;
+  font-size: var(--font-size-sm);
   text-decoration: underline;
   cursor: pointer;
   padding: 0;
@@ -121,11 +121,11 @@
 .handleiding-cta {
   width: 100%;
   padding: 12px;
-  font-size: 0.95rem;
+  font-size: var(--font-size-base);
 }
 
 .handleiding-replay-link {
   text-align: center;
-  font-size: 0.7rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
 }

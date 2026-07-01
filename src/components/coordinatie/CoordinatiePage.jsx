@@ -272,7 +272,7 @@ export function CoordinatiePage({ user, thuislocatie, gebruikerRol }) {
               <div>
                 <span>{perceel}</span>
                 {stats.gemeenten?.size > 0 && (
-                  <span style={{ display: 'block', fontSize: '0.6rem', color: 'var(--text-muted)' }}>
+                  <span style={{ display: 'block', fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>
                     {[...stats.gemeenten].join(', ')}
                   </span>
                 )}
@@ -330,7 +330,7 @@ export function CoordinatiePage({ user, thuislocatie, gebruikerRol }) {
                 {(() => {
                   const tier = trustScoreTier(m.trustScore);
                   return (
-                    <span style={{ fontSize: '0.6rem', padding: '1px 6px', borderRadius: 9, background: tier.kleur, color: '#fff', fontWeight: 600 }}>
+                    <span style={{ fontSize: 'var(--font-size-xs)', padding: '1px 6px', borderRadius: 9, background: tier.kleur, color: '#0a0e17', fontWeight: 600 }}>
                       {tier.label}
                     </span>
                   );
