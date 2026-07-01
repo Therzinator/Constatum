@@ -14,8 +14,9 @@
 }
 
 .app-header-logo {
-  width: 62px;
-  height: 62px;
+  /* +25% (was 62px), op verzoek — samen met de titel/subtitel hieronder. */
+  width: 77.5px;
+  height: 77.5px;
   flex-shrink: 0;
 }
 
@@ -29,7 +30,8 @@
 .app-header-titel {
   font-family: var(--sans);
   font-weight: 800;
-  font-size: 2.1rem;
+  /* +25% (was 2.1rem), samen met logo/subtitel. */
+  font-size: 2.625rem;
   letter-spacing: -0.01em;
   color: var(--text-primary);
   overflow: hidden;
@@ -39,7 +41,8 @@
 
 .app-header-subtitel {
   font-family: var(--mono);
-  font-size: var(--font-size-sm);
+  /* +25% t.o.v. het font-size-sm-token, samen met logo/titel. */
+  font-size: calc(var(--font-size-sm) * 1.25);
   letter-spacing: 0.04em;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -64,14 +67,16 @@
     padding: 8px 12px;
   }
   .app-header-logo {
-    width: 44px;
-    height: 44px;
+    /* +25% (was 44px) */
+    width: 55px;
+    height: 55px;
   }
   .app-header-titel {
-    font-size: 1.4rem;
+    /* +25% (was 1.4rem) */
+    font-size: 1.75rem;
   }
   .app-header-subtitel {
-    font-size: var(--font-size-sm);
+    font-size: calc(var(--font-size-sm) * 1.25);
   }
 }
 

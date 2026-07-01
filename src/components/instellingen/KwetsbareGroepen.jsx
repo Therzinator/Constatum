@@ -68,6 +68,7 @@ export function KwetsbareGroepen({ user }) {
   };
 
   const handleOpslaan = async () => {
+    if (!user) return;
     if (!toestemming) {
       toon('Geef uitdrukkelijke toestemming voor verwerking van deze gezondheidsgegevens', 'error');
       return;
@@ -96,6 +97,7 @@ export function KwetsbareGroepen({ user }) {
   };
 
   const handleUitschakelen = async () => {
+    if (!user) return;
     if (!confirm('Kwetsbare-groepen-instelling uitschakelen? Toekomstige meldingen krijgen geen kwetsbare-groep-markering meer.')) return;
     setBezig(true);
     try {

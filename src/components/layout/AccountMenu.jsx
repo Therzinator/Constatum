@@ -15,7 +15,7 @@ import './AccountMenu.css';
 // (verwijderd om de identiteit van melders te beschermen, zie
 // docs/DECISIONS.md) — alleen het bereik waarbinnen andermans gedeelde
 // meldingen op Dashboard/Tijdlijn zichtbaar zijn, blijft instelbaar.
-export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, laadVanCloud, onUitloggen, onToonInlogscherm, onOpenHandleiding }) {
+export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, laadVanCloud, onUitloggen, onToonInlogscherm, onOpenHandleiding, onNavigeerFeedback }) {
   const [open, setOpen] = useState(false);
   const [lokaalBezig, setLokaalBezig] = useState(false);
   const [laatsteSyncResultaat, setLaatsteSyncResultaat] = useState(null); // 'ok' | 'fout' | null
@@ -103,6 +103,11 @@ export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, l
     onOpenHandleiding?.();
   };
 
+  const handleFeedback = () => {
+    setOpen(false);
+    onNavigeerFeedback?.();
+  };
+
   return (
     <div className="account-menu" ref={menuRef}>
       <button
@@ -172,6 +177,10 @@ export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, l
 
           <button type="button" role="menuitem" className="account-menu-item" onClick={handleHandleiding}>
             📖 Handleiding
+          </button>
+
+          <button type="button" role="menuitem" className="account-menu-item" onClick={handleFeedback}>
+            💬 Feedback &amp; vragen
           </button>
 
           {user && (

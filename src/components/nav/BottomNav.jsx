@@ -70,7 +70,7 @@ export function BottomNav({ pagina, onPaginaChange, gebruikerRol }) {
         >
           {ICONEN[naam] ? (
             <span
-              className="bottom-nav-icoon bottom-nav-icoon-img"
+              className={`bottom-nav-icoon bottom-nav-icoon-img bottom-nav-icoon-${naam}`}
               style={{ WebkitMaskImage: `url(${ICONEN[naam]})`, maskImage: `url(${ICONEN[naam]})` }}
             />
           ) : (

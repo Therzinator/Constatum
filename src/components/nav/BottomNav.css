@@ -79,6 +79,15 @@
   mask-position: center;
 }
 
+/* Dashboard/Export-broncodebestanden hebben zelf meer lege ruimte rond het
+   lijnwerk dan de andere icoontjes, waardoor ze bij gelijke box-grootte
+   optisch kleiner ogen — +15% t.o.v. de standaard 54px/44px als correctie. */
+.bottom-nav-icoon-dashboard,
+.bottom-nav-icoon-export {
+  width: 62px;
+  height: 62px;
+}
+
 /* Op smalle schermen, met 5-6 tabs naast elkaar, past een label op
    0.9rem (bv. "Dashboard") niet meer comfortabel binnen zijn eigen
    kolom — kleinere letter + minder padding voorkomt dat labels alsnog
@@ -95,5 +104,10 @@
   .bottom-nav-icoon-img {
     width: 44px;
     height: 44px;
+  }
+  .bottom-nav-icoon-dashboard,
+  .bottom-nav-icoon-export {
+    width: 51px;
+    height: 51px;
   }
 }

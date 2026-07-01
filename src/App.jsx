@@ -8,6 +8,7 @@ import { useThuislocatie } from './hooks/useThuislocatie.js'
 import { useGroepUitnodigingToken } from './hooks/useGroepUitnodigingToken.js'
 import { useNotificaties } from './hooks/useNotificaties.js'
 import { NotificatiePopup } from './components/ui/NotificatiePopup.jsx'
+import { ErrorBoundary } from './components/ui/ErrorBoundary.jsx'
 import { AppHeader } from './components/layout/AppHeader.jsx'
 import { AuthOverlay } from './components/auth/AuthOverlay.jsx'
 import { SyncStatusBar } from './components/sync/SyncStatusBar.jsx'
@@ -68,6 +69,20 @@ function App() {
     if (overlayWasZichtbaarRef.current && !isHandleidingGezien()) setHandleidingOpen(true)
   }, [auth.authOverlayVisible])
 
+  // Uitloggen terwijl je op een pagina staat die een ingelogde gebruiker
+  // veronderstelt (Coördinatie/Groepen laden data op basis van user.id)
+  // liet die pagina met een plotseling lege `user` doorrenderen — een van
+  // de mogelijke oorzaken van de crash-bij-uitloggen (2026-07-01, zie
+  // ErrorBoundary.jsx). Bewust GEEN effect op `!auth.user` — dat triggert
+  // ook voor een anonieme gebruiker die nooit inlogde (skip-flow) en zou
+  // die dan permanent uit de Groepen-tab houden. Alleen bij een
+  // daadwerkelijke uitlog-actie terugschakelen, zie handleUitloggen.
+  const handleUitloggen = useCallback(async () => {
+    await auth.logout()
+    setPagina('dashboard')
+    setActieveGroepId(null)
+  }, [auth])
+
   return (
     <>
       <AppHeader
@@ -76,9 +91,10 @@ function App() {
         syncNu={sync.syncNu}
         syncBezig={sync.syncBezig}
         laadVanCloud={sync.laadVanCloud}
-        onUitloggen={auth.logout}
+        onUitloggen={handleUitloggen}
         onToonInlogscherm={() => auth.setAuthOverlayVisible(true)}
         onOpenHandleiding={() => setHandleidingOpen(true)}
+        onNavigeerFeedback={() => naviGeerNaarPagina('feedback')}
       />
       <AuthOverlay auth={auth} uitnodiging={uitnodiging} />
       {handleidingOpen && <HandleidingModal onSluiten={() => setHandleidingOpen(false)} />}
@@ -87,6 +103,7 @@ function App() {
       <UpdateBanner />
       <InstallBanner />
 
+      <ErrorBoundary key={pagina} onFout={() => { auth.setAuthOverlayVisible(true); setPagina('dashboard'); setActieveGroepId(null) }}>
       <main className="app-inhoud">
       {pagina === 'dashboard' && (
         <DashboardPage
@@ -129,8 +146,7 @@ function App() {
           user={auth.user}
           laadVanCloud={sync.laadVanCloud}
           thuislocatie={thuislocatieApi.thuislocatie}
-          onUitloggen={auth.logout}
-          onNavigeerFeedback={() => naviGeerNaarPagina('feedback')}
+          onUitloggen={handleUitloggen}
         />
       )}
 
@@ -150,6 +166,7 @@ function App() {
         <GroepPage groepId={actieveGroepId} user={auth.user} onTerug={() => setActieveGroepId(null)} />
       )}
       </main>
+      </ErrorBoundary>
 
       <NotificatiePopup
         aantalOngelezen={notificaties.aantalOngelezen}

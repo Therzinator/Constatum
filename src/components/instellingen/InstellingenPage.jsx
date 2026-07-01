@@ -16,7 +16,7 @@ import '../export/ExportPage.css';
 // docs/index.html (regel 1569-1602), plus de account-/notificatie-
 // instellingen die tot nu toe tijdelijk in ExportPage stonden (zie
 // historische comment daar). ExportPage blijft puur export/backup/import.
-export function InstellingenPage({ meldingenApi, gebruikerRol, user, laadVanCloud, thuislocatie, onUitloggen, onNavigeerFeedback }) {
+export function InstellingenPage({ meldingenApi, gebruikerRol, user, laadVanCloud, thuislocatie, onUitloggen }) {
   const { meldingen, verwijderAlleMeldingenLokaal } = meldingenApi;
   const [idbCount, setIdbCount] = useState(null);
   const [melding, setMelding] = useState(null);
@@ -59,17 +59,6 @@ export function InstellingenPage({ meldingenApi, gebruikerRol, user, laadVanClou
       <Collapsible icoon="🛡️" titel="Kwetsbare personen in huishouden">
         <KwetsbareGroepen user={user} />
       </Collapsible>
-
-      <div className="card p-4">
-        <div className="section-label mb-3">💬 Feedback &amp; vragen</div>
-        <div className="export-card-beschrijving mb-3">
-          Technisch probleem gevonden, een vraag over een functie, of een
-          opmerking/compliment? Meld het hier.
-        </div>
-        <button type="button" className="btn-outline export-knop" onClick={onNavigeerFeedback}>
-          💬 Naar Feedback-paneel
-        </button>
-      </div>
 
       <Collapsible icoon="🧹" titel="Opslag opschonen" kleur="var(--info)">
         <div className="export-card-beschrijving mb-3">

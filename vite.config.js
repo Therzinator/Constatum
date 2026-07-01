@@ -4,6 +4,13 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Leesbare stacktraces in productie (bv. browser-devtools-console bij een
+  // gebruikersmelding) i.p.v. geminificeerde functienamen/regelnummers —
+  // toegevoegd na een crash-bij-uitloggen (2026-07-01) die alleen als
+  // "t is null" op een minified regel te herleiden was.
+  build: {
+    sourcemap: true
+  },
   plugins: [
     react(),
     VitePWA({
