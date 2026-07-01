@@ -240,6 +240,11 @@ oplevert.
   een geplakte URL. Bevestigd door de gebruiker dat dit het praktische
   mobiele probleem verhelpt — de onderliggende apex/www-redirect-vraag
   blijft theoretisch bestaan maar is geen actiepunt meer.
+- **Definitieve domeinkeuze bevestigd (2026-07-01)**: `www.constatum.nl`
+  blijft het primaire/canonical domein in Vercel (DNS voor het kale
+  `constatum.nl` is inmiddels wel gekoppeld en redirect door naar www,
+  zie NEXT_STEPS.md). `index.html`'s `og:url`/`og:image`/`twitter:image`
+  wijzen dus terecht naar `www.constatum.nl` — geen codewijziging nodig.
 
 ## Echte oorzaak "verdwenen" deel-icoon: vercel.json-rewrite ving ook statische bestanden (2026-07-01)
 

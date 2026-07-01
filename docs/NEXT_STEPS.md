@@ -54,9 +54,8 @@ de code, niet tegen het geheugen van een eerdere sessie.
   gebruikers hierdoor onterecht geraakt worden (te streng) of dat
   duidelijke misbruikpatronen er juist doorheen glippen (te soepel), en
   stel bij in `fn_entries_set_visibility` indien nodig.
-- **Domein en externe accounts bijwerken naar constatum.nl**:
-  - DNS constatum.nl koppelen aan Vercel
-  - Vercel project hernoemen / domeinkoppeling instellen
+- **Externe accounts bijwerken naar constatum.nl** (DNS-koppeling en
+  Vercel-projectnaam/domeinkoppeling zijn al gedaan, 2026-07-01):
   - E-mailadressen `info@constatum.nl` en `privacy@constatum.nl` aanmaken
   - Drie .docx juridische documenten (spuitregisterbrief, AV, privacy) herschrijven
 
