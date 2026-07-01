@@ -15,7 +15,7 @@ import './AccountMenu.css';
 // (verwijderd om de identiteit van melders te beschermen, zie
 // docs/DECISIONS.md) — alleen het bereik waarbinnen andermans gedeelde
 // meldingen op Dashboard/Tijdlijn zichtbaar zijn, blijft instelbaar.
-export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, laadVanCloud, onUitloggen }) {
+export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, laadVanCloud, onUitloggen, onToonInlogscherm, onOpenHandleiding }) {
   const [open, setOpen] = useState(false);
   const [lokaalBezig, setLokaalBezig] = useState(false);
   const [laatsteSyncResultaat, setLaatsteSyncResultaat] = useState(null); // 'ok' | 'fout' | null
@@ -93,6 +93,16 @@ export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, l
     onUitloggen?.();
   };
 
+  const handleToonInlogscherm = () => {
+    setOpen(false);
+    onToonInlogscherm?.();
+  };
+
+  const handleHandleiding = () => {
+    setOpen(false);
+    onOpenHandleiding?.();
+  };
+
   return (
     <div className="account-menu" ref={menuRef}>
       <button
@@ -160,9 +170,19 @@ export function AccountMenu({ user, onNavigeerInstellingen, syncNu, syncBezig, l
             ⚙️ Mijn gegevens &amp; instellingen
           </button>
 
+          <button type="button" role="menuitem" className="account-menu-item" onClick={handleHandleiding}>
+            📖 Handleiding
+          </button>
+
           {user && (
             <button type="button" role="menuitem" className="account-menu-item account-menu-uitloggen" onClick={handleUitloggen}>
               🚪 Uitloggen
+            </button>
+          )}
+
+          {!user && (
+            <button type="button" role="menuitem" className="account-menu-item" onClick={handleToonInlogscherm}>
+              🔑 Terug naar inlogscherm
             </button>
           )}
 

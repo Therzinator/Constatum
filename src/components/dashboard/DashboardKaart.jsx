@@ -105,6 +105,7 @@ function natura2000PopupHtml(props) {
   const sitecodes = [props.sitecodeH, props.sitecodeV].filter((c) => c?.trim()).join(' · ');
 
   return `<div class="dashboard-kaart-natura-popup">
+    <button type="button" class="dashboard-kaart-popup-close-btn" aria-label="Sluiten">×</button>
     <div class="dashboard-kaart-natura-popup-titel">🌳 ${naam}</div>
     <div class="dashboard-kaart-natura-popup-rij">${type}</div>
     ${sitecodes ? `<div class="dashboard-kaart-natura-popup-rij">Sitecode: ${sitecodes}</div>` : ''}
@@ -128,6 +129,7 @@ function perceelPopupHtml(props, bestemming) {
   const grootte = props.kadastraleGrootteWaarde ?? props.grootte;
 
   return `<div class="dashboard-kaart-perceel-popup">
+    <button type="button" class="dashboard-kaart-popup-close-btn" aria-label="Sluiten">×</button>
     <div class="dashboard-kaart-perceel-popup-titel">📐 Kadastraal perceel</div>
     ${perceelId ? `<div class="dashboard-kaart-perceel-popup-rij">${perceelId}</div>` : ''}
     ${grootte != null ? `<div class="dashboard-kaart-perceel-popup-rij">Oppervlakte: ${grootte} m²</div>` : ''}
@@ -246,6 +248,12 @@ export function DashboardKaart({ meldingen, thuislocatie, gebruikerRol, onMeldin
     overlayEl.className = 'dashboard-kaart-popup';
     const overlay = new Overlay({ element: overlayEl, offset: [0, -12], positioning: 'bottom-center', stopEvent: true });
     overlayRef.current = overlay;
+    // Eén gedelegeerde listener i.p.v. na elke innerHTML-vervanging opnieuw
+    // een onclick te zetten — nodig omdat de perceel-popup zijn HTML een
+    // tweede keer vervangt zodra de (asynchrone) bestemming binnenkomt.
+    overlayEl.addEventListener('click', (e) => {
+      if (e.target.closest('.dashboard-kaart-popup-close-btn')) overlay.setPosition(undefined);
+    });
 
     const map = new Map({
       target: containerRef.current,

@@ -16,7 +16,7 @@ import '../export/ExportPage.css';
 // docs/index.html (regel 1569-1602), plus de account-/notificatie-
 // instellingen die tot nu toe tijdelijk in ExportPage stonden (zie
 // historische comment daar). ExportPage blijft puur export/backup/import.
-export function InstellingenPage({ meldingenApi, gebruikerRol, user, laadVanCloud, thuislocatie, onOpenHandleiding, onUitloggen, onNavigeerFeedback }) {
+export function InstellingenPage({ meldingenApi, gebruikerRol, user, laadVanCloud, thuislocatie, onUitloggen, onNavigeerFeedback }) {
   const { meldingen, verwijderAlleMeldingenLokaal } = meldingenApi;
   const [idbCount, setIdbCount] = useState(null);
   const [melding, setMelding] = useState(null);
@@ -70,12 +70,6 @@ export function InstellingenPage({ meldingenApi, gebruikerRol, user, laadVanClou
           💬 Naar Feedback-paneel
         </button>
       </div>
-
-      <Collapsible icoon="🌿" titel="Over Constatum">
-        <button type="button" className="btn-outline export-knop" onClick={onOpenHandleiding}>
-          📖 Handleiding opnieuw bekijken
-        </button>
-      </Collapsible>
 
       <Collapsible icoon="🧹" titel="Opslag opschonen" kleur="var(--info)">
         <div className="export-card-beschrijving mb-3">

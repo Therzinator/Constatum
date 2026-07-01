@@ -16,6 +16,10 @@ export function AuthOverlay({ auth, uitnodiging }) {
   const [signupInfo, setSignupInfo] = useState(null);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [voorwaardenOpen, setVoorwaardenOpen] = useState(false);
+  // Verplichte acceptatie vóór eerste gebruik (registreren óf lokaal
+  // overslaan) — bestaande gebruikers die inloggen hebben dit al bij hun
+  // oorspronkelijke registratie geaccepteerd, dus die knop blijft ongated.
+  const [akkoord, setAkkoord] = useState(false);
 
   const {
     authOverlayVisible,
@@ -63,7 +67,7 @@ export function AuthOverlay({ auth, uitnodiging }) {
           <img src={appIcon} alt="Constatum" className="auth-app-icon" />
           <div className="auth-branding-tekst">
             <div className="auth-title">Constatum</div>
-            <div className="auth-sub">GEOGRAFISCHE WAARNEMINGEN</div>
+            <div className="auth-sub">GEOGRAFISCH LOGBOEK</div>
           </div>
         </div>
 
@@ -129,28 +133,44 @@ export function AuthOverlay({ auth, uitnodiging }) {
           {authError && <div className="auth-error" role="alert">{authError}</div>}
           {signupInfo && <div className="auth-info">{signupInfo}</div>}
 
-          <button type="submit" className="btn-primary auth-submit" disabled={authBusy}>
-            {authBusy
-              ? (authMode === 'login' ? 'Inloggen...' : 'Registreren...')
-              : (authMode === 'login' ? 'Inloggen' : 'Registreren')}
-          </button>
-
-          {authMode === 'signup' && (
-            <div className="auth-consent">
-              Door te registreren gaat u akkoord met de{' '}
+          <label className="auth-consent auth-consent-checkbox">
+            <input
+              type="checkbox"
+              checked={akkoord}
+              onChange={(e) => setAkkoord(e.target.checked)}
+            />
+            <span>
+              Ik ga akkoord met de{' '}
               <button type="button" className="auth-consent-link" onClick={(e) => { e.preventDefault(); setVoorwaardenOpen(true); }}>
                 Algemene Voorwaarden
               </button>{' '}
-              en heeft u de{' '}
+              en heb de{' '}
               <button type="button" className="auth-consent-link" onClick={(e) => { e.preventDefault(); setPrivacyOpen(true); }}>
                 Privacyverklaring
               </button>{' '}
               gelezen.
-            </div>
-          )}
+            </span>
+          </label>
+
+          <button
+            type="submit"
+            className="btn-primary auth-submit"
+            disabled={authBusy || (authMode === 'signup' && !akkoord)}
+            title={authMode === 'signup' && !akkoord ? 'Accepteer eerst de Algemene Voorwaarden en Privacyverklaring' : undefined}
+          >
+            {authBusy
+              ? (authMode === 'login' ? 'Inloggen...' : 'Registreren...')
+              : (authMode === 'login' ? 'Inloggen' : 'Registreren')}
+          </button>
         </form>
 
-        <button type="button" className="auth-skip" onClick={skip}>
+        <button
+          type="button"
+          className="auth-skip"
+          onClick={skip}
+          disabled={!akkoord}
+          title={!akkoord ? 'Accepteer eerst de Algemene Voorwaarden en Privacyverklaring' : undefined}
+        >
           Overslaan, alleen lokaal werken (geen sync)
         </button>
       </div>

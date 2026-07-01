@@ -77,6 +77,8 @@ function App() {
         syncBezig={sync.syncBezig}
         laadVanCloud={sync.laadVanCloud}
         onUitloggen={auth.logout}
+        onToonInlogscherm={() => auth.setAuthOverlayVisible(true)}
+        onOpenHandleiding={() => setHandleidingOpen(true)}
       />
       <AuthOverlay auth={auth} uitnodiging={uitnodiging} />
       {handleidingOpen && <HandleidingModal onSluiten={() => setHandleidingOpen(false)} />}
@@ -127,7 +129,6 @@ function App() {
           user={auth.user}
           laadVanCloud={sync.laadVanCloud}
           thuislocatie={thuislocatieApi.thuislocatie}
-          onOpenHandleiding={() => setHandleidingOpen(true)}
           onUitloggen={auth.logout}
           onNavigeerFeedback={() => naviGeerNaarPagina('feedback')}
         />

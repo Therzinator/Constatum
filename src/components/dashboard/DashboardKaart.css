@@ -164,7 +164,8 @@
 .dashboard-kaart-popup-rij:hover { background: var(--bg-secondary); }
 
 .dashboard-kaart-natura-popup {
-  padding: 8px 10px;
+  position: relative;
+  padding: 8px 24px 8px 10px;
   max-width: 220px;
 }
 
@@ -181,9 +182,26 @@
 }
 
 .dashboard-kaart-perceel-popup {
-  padding: 8px 10px;
+  position: relative;
+  padding: 8px 24px 8px 10px;
   max-width: 220px;
 }
+
+.dashboard-kaart-popup-close-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #64748b;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.dashboard-kaart-popup-close-btn:hover { color: #1a1a2e; }
 
 .dashboard-kaart-perceel-popup-titel {
   font-weight: 700;

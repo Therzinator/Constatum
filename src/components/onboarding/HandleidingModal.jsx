@@ -137,7 +137,7 @@ Voor situaties waarin je wilt weten welk middel er precies is gespoten, kun je v
             <button type="button" className="btn-primary handleiding-cta" onClick={sluiten}>
               Aan de slag →
             </button>
-            <div className="handleiding-replay-link">Handleiding later opnieuw bekijken via Instellingen</div>
+            <div className="handleiding-replay-link">Handleiding later opnieuw bekijken via het accountmenu (tandwiel rechtsboven)</div>
           </>
         )}
 

@@ -128,10 +128,31 @@
   border: none;
   width: 100%;
 }
+.auth-skip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  text-decoration: none;
+}
 
 .auth-consent {
   margin-top: 10px;
   text-align: center;
+}
+
+.auth-consent-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+  font-family: var(--sans);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.4;
+  cursor: pointer;
+}
+.auth-consent-checkbox input[type="checkbox"] {
+  margin-top: 3px;
+  flex-shrink: 0;
 }
 
 .auth-consent-link {
