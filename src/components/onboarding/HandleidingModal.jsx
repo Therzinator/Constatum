@@ -3,7 +3,7 @@ import { markeerHandleidingGezien } from '../../lib/onboarding/handleidingStatus
 import { PrivacyVerklaringModal } from './PrivacyVerklaringModal.jsx';
 import './HandleidingModal.css';
 
-const AANTAL_STAPPEN = 7;
+const AANTAL_STAPPEN = 6;
 
 // Welkomst-/handleiding-wizard. Verschijnt automatisch bij de eerste keer
 // dat de app wordt gebruikt (zie App.jsx, gate op handleidingStatus.js) en
@@ -115,19 +115,6 @@ Voor situaties waarin je wilt weten welk middel er precies is gespoten, kun je v
         )}
 
         {stap === 5 && (
-          <>
-            <div className="handleiding-titel">Rollen</div>
-            <div className="handleiding-tekst">
-              {`De meeste gebruikers hebben geen bijzondere rol. Twee uitzonderingen:
-
-• Coördinator: kan waarnemingen modereren en heeft toegang tot geaggregeerde overzichten, maar krijgt geen toegang tot het exporteren van persoonsgegevens van anderen.
-
-• Beheerder: volledige toegang, inclusief het herstellen van verwijderde waarnemingen en het exporteren van gebiedsdossiers.`}
-            </div>
-          </>
-        )}
-
-        {stap === 6 && (
           <>
             <div className="handleiding-titel">Vragen of problemen</div>
             <div className="handleiding-tekst">
