@@ -95,23 +95,28 @@ de code, niet tegen het geheugen van een eerdere sessie.
   `user_roles.role = 'coordinator'` moet handmatig gezet worden (geen UI
   hiervoor) om de CoördinatiePage-toegang/Heatmap-toggle te verifiëren.
   De CHECK-constraint (migratie 0026) staat en laat `'coordinator'` toe.
-- **Icon_*.png-bestanden (`src/assets/ui-icons/`) waren oorspronkelijk
-  RGB zonder alphakanaal — gerepareerd door alpha af te leiden uit
-  pixelhelderheid (achtergrond zwart -> transparant), zodat de bestaande
-  currentColor-mask-techniek (BottomNav.jsx) ze als lijn-iconen i.p.v.
-  effen blokken toont. Als er ooit nieuwe `icon_*`-bestanden aangeleverd
-  worden: controleer eerst of ze wél een alphakanaal hebben (PNG color
-  type 6), anders is dezelfde fix opnieuw nodig.
-- **Migraties 0030 t/m 0035 uitvoeren in Supabase SQL-editor** (in volgorde):
-  - **0030**: RLS op `attachments`-tabel + Storage-policies `spuitlog-bijlagen`.
-    Test daarna: coordinator/admin opent melding van ander → foto's laden?
-    Groepslid met score ≥80 opent groepsmelding van ander → foto's laden?
-  - **0031**: `fn_groep_lid_trust_scores` (SECURITY DEFINER).
-  - **0032**: `user_profiles`-aanmaak-trigger + backfill bestaande gebruikers.
-  - **0033**: `groep_leden.groep_trust_score`-kolom ontkoppelen van globale score.
-  - **0034**: kwetsbare groepen (AVG art. 9) profielkolommen.
-  - **0035**: pg_cron-job voor auto-cleanup verlopen uitnodigingslinks (dagelijks
-    04:00 UTC). Controleer na uitvoeren: `SELECT * FROM cron.job WHERE jobname = 'cleanup_verlopen_uitnodigingen';`
+- **Migratie 0035 nog uitvoeren in Supabase SQL-editor** (pg_cron-job voor
+  auto-cleanup verlopen uitnodigingslinks, dagelijks 04:00 UTC).
+  **Status geverifieerd 2026-07-01** door de productiedatabase rechtstreeks
+  te bevragen (Supabase-MCP, read-only): 0030 t/m 0034 zijn al toegepast
+  (RLS/storage-policies, trust-score-functies, user_profiles-trigger,
+  groep_trust_score-kolom, kwetsbare-groepen-kolommen — allemaal
+  bevestigd aanwezig). Alleen 0035 ontbreekt nog. De MCP-verbinding is
+  hard read-only (zowel `apply_migration` als een schrijf-`execute_sql`
+  worden geweigerd) — dit statement moet dus alsnog handmatig:
+  ```sql
+  SELECT cron.schedule(
+    'cleanup_verlopen_uitnodigingen',
+    '0 4 * * *',
+    $$
+    DELETE FROM groep_uitnodigingen
+    WHERE
+      ingetrokken = true
+      OR verloopt_op < NOW() - INTERVAL '24 hours';
+    $$
+  );
+  ```
+  Controleer na uitvoeren: `SELECT * FROM cron.job WHERE jobname = 'cleanup_verlopen_uitnodigingen';`
 - **Provincie/gemeente backfillen-knop draaien op CoordinatiePage.**
   Migratie 0013 (`gemeente`/`provincie`-kolommen op `entries`) is
   uitgevoerd — nieuwe meldingen krijgen deze velden automatisch.
