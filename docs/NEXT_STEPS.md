@@ -35,11 +35,14 @@ de code, niet tegen het geheugen van een eerdere sessie.
   groepen met `deel_meldingen` aan, de checkbox-toggle voegt/verwijdert
   daadwerkelijk een `entries_groepen`-rij, en de melding verschijnt
   daarna in de `GroepMeldingenLijst` van die groep.
-- **App-icoon (2026-07-01) op een echt mobiel toestel controleren** na
-  regeneratie uit `icon_background.png` — geverifieerd dat de PNG's
-  zelf volledig ondoorzichtig zijn (`sharp isOpaque: true`), maar het
-  "Zet op beginscherm"-resultaat zelf is niet op een fysiek toestel
-  getest.
+- **OG-deelicoon (2026-07-01) live verifiëren na deploy.** De
+  waarschijnlijke oorzaak van het "verdwenen" deelicoon (relatief pad
+  i.p.v. absolute URL) is gecorrigeerd, maar dit is niet te testen
+  zonder een echte productie-deploy + een link delen in WhatsApp/
+  Telegram/Discord/iMessage. Gebruik zo nodig een OG-debugtool
+  (bv. Facebook Sharing Debugger of metatags.io) om te controleren of
+  `https://www.constatum.nl/icons/icon-512.png` daadwerkelijk als
+  preview-afbeelding wordt opgepikt.
 - **Een gebruiker een `coordinator`-rol toekennen om te testen.** Reden:
   migraties 0008-0011 zijn op 2026-06-21 uitgevoerd (bevestigd, geen
   foutmeldingen), maar er is nog geen account met de rol `coordinator`;

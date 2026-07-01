@@ -67,9 +67,14 @@
 .bottom-nav-icoon-img {
   /* Groter dan de 1.5x van de emoji-tabs (1.1rem -> 1.65rem ≈ 26px) — bij
      de algemene schaalslag alleen was dit eigen lijn-icoon nog steeds
-     moeilijk te onderscheiden, dus hier extra opgehoogd (36px -> 54px). */
+     moeilijk te onderscheiden, dus hier extra opgehoogd (36px -> 54px).
+     Hoogte van de doos is bewust gelijk aan de grootste variant hieronder
+     (62px, Dashboard/Export) — het icoon zelf blijft 54px breed/hoog
+     (mask-size: contain + mask-position: center houdt het gecentreerd
+     binnen de hogere doos), maar zo eindigt elk label op dezelfde
+     verticale positie, ongeacht welk icoon groter is. */
   width: 54px;
-  height: 54px;
+  height: 62px;
   background-color: currentColor;
   -webkit-mask-size: contain;
   mask-size: contain;
@@ -81,7 +86,8 @@
 
 /* Dashboard/Export-broncodebestanden hebben zelf meer lege ruimte rond het
    lijnwerk dan de andere icoontjes, waardoor ze bij gelijke box-grootte
-   optisch kleiner ogen — +15% t.o.v. de standaard 54px/44px als correctie. */
+   optisch kleiner ogen — +15% t.o.v. de standaard 54px/44px als correctie.
+   Vult hier de volledige (al even hoge) doos, geen aparte centrering nodig. */
 .bottom-nav-icoon-dashboard,
 .bottom-nav-icoon-export {
   width: 62px;
@@ -106,8 +112,10 @@
     letter-spacing: -0.05em;
   }
   .bottom-nav-icoon-img {
+    /* Zelfde uitlijn-truc als de basisregel — doos-hoogte gelijk aan de
+       grootste variant (51px), icoon zelf blijft 44px. */
     width: 44px;
-    height: 44px;
+    height: 51px;
   }
   .bottom-nav-icoon-dashboard,
   .bottom-nav-icoon-export {

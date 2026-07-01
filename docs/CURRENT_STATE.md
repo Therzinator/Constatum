@@ -4,7 +4,33 @@ Momentopname. Dit bestand veroudert sneller dan DOMAIN_KNOWLEDGE.md/
 DECISIONS.md — bij twijfel altijd verifiëren tegen de code (`git log`,
 grep), niet blind vertrouwen op een oude snapshot.
 
-Laatst bijgewerkt: 2026-07-01 (post-COVID kwetsbare groep, auto-cleanup uitnodigingen, logout→loginscherm, PWA install-banner, contactadressen AV/Privacy, app-iconen vernieuwd, typografie-audit + font-size-tokensysteem, GitHub-repo hernoemd naar Constatum, crash-bij-uitloggen gefixt + ErrorBoundary, Dashboard-groepsfilter, Groepen Recent/Tijdlijn, app-iconen opnieuw uit icon_background.png, achteraf melding delen met groep, AV v2.0 + neutrale terminologie in Handleiding, opruiming + BottomNav-smalscherm-fix, kaartweergave groepsfilter).
+Laatst bijgewerkt: 2026-07-01 (post-COVID kwetsbare groep, auto-cleanup uitnodigingen, logout→loginscherm, PWA install-banner, contactadressen AV/Privacy, app-iconen vernieuwd, typografie-audit + font-size-tokensysteem, GitHub-repo hernoemd naar Constatum, crash-bij-uitloggen gefixt + ErrorBoundary, Dashboard-groepsfilter, Groepen Recent/Tijdlijn, app-iconen opnieuw uit icon_background.png, achteraf melding delen met groep, AV v2.0 + neutrale terminologie in Handleiding, opruiming + BottomNav-smalscherm-fix, kaartweergave groepsfilter, BottomNav-tekst-uitlijning, icoon-marge + OG-image-fix).
+
+## BottomNav-tekst-uitlijning + app-icoon-marge + OG-image-fix (2026-07-01)
+
+- **BottomNav-labels stonden niet uitgelijnd**: Dashboard/Export hebben
+  een groter icoon (62px/51px) dan de rest (54px/44px) — in de
+  flex-column-layout duwde dat hun label lager dan de andere tabs.
+  Opgelost door de icoon-*doos* overal even hoog te maken (`height`
+  gelijk aan de grootste variant) terwijl de daadwerkelijke iconen hun
+  eigen breedte/grootte houden — `mask-position: center` centreert het
+  kleinere icoon binnen de hogere doos. Icoon-grootte/-positie zelf is
+  niet gewijzigd, alleen de doos eromheen.
+- **App-icoon 10% teruggeschaald**: de vorige "randvullende" cover-fit
+  sneed de buitenste cirkelrand van het logo net af. Vóór het
+  cover-resizen wordt nu 10% padding toegevoegd (berekend op het al
+  bijgesneden logo) — precies genoeg om de aspect-ratio-crop van
+  `cover` op te vangen zonder de cirkel zelf aan te snijden.
+- **OG-deelicoon "verdwenen" — waarschijnlijke oorzaak**: `og:image`/
+  `twitter:image` in `index.html` gebruikten een RELATIEF pad
+  (`/icons/icon-512.png`). Veel link-preview-crawlers (WhatsApp e.a.)
+  resolven relatieve OG-image-URL's onbetrouwbaar. Omgezet naar
+  absolute URL's (`https://www.constatum.nl/icons/icon-512.png`,
+  domein bevestigd uit de crash-log-URL van eerder vandaag) + `og:url`/
+  `og:image:type`/`og:image:width`/`og:image:height` toegevoegd voor
+  betere compatibiliteit. **Niet live geverifieerd** (vereist een
+  productie-deploy + een echte share-test in WhatsApp/Telegram/enz.),
+  zie NEXT_STEPS.md.
 
 ## Kaartweergave voor het groepsfilter (2026-07-01)
 
