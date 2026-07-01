@@ -138,7 +138,16 @@ export async function sbSyncMeldingenBatch(meldingen, user) {
 // Komt overeen met laadVanSupabase() — UI-feedback (toonSyncBalk/toast/
 // renderTimeline/updateDashboard) is hier weggelaten; de aanroeper (de
 // useSupabaseSync-hook) krijgt een resultaat terug en regelt zelf de UI.
-export async function laadVanSupabase(user, force = false) {
+//
+// deleteQueue: ID's die lokaal al verwijderd zijn maar waarvan de
+// server-side soft-delete (nog) niet is bevestigd (zie useMeldingen.js —
+// verwijderMeldingLokaal() haalt een melding DIRECT uit localStorage,
+// los van of de 'deleted: true'-update al is gelukt). Zonder deze check
+// zet elke reload (nieuwe melding → auto-syncNu() → Realtime-event →
+// gedebouncede laadVanCloud()) zo'n melding gewoon terug: de entry staat
+// server-side nog op deleted=false, en omdat hij niet meer in lokaalMap
+// zit wordt hij behandeld als "nieuw" i.p.v. "in afwachting van verwijdering".
+export async function laadVanSupabase(user, force = false, deleteQueue = []) {
   const sb = sbClient();
   if (!sb || !user) throw new Error('Niet ingelogd');
   if (!navigator.onLine) throw new Error('Offline');
@@ -168,9 +177,14 @@ export async function laadVanSupabase(user, force = false) {
     query = query.gte('updated_at', lastSyncAt);
   }
 
-  const { data: entries, error } = await query;
+  const { data: opgehaald, error } = await query;
 
   if (error) throw error;
+
+  // Sla lokaal-in-behandeling-zijnde verwijderingen over — zie toelichting
+  // bij de functie-declaratie hierboven.
+  const deleteSet = new Set(deleteQueue);
+  const entries = deleteSet.size ? opgehaald.filter((e) => !deleteSet.has(e.id)) : opgehaald;
 
   const lokaal    = getMeldingen();
   const lokaalMap = new Map(lokaal.map(m => [m.id, m]));

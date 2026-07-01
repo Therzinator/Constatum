@@ -29,18 +29,15 @@ de code, niet tegen het geheugen van een eerdere sessie.
 
 ## Middel
 
-- **Sentry-account/project aanmaken + DSN instellen (2026-07-01).** De
-  code-integratie is klaar (`@sentry/react` toegevoegd, `lib/monitoring/
-  sentry.js`, aanroep in `main.jsx`, `ErrorBoundary.jsx` stuurt gevangen
-  render-fouten door) maar staat **uit** zolang er geen DSN is: `initSentry()`
-  doet niets als `VITE_SENTRY_DSN` ontbreekt (zelfde patroon als
-  `SUPABASE_ENABLED`), dus dit breekt niets als het overgeslagen wordt.
-  Om te activeren: account/project aanmaken op sentry.io (of self-hosted/
-  EU-region, een keuze i.v.m. AVG), en de env var `VITE_SENTRY_DSN` zetten
-  in Vercel (en lokaal in `.env` als je fouten ook lokaal wil zien — staat
-  sowieso uit op `localhost`, zie `IS_LOCALHOST`-check in `sentry.js`).
-  Bewust nog GEEN performance-tracing/session-replay geactiveerd (zie
-  DECISIONS.md) — dat is een aparte, latere keuze.
+- **Sentry live in productie testen met een echte fout (2026-07-01).**
+  Account/project aangemaakt (via GitHub-login, EU-regio: `ingest.de.sentry.io`),
+  `VITE_SENTRY_DSN` gezet in Vercel + lokale `.env`, en geredeployed. Nog
+  niet bevestigd dat er daadwerkelijk een fout aankomt in het Sentry-
+  dashboard (geen manier om dit vanuit deze sessie te verifiëren — Sentry-
+  dashboard-toegang is niet beschikbaar). Test: forceer een render-fout op
+  de live site (of gebruik `Sentry.captureException(new Error('test'))`
+  tijdelijk in de devtools-console op de live URL) en controleer of hij
+  verschijnt in het Sentry-project.
 - **API-niveau rate limiting tegen volumetrisch misbruik.** Reden: de
   huidige misbruikdetectie (migraties 0003/0005) is reactief (markeert
   achteraf als under_review/shadow), niet preventief. Vereist een

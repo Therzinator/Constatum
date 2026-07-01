@@ -120,13 +120,17 @@ export function useSupabaseSync(user, meldingenApi) {
   }, [user, syncBezig, offlineQueue, deleteQueue, voegToeAanQueue, verwijderUitQueue, herlaadMeldingen]);
 
   // Laad meldingen van Supabase (andere apparaten)
+  // deleteQueue meegeven is nodig om te voorkomen dat een lokaal net
+  // verwijderde melding waarvan de server-side soft-delete nog niet is
+  // bevestigd, door deze reload wordt teruggezet (zie toelichting bij
+  // laadVanSupabase() in lib/supabase/entries.js).
   const laadVanCloud = useCallback(async (force = false) => {
     if (!user) throw new Error('Niet ingelogd');
     if (!navigator.onLine) throw new Error('Offline');
-    const resultaat = await laadVanSupabaseData(user, force);
+    const resultaat = await laadVanSupabaseData(user, force, deleteQueue);
     herlaadMeldingen();
     return resultaat;
-  }, [user, herlaadMeldingen]);
+  }, [user, herlaadMeldingen, deleteQueue]);
 
   // Stabiele ref zodat startRealtime laadVanCloud kan aanroepen zonder
   // laadVanCloud in zijn eigen useCallback-deps op te nemen. Dat was de

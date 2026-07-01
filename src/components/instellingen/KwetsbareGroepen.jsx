@@ -16,13 +16,21 @@ const SUBSTANTIEEL = [
   { id: 'immunosuppressie', label: 'Immunosuppressieve behandeling' },
   { id: 'neurologisch', label: 'Neurologische aandoening (Parkinson, MS, ALS)' },
   { id: 'mcs', label: 'Multipele chemische sensitiviteit (MCS)' },
-  { id: 'post_covid', label: 'Post-COVID / Long COVID' },
+  {
+    id: 'post_covid',
+    label: 'Post-COVID / Long COVID',
+    toelichting: 'Aanhoudend verminderde weerstand/afweerfunctie na een doorgemaakte COVID-19-infectie — maakt extra vatbaar voor gezondheidseffecten van blootstelling aan bestrijdingsmiddelen.'
+  },
 ];
 
 const ALLE_IDS = [...STERK, ...SUBSTANTIEEL].map((c) => c.id);
 
 function labelVoorId(id) {
   return [...STERK, ...SUBSTANTIEEL].find((c) => c.id === id)?.label ?? id;
+}
+
+function toelichtingVoorId(id) {
+  return [...STERK, ...SUBSTANTIEEL].find((c) => c.id === id)?.toelichting ?? null;
 }
 
 // AVG art. 9 — bijzondere categorie: gezondheidsgegevens. Vereist uitdrukkelijke
@@ -129,6 +137,11 @@ export function KwetsbareGroepen({ user }) {
             {geselecteerd.map((id) => (
               <li key={id} style={{ fontSize: 'var(--font-size-sm)', marginBottom: 2 }}>
                 {labelVoorId(id)}
+                {toelichtingVoorId(id) && (
+                  <span style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
+                    {toelichtingVoorId(id)}
+                  </span>
+                )}
               </li>
             ))}
           </ul>
@@ -211,13 +224,21 @@ export function KwetsbareGroepen({ user }) {
             Substantieel bewijs
           </div>
           {SUBSTANTIEEL.map((c) => (
-            <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, cursor: 'pointer' }}>
+            <label key={c.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8, cursor: 'pointer' }}>
               <input
                 type="checkbox"
                 checked={conceptKeuze.includes(c.id)}
                 onChange={() => toggleCategorie(c.id)}
+                style={{ marginTop: 2, flexShrink: 0 }}
               />
-              <span style={{ fontSize: 'var(--font-size-sm)' }}>{c.label}</span>
+              <span>
+                <span style={{ fontSize: 'var(--font-size-sm)' }}>{c.label}</span>
+                {c.toelichting && (
+                  <span style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginTop: 2 }}>
+                    {c.toelichting}
+                  </span>
+                )}
+              </span>
             </label>
           ))}
         </>

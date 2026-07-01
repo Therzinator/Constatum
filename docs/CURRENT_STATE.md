@@ -6,6 +6,38 @@ grep), niet blind vertrouwen op een oude snapshot.
 
 Laatst bijgewerkt: 2026-07-01 (post-COVID kwetsbare groep, auto-cleanup uitnodigingen, logout→loginscherm, PWA install-banner, contactadressen AV/Privacy, app-iconen vernieuwd, typografie-audit + font-size-tokensysteem, GitHub-repo hernoemd naar Constatum, crash-bij-uitloggen gefixt + ErrorBoundary, Dashboard-groepsfilter, Groepen Recent/Tijdlijn, app-iconen opnieuw uit icon_background.png, achteraf melding delen met groep, AV v2.0 + neutrale terminologie in Handleiding, opruiming + BottomNav-smalscherm-fix, kaartweergave groepsfilter, BottomNav-tekst-uitlijning, icoon-marge + OG-image-fix, Dashboard-groepsfilter herzien naar DashboardKaart, vercel.json-rewrite-bug voor statische bestanden gefixt, WhatsApp-preview-onderzoek: apex-domein-redirect, deel-app-knop in header, gebeurtenissen-clustering-bug in Groepen gefixt, clustering.js perceel/GPS-OR-bug gefixt, BottomNav-iconen gevuld i.p.v. lijnstijl, Instellingen/Delen-iconen ook gevuld, uitnodigingstekst appnaam, rollen-uitleg uit handleiding, AV/privacy-akkoord-vinkje onthouden).
 
+## Bug gefixt: verwijderde meldingen kwamen terug na een volgende sync (2026-07-01)
+
+Root cause: `verwijderMeldingLokaal()` (`useMeldingen.js`) haalt een
+melding DIRECT en onvoorwaardelijk uit `localStorage`, los van of de
+server-side soft-delete (`entries.deleted = true`) al gelukt is. Zolang
+die netwerk-call nog niet is bevestigd, staat de melding remote nog op
+`deleted: false`. `laadVanSupabase()` (`lib/supabase/entries.js`) checkte
+bij het mergen van server-data alleen of een ID al in de lokale
+`localStorage` stond — een net-verwijderde melding werd daardoor als
+"nieuw" behandeld en teruggezet zodra er een reload liep. Dat gebeurde
+concreet vaak vlak na het opslaan van een nieuwe melding: die triggert
+automatisch `syncNu()` (`useNieuweMeldingForm.js`), de succesvolle upsert
+zendt een Postgres Realtime-event uit, en dat start (na 800ms debounce)
+een `laadVanCloud()` — precies het moment waarop een nog-niet-bevestigde
+verwijdering weer kon terugkomen.
+
+**Fix**: `laadVanSupabase(user, force, deleteQueue)` heeft een derde
+parameter gekregen — ID's in `deleteQueue` worden bij het mergen van
+server-data overgeslagen. `useSupabaseSync.js`'s `laadVanCloud()` geeft
+de actuele `deleteQueue` (uit `useMeldingen.js`) nu mee bij elke aanroep.
+Geen wijziging aan de delete-flow zelf nodig — de retry van de
+server-side soft-delete op de volgende `syncNu()` blijft ongewijzigd.
+
+## Sentry actief in productie (2026-07-01)
+
+`VITE_SENTRY_DSN` is gezet in Vercel (EU-regio, `ingest.de.sentry.io`) en
+lokale `.env`, en er is geredeployed — `initSentry()` in
+`lib/monitoring/sentry.js` is dus vanaf nu actief in productie (blijft
+uit op `localhost`). Nog niet bevestigd met een echte geteste fout of
+er daadwerkelijk iets in het Sentry-dashboard verschijnt (zie
+NEXT_STEPS.md).
+
 Vervolg op de BottomNav-iconenwissel hierboven: `GevuldeIconen.jsx`
 verplaatst van `nav/` naar `ui/` (gedeelde locatie, nu ook gebruikt
 buiten de BottomNav) en uitgebreid met `IconInstellingenGevuld`

@@ -52,6 +52,28 @@ handhavingsinstrument, geen overheidstool.
   migratie 0008) — gebruiker kan zich uitsluiten van anonieme
   onderzoeksanalyse, default: meedoen (opt-out-model).
 
+## Kwetsbare groepen
+
+- Optionele, apart-toestemming-vereisende instelling (AVG art. 9 —
+  gezondheidsgegevens, zie `KwetsbareGroepen.jsx`) waarmee een gebruiker
+  aangeeft dat er kwetsbare personen in het huishouden wonen. Toekomstige
+  meldingen krijgen dan automatisch een ⚠️-markering in het dossier —
+  kwetsbaarheid is een erkende verzwarende omstandigheid bij beoordeling
+  van pesticideblootstelling.
+- Twee bewijstiers, puur ter ordening in de UI (geen verschil in
+  functionaliteit/gewicht): "Sterk wetenschappelijk bewijs" (kinderen,
+  ouderen, zwangerschap, COPD/astma, hart-vaatziekten) en "Substantieel
+  bewijs" (diabetes, nierfalen, immunosuppressie, neurologische
+  aandoeningen, MCS, post-COVID).
+- **Post-COVID/Long COVID**: opgenomen omdat een deel van de patiënten
+  langdurig verminderde weerstand/afweerfunctie overhoudt aan de
+  infectie, wat extra vatbaarheid voor gezondheidseffecten van
+  bestrijdingsmiddelenblootstelling kan geven — niet omdat COVID zelf
+  relevant is. Categorieën met een minder vanzelfsprekende link naar
+  pesticideblootstelling hebben een `toelichting`-veld (zie
+  `SUBSTANTIEEL`-array) dat als grijze subtekst onder het label
+  verschijnt, zowel in het bewerkformulier als de opgeslagen samenvatting.
+
 ## GIS
 
 - Kaart-engine: **OpenLayers 10** (niet Leaflet, niet MapLibre — zie
