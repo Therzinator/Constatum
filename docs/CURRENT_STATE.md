@@ -16,6 +16,30 @@ een uit het hoofd gereconstrueerd bezier-pad) en `IconDelenGevuld`
 `AccountMenu.jsx` (Instellingen) en `DeelAppKnop.jsx` (Delen) gebruiken
 deze nu i.p.v. resp. een PNG-mask en een emoji.
 
+## EXIF-geoverificatie voor trust-score (2026-07-01)
+
+`verifieerEXIFLocatie(exif, meldingLat, meldingLng, meldingTimestamp)`
+toegevoegd aan `lib/bewijsmateriaal/exif.js` (+ `exif.test.js`, 6 tests):
+haversine-afstand tot de door de melder gekozen locatie (max ~500m) en
+tijdsverschil met `datetime_original` (max 30 min, criterium wordt
+genegeerd als de EXIF geen datum bevat). Geeft `null` terug als de EXIF
+geen GPS bevat — o.a. altijd het geval bij foto's die via de iOS-
+systeem-deelsheet binnenkomen (EXIF is dan al gestript vóór overdracht).
+`useNieuweMeldingForm.js` roept dit aan bij `submit()` en zet het
+resultaat op `bestand.exif_verificatie`; `lib/supabase/bijlagen.js`
+(`sbSyncBijlagen()`) stuurt dit veld mee bij de `attachments`-insert.
+
+**Migratie 0036 (nog NIET uitgevoerd, zie NEXT_STEPS.md — urgent)**:
+voegt de `exif_verificatie`-kolom toe aan `attachments`, breidt
+`fn_trust_score_actie_bonus` (migratie 0023, laatst gewijzigd in 0028)
+uit met een `exif_geverifieerd`-actie (+2, eenmalig per entry via de
+bestaande dedupe-guard) en voegt een trigger toe die de bonus toekent
+zodra een bijlage met `overeenkomst: true` wordt ingevoegd. **Zolang
+deze migratie niet is uitgevoerd, faalt elke nieuwe `attachments`-insert**
+(onbekende kolom) — bijlagen worden dan niet opgeslagen totdat de
+migratie draait; de melding zelf (tabel `entries`) is een aparte insert
+en blijft wel werken.
+
 ## BottomNav-iconen: gevulde stijl i.p.v. lijnstijl (2026-07-01, experiment)
 
 Op verzoek van de gebruiker een visuele test: de bestaande lijn-iconen

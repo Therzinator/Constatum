@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { generateId } from '../utils/format.js';
 import { degToCompass } from '../lib/drift/oordeel.js';
 import { sha256, hashFile } from '../lib/bewijsmateriaal/hash.js';
-import { extractEXIF, stripEXIFGPS, comprimeerVideo } from '../lib/bewijsmateriaal/exif.js';
+import { extractEXIF, stripEXIFGPS, comprimeerVideo, verifieerEXIFLocatie } from '../lib/bewijsmateriaal/exif.js';
 import { compressToThumbnail } from '../lib/media/thumbnail.js';
 import { vraagRFC3161Timestamp } from '../lib/supabase/rfc3161Relay.js';
 import { sbAuditLog } from '../lib/supabase/auditLog.js';
@@ -364,6 +364,7 @@ export function useNieuweMeldingForm({ user, thuislocatie, meldingenApi, syncNu 
           lastModified: f.lastModified,
           hash: f.hash,
           exif: f.exif || null,
+          exif_verificatie: verifieerEXIFLocatie(f.exif, veld.lat, veld.lng, now.toISOString()),
           thumbnail: f.thumbnail || null,
           dataUrl: null
         })),

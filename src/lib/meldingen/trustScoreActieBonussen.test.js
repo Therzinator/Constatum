@@ -10,7 +10,8 @@ const ACTIES = {
   drempel_10_meldingen: 5,
   drempel_25_meldingen: 5,
   drempel_50_meldingen: 5,
-  telefoon_geverifieerd: 8
+  telefoon_geverifieerd: 8,
+  exif_geverifieerd:     2
 };
 
 // Simuleer de guards als pure functies
@@ -180,6 +181,10 @@ describe('Acties — correcte deltas', () => {
 
   it('telefoon_geverifieerd geeft +8 (eenmalig)', () => {
     expect(check({ actie: 'telefoon_geverifieerd', entryId: null }).delta).toBe(8);
+  });
+
+  it('exif_geverifieerd geeft +2', () => {
+    expect(check({ actie: 'exif_geverifieerd' }).delta).toBe(2);
   });
 
   it('mijlpalen geven correcte deltas', () => {

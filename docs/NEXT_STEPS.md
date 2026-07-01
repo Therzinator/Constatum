@@ -6,6 +6,20 @@ de code, niet tegen het geheugen van een eerdere sessie.
 
 ## Hoog
 
+- **Migratie 0036 URGENT uitvoeren in Supabase SQL-editor vóór deploy**
+  (EXIF-geoverificatie-bonus: `exif_verificatie`-kolom op `attachments`,
+  `exif_geverifieerd`-actie in `fn_trust_score_actie_bonus`, trigger
+  `trg_attachments_exif_bonus`). De client (`bijlagen.js`, `sbSyncBijlagen()`)
+  stuurt vanaf nu bij elke insert een `exif_verificatie`-veld mee. Zolang
+  de kolom er niet is, faalt de `attachments`-insert met een Postgres-fout
+  ("column exif_verificatie does not exist") — de melding zelf blijft
+  opgeslagen (`entries`-insert is een aparte call), maar **alle nieuwe
+  foto/video-bijlagen worden dan niet opgeslagen** (silent, alleen een
+  `console.error`, geen zichtbare foutmelding voor de gebruiker) totdat
+  deze migratie is uitgevoerd. Voer dus uit vóór (of direct na, met een
+  korte onderbreking van bijlage-uploads) de eerstvolgende deploy.
+  Controleer na uitvoeren:
+  `SELECT column_name FROM information_schema.columns WHERE table_name = 'attachments' AND column_name = 'exif_verificatie';`
 - **Achteraf-delen-met-groep (2026-07-01) testen met een echte
   gesynchroniseerde melding + groepslidmaatschap.** Kon niet lokaal
   geverifieerd worden (geen Supabase-sessie in dev). Controleer: de
@@ -29,12 +43,18 @@ de code, niet tegen het geheugen van een eerdere sessie.
 
 ## Middel
 
-- **Productie-foutregistratie (bv. Sentry).** Reden: 56+ console.log/warn/
-  error-aanroepen, geen enkele zichtbaarheid op productiefouten bij
-  duizenden gebruikers. Niet door een agent zelfstandig af te ronden:
-  vereist een account/DSN bij een externe dienst, dus een keuze die de
-  gebruiker zelf moet maken (welke dienst, welk privacybeleid t.o.v. de
-  AVG-gevoelige aard van deze app).
+- **Sentry-account/project aanmaken + DSN instellen (2026-07-01).** De
+  code-integratie is klaar (`@sentry/react` toegevoegd, `lib/monitoring/
+  sentry.js`, aanroep in `main.jsx`, `ErrorBoundary.jsx` stuurt gevangen
+  render-fouten door) maar staat **uit** zolang er geen DSN is: `initSentry()`
+  doet niets als `VITE_SENTRY_DSN` ontbreekt (zelfde patroon als
+  `SUPABASE_ENABLED`), dus dit breekt niets als het overgeslagen wordt.
+  Om te activeren: account/project aanmaken op sentry.io (of self-hosted/
+  EU-region, een keuze i.v.m. AVG), en de env var `VITE_SENTRY_DSN` zetten
+  in Vercel (en lokaal in `.env` als je fouten ook lokaal wil zien — staat
+  sowieso uit op `localhost`, zie `IS_LOCALHOST`-check in `sentry.js`).
+  Bewust nog GEEN performance-tracing/session-replay geactiveerd (zie
+  DECISIONS.md) — dat is een aparte, latere keuze.
 - **API-niveau rate limiting tegen volumetrisch misbruik.** Reden: de
   huidige misbruikdetectie (migraties 0003/0005) is reactief (markeert
   achteraf als under_review/shadow), niet preventief. Vereist een
@@ -49,15 +69,6 @@ de code, niet tegen het geheugen van een eerdere sessie.
   verifiëren binnen deze sessie.
 
 ## Laag
-
-- **Geo-verificatie EXIF implementeren** (optionele trust-score-bonus).
-  Infrastructuur is compleet: `extractEXIF()` leest al `gps_lat`, `gps_lng`
-  en `datetime_original` vóór het strippen. Enige ontbrekende stap:
-  `verifieerEXIFLocatie(exif, meldingLat, meldingLng, meldingTimestamp)`
-  toevoegen in `lib/bewijsmateriaal/exif.js` (haversine-afstand ≤~500m +
-  tijdsverschil ≤15-30 min). Resultaat opslaan als `bestand.exif_verificatie`
-  en als bonus meewegen in trust-score. iOS-kanttekening: iOS verwijdert EXIF
-  vóór overdracht via systeem-share — verificatie werkt dan niet.
 
 - **Domein en externe accounts bijwerken naar constatum.nl**:
   - DNS constatum.nl koppelen aan Vercel

@@ -677,3 +677,36 @@ werd geïntroduceerd (bv. "geografisch registratieplatform voor het
 documenteren van omgevingsmeldingen", scope breder dan alleen
 spuitactiviteit) is **wel** behouden — alleen de vier gedefinieerde
 kernbegrippen zijn teruggedraaid, niet de volledige v1.1-tekst.
+
+---
+
+## Sentry voor productie-foutregistratie — bewust zonder tracing/replay
+
+### Keuze
+Op 2026-07-01 is `@sentry/react` toegevoegd (`lib/monitoring/sentry.js`,
+geïnitialiseerd in `main.jsx`, gekoppeld aan `ErrorBoundary.jsx`). Alleen
+`Sentry.init()` + `captureException()` — geen `browserTracingIntegration`
+(performance) en geen `replayIntegration` (sessie-opnames). Een
+`beforeBreadcrumb`-filter verwijdert daarnaast alle `xhr`/`fetch`-
+breadcrumbs. Staat uit zonder `VITE_SENTRY_DSN` en altijd uit op
+`localhost` (zelfde patroon als `SUPABASE_ENABLED` in
+`lib/supabase/client.js`) — activeren vereist dat de gebruiker zelf een
+Sentry-account/project aanmaakt en de DSN instelt (zie NEXT_STEPS.md).
+
+### Waarom
+Dit is een AVG-gevoelige app: meldingen bevatten GPS-locaties en
+optioneel gezondheidsklachten. Session replay zou effectief een
+scherm-opname van die gegevens naar een derde partij (Sentry) sturen —
+onaanvaardbaar zonder een aparte, expliciete afweging. xhr/fetch-
+breadcrumbs zijn om dezelfde reden uitgeschakeld: PDOK-aanroepen bevatten
+GPS-coördinaten in de query-string, en Supabase Storage/uitnodigings-
+links bevatten tokens in de URL — beide zouden anders automatisch
+meegestuurd worden bij elke gerapporteerde fout.
+
+### Impact
+- Een toekomstige uitbreiding naar performance-tracing of replay moet
+  eerst opnieuw langs deze afweging — niet zomaar aanzetten omdat het
+  een standaard Sentry-optie is.
+- `captureFout()` (niet rechtstreeks `Sentry.captureException`) is de
+  enige aanroep-plek in de rest van de code — zo blijft `SENTRY_ENABLED`
+  de enige plek die weet of Sentry actief is.

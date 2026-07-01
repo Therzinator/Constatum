@@ -1,4 +1,5 @@
 import { Component } from 'react';
+import { captureFout } from '../../lib/monitoring/sentry.js';
 import './ErrorBoundary.css';
 
 // Vangt onverwachte render-fouten op die anders de hele React-boom laten
@@ -23,6 +24,7 @@ export class ErrorBoundary extends Component {
 
   componentDidCatch(fout, info) {
     console.error('[ErrorBoundary]', fout, info?.componentStack);
+    captureFout(fout, { componentStack: info?.componentStack });
     this.props.onFout?.(fout);
   }
 

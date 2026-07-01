@@ -200,6 +200,56 @@ export async function extractEXIF(file) {
 }
 
 // ============================================================
+// EXIF-GEOVERIFICATIE — vergelijkt de GPS/tijd in de foto-EXIF met de
+// door de melder gekozen locatie/tijdstip. Optionele trust-score-bonus
+// (zie migratie 0036): een foto die zowel qua locatie als tijdstip
+// overeenkomt met de melding is een sterkere aanwijzing dat de foto
+// daadwerkelijk op dat moment/die plek is genomen.
+// Kanttekening: iOS verwijdert EXIF al vóór overdracht via de systeem-
+// deelsheet — voor foto's die zo binnenkomen levert extractEXIF() al
+// null op en wordt hier dus nooit geverifieerd (result: null, geen bonus,
+// geen straf).
+// ============================================================
+const EXIF_VERIFICATIE_MAX_AFSTAND_M = 500;
+const EXIF_VERIFICATIE_MAX_TIJDSVERSCHIL_MIN = 30;
+
+function haversineAfstandM(lat1, lng1, lat2, lng2) {
+  const R = 6371000; // aardradius in meters
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// exif: resultaat van extractEXIF() (of null). meldingTimestamp: lokale
+// ISO-tijd van de melding (zelfde formaat als exif.datetime_original,
+// zonder 'Z' — zie parseExifIFD hierboven).
+// Retourneert null als er niets te vergelijken valt (geen GPS in de
+// EXIF), anders { overeenkomst, afstand_m, tijdsverschil_min }.
+export function verifieerEXIFLocatie(exif, meldingLat, meldingLng, meldingTimestamp) {
+  if (!exif || exif.gps_lat == null || exif.gps_lng == null) return null;
+  if (meldingLat == null || meldingLng == null) return null;
+
+  const afstand_m = Math.round(haversineAfstandM(exif.gps_lat, exif.gps_lng, meldingLat, meldingLng));
+
+  let tijdsverschil_min = null;
+  if (exif.datetime_original && meldingTimestamp) {
+    const exifMs    = new Date(exif.datetime_original).getTime();
+    const meldingMs = new Date(meldingTimestamp).getTime();
+    if (!Number.isNaN(exifMs) && !Number.isNaN(meldingMs)) {
+      tijdsverschil_min = Math.round(Math.abs(meldingMs - exifMs) / 60000);
+    }
+  }
+
+  const overeenkomst = afstand_m <= EXIF_VERIFICATIE_MAX_AFSTAND_M &&
+    (tijdsverschil_min == null || tijdsverschil_min <= EXIF_VERIFICATIE_MAX_TIJDSVERSCHIL_MIN);
+
+  return { overeenkomst, afstand_m, tijdsverschil_min };
+}
+
+// ============================================================
 // VIDEO COMPRESSIE — verkleint grote video's via canvas + MediaRecorder
 // Hash moet al VOOR aanroep berekend zijn (zie useNieuweMeldingForm.js).
 // Retourneert het originele File-object als compressie niet mogelijk of

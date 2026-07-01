@@ -86,7 +86,8 @@ export async function sbSyncBijlagen(meldingId, bestanden, user) {
         storage_bucket: 'spuitlog-bijlagen',
         storage_path:   storagePath,
         file_hash:      bestand.hash,
-        exif:           bestand.exif       || null
+        exif:           bestand.exif       || null,
+        exif_verificatie: bestand.exif_verificatie || null
       });
       if (insErr) {
         console.error('[Supabase] attachments insert mislukt:', insErr.message, '| code:', insErr.code);

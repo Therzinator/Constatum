@@ -12,6 +12,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@sentry/react": "^10.63.0",
     "@supabase/supabase-js": "^2.108.2",
     "chart.js": "^4.5.1",
     "ol": "^10.9.0",
