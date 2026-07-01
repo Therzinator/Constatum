@@ -219,3 +219,33 @@ export async function verwijderMeldingUitGroep(groepId, entryId) {
   if (error) throw error;
   return true;
 }
+
+// Achteraf een EIGEN melding met een groep delen vanuit de persoonlijke
+// Tijdlijn/Dashboard — los van de automatische deel-bij-melden-koppeling
+// (migratie 0016, alleen op het moment van melden zelf). De RLS-insert-
+// policy die dit toestaat (`entries_groepen_insert_eigen_melding_lid`,
+// migratie 0015: eigen melding + lid van de groep) bestond al vóórdat
+// 0016 de automatische koppeling toevoegde — nooit verwijderd, hier voor
+// het eerst vanuit de UI gebruikt.
+export async function deelMeldingMetGroep(entryId, groepId) {
+  const sb = sbClient();
+  if (!sb) return false;
+
+  const { error } = await sb.from('entries_groepen').insert({ entry_id: entryId, groep_id: groepId });
+  if (error) {
+    if (error.code === '23505') return true; // al gedeeld (primary-key-conflict) — geen fout, gewenste eindstaat
+    throw error;
+  }
+  return true;
+}
+
+// Met welke groepen een specifieke melding al gedeeld is — voor de
+// toggle-status in DeelMetGroepenKaart.jsx (src/components/melding/).
+export async function haalGedeeldeGroepenVoorMelding(entryId) {
+  const sb = sbClient();
+  if (!sb || !entryId) return [];
+
+  const { data, error } = await sb.from('entries_groepen').select('groep_id').eq('entry_id', entryId);
+  if (error) throw error;
+  return (data || []).map((r) => r.groep_id);
+}

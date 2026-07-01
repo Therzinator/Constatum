@@ -9,6 +9,7 @@ import { analyseerSpuitpatroon } from '../../lib/meldingen/spuitpatroon.js';
 import { DriftZoneKaart } from './DriftZoneKaart.jsx';
 import { DriftZoneModal } from './DriftZoneModal.jsx';
 import { Lightbox } from './Lightbox.jsx';
+import { DeelMetGroepenKaart } from './DeelMetGroepenKaart.jsx';
 import './MeldingDetailModal.css';
 
 const SPUITPATROON_KLEUR = { danger: 'var(--danger)', warning: 'var(--warning)', info: 'var(--info)', muted: 'var(--text-muted)' };
@@ -321,6 +322,8 @@ export function MeldingDetailModal({ melding, alleMeldingen, user, onClose }) {
             </div>
           </div>
         )}
+
+        <DeelMetGroepenKaart melding={melding} user={user} />
 
         <div className="card p-3">
           <div className="section-label mb-2">Integriteitsverificatie</div>
