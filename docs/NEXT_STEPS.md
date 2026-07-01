@@ -36,9 +36,16 @@ de code, niet tegen het geheugen van een eerdere sessie.
   (lokaal staat `SUPABASE_ENABLED` altijd op `false`, dus dit pad is
   nooit lokaal getest — zelfde patroon als de eerdere freeze-bij-eerste-
   login-bug). Er is nu wel een `ErrorBoundary` (vangt de crash op i.p.v.
-  zwart scherm) + `build.sourcemap: true` (leesbare toekomstige
-  stacktraces) — controleer of de crash zich nog voordoet, en zo ja,
-  gebruik de sourcemap om de echte regel te vinden.
+  zwart scherm) + `build.sourcemap: true`.
+  **Correctie (2026-07-01)**: Vercel blokkeert `.js.map`-bestanden
+  standaard voor publieke HTTP-toegang (403, bevestigd met curl —
+  geen instelling in `vercel.json`, een platform-default). De browser
+  van een gebruiker kan de sourcemap dus niet zelf ophalen. Om de
+  sourcemap toch te gebruiken: het `.map`-bestand uit een lokale
+  `npm run build` (staat ook in `dist/assets/`) samen met de
+  geminificeerde stacktrace lokaal doorzoeken (bv. via
+  `source-map-cli` of de DevTools van een lokaal gebouwde versie),
+  niet via de live URL.
 - **Dashboard-groepsfilter (2026-07-01, herzien) en Groepen
   Recent/Tijdlijn testen met echte groepsdata.** Kon niet volledig
   visueel geverifieerd worden lokaal (geen Supabase-sessie/groepen
