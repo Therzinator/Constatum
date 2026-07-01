@@ -1,11 +1,13 @@
 import { useLayoutEffect, useRef } from 'react';
 import { isCoordinatorOfAdmin } from '../../lib/rollen.js';
-import dashboardIcon from '../../assets/ui-icons/icon_dashboard.png';
-import meldingIcon from '../../assets/ui-icons/icon_melding.png';
-import tijdlijnIcon from '../../assets/ui-icons/icon_tijdlijn.png';
-import moderatieIcon from '../../assets/ui-icons/icon_moderatie.png';
-import exportIcon from '../../assets/ui-icons/icon_export.png';
-import groepenIcon from '../../assets/ui-icons/icon_groepen.png';
+import {
+  IconDashboardGevuld,
+  IconMeldingGevuld,
+  IconTijdlijnGevuld,
+  IconGroepenGevuld,
+  IconExportGevuld,
+  IconModeratieGevuld
+} from './NavIconenGevuld.jsx';
 import './BottomNav.css';
 
 const TABS = [
@@ -16,16 +18,18 @@ const TABS = [
   ['export', '💾', 'Export']
 ];
 
-// Alle tabs hebben een uitgesneden lijn-icoon (src/assets/ui-icons/) — als
-// currentColor-mask zodat actief/inactief dezelfde kleurlogica volgt als de
-// tekstlabel (.bottom-nav-tab(.actief) in BottomNav.css).
+// Experiment (2026-07-01): gevulde SVG-iconen i.p.v. de eerdere
+// lijn-iconen (src/assets/ui-icons/*.png via mask-image) — zie
+// NavIconenGevuld.jsx. fill="currentColor" volgt dezelfde
+// actief/inactief-kleurlogica als de tekstlabel (.bottom-nav-tab(.actief)
+// in BottomNav.css).
 const ICONEN = {
-  dashboard: dashboardIcon,
-  melding: meldingIcon,
-  tijdlijn: tijdlijnIcon,
-  groepen: groepenIcon,
-  export: exportIcon,
-  coordinatie: moderatieIcon
+  dashboard: IconDashboardGevuld,
+  melding: IconMeldingGevuld,
+  tijdlijn: IconTijdlijnGevuld,
+  groepen: IconGroepenGevuld,
+  export: IconExportGevuld,
+  coordinatie: IconModeratieGevuld
 };
 
 // Komt overeen met de bottom-tab-navigatie uit docs/index.html
@@ -68,14 +72,14 @@ export function BottomNav({ pagina, onPaginaChange, gebruikerRol }) {
           aria-current={pagina === naam ? 'page' : undefined}
           onClick={() => onPaginaChange(naam)}
         >
-          {ICONEN[naam] ? (
-            <span
-              className={`bottom-nav-icoon bottom-nav-icoon-img bottom-nav-icoon-${naam}`}
-              style={{ WebkitMaskImage: `url(${ICONEN[naam]})`, maskImage: `url(${ICONEN[naam]})` }}
-            />
-          ) : (
-            <span className="bottom-nav-icoon">{icoon}</span>
-          )}
+          {(() => {
+            const Icoon = ICONEN[naam];
+            return Icoon ? (
+              <Icoon className={`bottom-nav-icoon bottom-nav-icoon-img bottom-nav-icoon-${naam}`} />
+            ) : (
+              <span className="bottom-nav-icoon">{icoon}</span>
+            );
+          })()}
           {label}
         </button>
       ))}

@@ -1,0 +1,82 @@
+// Gevulde (solid/filled) variant van de navigatie-iconen, als experiment
+// t.o.v. de bestaande lijn-iconen (src/assets/ui-icons/*.png, via
+// mask-image). Inline SVG i.p.v. PNG-mask — fill="currentColor" volgt
+// dezelfde actief/inactief-kleurlogica als de labels, zonder losse
+// beeldbestanden. "Uitgesneden" details (plusje/vinkje) gebruiken de
+// vaste kaartachtergrond (--bg-card) i.p.v. currentColor, zodat ze zowel
+// in actieve (accent) als inactieve (grijze) staat zichtbaar blijven.
+const svgProps = { viewBox: '0 0 24 24', xmlns: 'http://www.w3.org/2000/svg' };
+
+export function IconDashboardGevuld(props) {
+  return (
+    <svg {...svgProps} {...props}>
+      <rect x="3" y="13" width="4.5" height="8" rx="1.2" fill="currentColor" />
+      <rect x="9.75" y="8" width="4.5" height="13" rx="1.2" fill="currentColor" />
+      <rect x="16.5" y="3" width="4.5" height="18" rx="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function IconMeldingGevuld(props) {
+  return (
+    <svg {...svgProps} {...props}>
+      <path
+        fill="currentColor"
+        d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
+      />
+      <circle cx="12" cy="9" r="2.6" fill="var(--bg-card)" />
+    </svg>
+  );
+}
+
+export function IconTijdlijnGevuld(props) {
+  return (
+    <svg {...svgProps} {...props}>
+      <rect x="4.3" y="5.2" width="1.6" height="13.6" rx="0.8" fill="currentColor" />
+      <circle cx="5.1" cy="6" r="2.4" fill="currentColor" />
+      <circle cx="5.1" cy="12" r="2.4" fill="currentColor" />
+      <circle cx="5.1" cy="18" r="2.4" fill="currentColor" />
+      <rect x="10" y="5" width="11" height="2.2" rx="1.1" fill="currentColor" />
+      <rect x="10" y="10.9" width="11" height="2.2" rx="1.1" fill="currentColor" />
+      <rect x="10" y="16.8" width="11" height="2.2" rx="1.1" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function IconGroepenGevuld(props) {
+  return (
+    <svg {...svgProps} {...props}>
+      <circle cx="4.6" cy="9.3" r="2.3" fill="currentColor" opacity="0.85" />
+      <path d="M4.6 12.4c-2.6 0-4.6 1.6-4.6 3.9v1.4h6.4v-2c0-1.2.4-2.3 1.1-3.1-.9-.14-1.9-.2-2.9-.2z" fill="currentColor" opacity="0.85" />
+      <circle cx="19.4" cy="9.3" r="2.3" fill="currentColor" opacity="0.85" />
+      <path d="M19.4 12.4c2.6 0 4.6 1.6 4.6 3.9v1.4h-6.4v-2c0-1.2-.4-2.3-1.1-3.1.9-.14 1.9-.2 2.9-.2z" fill="currentColor" opacity="0.85" />
+      <circle cx="12" cy="8" r="3.3" fill="currentColor" />
+      <path d="M12 12.6c-4.1 0-7.2 2.3-7.2 5.6v1.4h14.4v-1.4c0-3.3-3.1-5.6-7.2-5.6z" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function IconExportGevuld(props) {
+  return (
+    <svg {...svgProps} {...props}>
+      <path fill="currentColor" d="M12 2.5v11.3l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6V2.5z" />
+      <rect x="3.5" y="18.5" width="17" height="3" rx="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function IconModeratieGevuld(props) {
+  return (
+    <svg {...svgProps} {...props}>
+      <path fill="currentColor" d="M12 2 4.5 5v6c0 5.25 3.4 9.9 7.5 11 4.1-1.1 7.5-5.75 7.5-11V5L12 2z" />
+      <path
+        fill="none"
+        stroke="var(--bg-card)"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M8.3 12.2l2.5 2.5 5-5"
+      />
+    </svg>
+  );
+}

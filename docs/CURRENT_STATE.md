@@ -4,7 +4,30 @@ Momentopname. Dit bestand veroudert sneller dan DOMAIN_KNOWLEDGE.md/
 DECISIONS.md — bij twijfel altijd verifiëren tegen de code (`git log`,
 grep), niet blind vertrouwen op een oude snapshot.
 
-Laatst bijgewerkt: 2026-07-01 (post-COVID kwetsbare groep, auto-cleanup uitnodigingen, logout→loginscherm, PWA install-banner, contactadressen AV/Privacy, app-iconen vernieuwd, typografie-audit + font-size-tokensysteem, GitHub-repo hernoemd naar Constatum, crash-bij-uitloggen gefixt + ErrorBoundary, Dashboard-groepsfilter, Groepen Recent/Tijdlijn, app-iconen opnieuw uit icon_background.png, achteraf melding delen met groep, AV v2.0 + neutrale terminologie in Handleiding, opruiming + BottomNav-smalscherm-fix, kaartweergave groepsfilter, BottomNav-tekst-uitlijning, icoon-marge + OG-image-fix, Dashboard-groepsfilter herzien naar DashboardKaart, vercel.json-rewrite-bug voor statische bestanden gefixt, WhatsApp-preview-onderzoek: apex-domein-redirect, deel-app-knop in header, gebeurtenissen-clustering-bug in Groepen gefixt, clustering.js perceel/GPS-OR-bug gefixt).
+Laatst bijgewerkt: 2026-07-01 (post-COVID kwetsbare groep, auto-cleanup uitnodigingen, logout→loginscherm, PWA install-banner, contactadressen AV/Privacy, app-iconen vernieuwd, typografie-audit + font-size-tokensysteem, GitHub-repo hernoemd naar Constatum, crash-bij-uitloggen gefixt + ErrorBoundary, Dashboard-groepsfilter, Groepen Recent/Tijdlijn, app-iconen opnieuw uit icon_background.png, achteraf melding delen met groep, AV v2.0 + neutrale terminologie in Handleiding, opruiming + BottomNav-smalscherm-fix, kaartweergave groepsfilter, BottomNav-tekst-uitlijning, icoon-marge + OG-image-fix, Dashboard-groepsfilter herzien naar DashboardKaart, vercel.json-rewrite-bug voor statische bestanden gefixt, WhatsApp-preview-onderzoek: apex-domein-redirect, deel-app-knop in header, gebeurtenissen-clustering-bug in Groepen gefixt, clustering.js perceel/GPS-OR-bug gefixt, BottomNav-iconen gevuld i.p.v. lijnstijl (experiment)).
+
+## BottomNav-iconen: gevulde stijl i.p.v. lijnstijl (2026-07-01, experiment)
+
+Op verzoek van de gebruiker een visuele test: de bestaande lijn-iconen
+(outline-stijl) vervangen door gevulde (solid) varianten, om te zien
+of dat beter bij de app past.
+
+- **Nieuw `src/components/nav/NavIconenGevuld.jsx`** — 6 losse inline-
+  SVG-React-componenten (Dashboard/Melding/Tijdlijn/Groepen/Export/
+  Moderatie), zelfde 24x24-viewBox, `fill="currentColor"` (erft de
+  kleur van `.bottom-nav-tab(.actief)`, geen losse mask-logica meer
+  nodig). "Uitgesneden" details (plusje in de pin, vinkje in het
+  schild) gebruiken `var(--bg-card)` i.p.v. currentColor, zodat ze in
+  zowel actieve als inactieve staat zichtbaar blijven.
+- **`BottomNav.jsx`** rendert deze SVG-componenten i.p.v. de eerdere
+  `<span style={maskImage}>`-techniek op de PNG's uit
+  `src/assets/ui-icons/`. Die PNG's zijn NIET verwijderd (nog
+  ongebruikt in de repo) — makkelijk terug te schakelen als de gevulde
+  stijl toch niet bevalt.
+- **`BottomNav.css`**: de eerdere +15%-uitzondering voor Dashboard/
+  Export (compenseerde voor extra witruimte in die specifieke PNG's)
+  is vervallen — met de nieuwe, consistent ontworpen SVG's is elk
+  icoon even groot (58px/44px op smalle schermen).
 
 ## Tweede, dieperliggende clustering-bug gevonden: perceelnummer overschreef de GPS-afstandscheck (2026-07-01)
 
