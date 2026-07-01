@@ -548,3 +548,73 @@ geoptimaliseerd proces bijgewerkt worden — niet automatisch meegenomen
 door simpelweg `icon_large.png` opnieuw te downscalen. De overige
 PWA-iconen (Apple touch-icons, Android 48-512px, maskable) volgen wél
 gewoon `icon_large.png`.
+
+---
+
+## Eén Error Boundary in App.jsx om `<main>`, met terugval naar het inlogscherm
+
+### Keuze
+Op 2026-07-01 is `src/components/ui/ErrorBoundary.jsx` toegevoegd — de
+eerste en enige Error Boundary in de app, om de pagina-inhoud (`<main>`,
+App.jsx). Bij een onverwachte render-fout toont die een nette fallback en
+schakelt automatisch terug naar Dashboard + het inlogscherm.
+
+### Waarom
+Een crash-bij-uitloggen in productie liet het hele scherm zwart worden:
+zonder énige Error Boundary neemt React bij een onverwachte fout de HELE
+boom weg, inclusief `AuthOverlay.jsx` (een los sibling-element, geen kind
+van de crashende pagina-inhoud) — de gebruiker kwam dus nergens meer
+terecht i.p.v. terug bij het inlogscherm. De exacte regel achter de
+crash zelf kon niet met zekerheid herleid worden uit de geminificeerde
+productie-stacktrace (`vite.config.js` heeft daarom nu `build.sourcemap:
+true`) — deze boundary is dus zowel een gerichte fix als een generieke
+vangnet-maatregel tegen een hele klasse van vergelijkbare fouten.
+
+### Impact
+- Nieuwe render-fouten ergens in `<main>` laten de rest van de app (header,
+  navigatie, AuthOverlay) intact — de gebruiker kan altijd nog inloggen/
+  navigeren, ook als één pagina crasht.
+- De boundary krijgt `key={pagina}` (App.jsx) zodat een geslaagde
+  her-navigatie de fout-status niet laat "vastplakken".
+- Een toekomstige, structurele reden om de crash te reproduceren: test
+  bewust tegen een echte, ingelogde Supabase-sessie (niet alleen
+  `SUPABASE_ENABLED=false` lokaal) — zie ook de eerdere freeze-bij-
+  eerste-login-beslissing hierboven, hetzelfde patroon van bugs die pas
+  in productie zichtbaar worden.
+
+---
+
+## Groeps-varianten van MeldingCard/ClusterCard/MeldingDetailModal, niet hergebruikt
+
+### Keuze
+Voor de Dashboard-groepsfilter en de Groepen-Tijdlijn/clustering
+(2026-07-01) zijn aparte componenten gebouwd — `GroepMeldingKaart.jsx`,
+`GroepClusterKaart.jsx` (naast de al bestaande `GroepMeldingDetailModal.jsx`)
+— i.p.v. de persoonlijke `MeldingCard.jsx`/`ClusterCard.jsx`/
+`MeldingDetailModal.jsx` te hergebruiken met groepsdata.
+
+### Waarom
+Groepsmeldingen (via `haalMeldingenVoorGroep()`) zijn trust-tier-gated:
+een lage-trust-kijker mag geen exacte locatie/omschrijving/melderinfo/
+foto's zien (`lib/groepen/trustZichtbaarheid.js`). De persoonlijke
+`MeldingCard`/`MeldingDetailModal` tonen ongeconditioneerd hash/RFC3161/
+device/volledige omschrijving/exacte GPS — die rechtstreeks hergebruiken
+voor groepsdata zou de hele trust-tier-gate omzeilen (een privacylek,
+niet alleen een cosmetisch verschil). Vandaar altijd de lichtere,
+`toon`-bewuste groepsvarianten, ook al betekent dat enige duplicatie met
+de persoonlijke componenten.
+
+### Impact
+- Nieuwe/gewijzigde groepsfunctionaliteit die kaarten/detailweergaves
+  toont, moet altijd via de `Groep*`-varianten en `toon` uit
+  `trustZichtbaarheid.js` — nooit "even" `MeldingCard`/`MeldingDetailModal`
+  hergebruiken omdat het sneller lijkt.
+- `clusterMeldingen()` (lib/meldingen/clustering.js) zelf is wél
+  hergebruikt (domein-neutraal, werkt op elk object met `.timestamp_local`/
+  `.gps.lat/lng`/`.perceelnummer`) — de aanroeper (`GroepMeldingenLijst.jsx`)
+  redigeert de invoer al vóór het clusteren, niet de clusterfunctie zelf.
+- Dashboard's groepsfilter toont daarom bewust GEEN kaart (DashboardKaart/
+  MeldingDetailModal zijn niet groepsveilig te hergebruiken zonder diezelfde
+  fout te riskeren) — alleen stats + de hergebruikte `GroepMeldingenLijst`.
+  Een eventuele kaartweergave voor groepen vereist een eigen, groepsveilige
+  variant — zie NEXT_STEPS.md.

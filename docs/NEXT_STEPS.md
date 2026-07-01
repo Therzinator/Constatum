@@ -6,6 +6,21 @@ de code, niet tegen het geheugen van een eerdere sessie.
 
 ## Hoog
 
+- **Crash-bij-uitloggen (2026-07-01) verifiëren tegen een echte,
+  ingelogde Supabase-sessie.** Reden: de exacte oorzaak kon niet met
+  zekerheid herleid worden uit de geminificeerde productie-stacktrace
+  (lokaal staat `SUPABASE_ENABLED` altijd op `false`, dus dit pad is
+  nooit lokaal getest — zelfde patroon als de eerdere freeze-bij-eerste-
+  login-bug). Er is nu wel een `ErrorBoundary` (vangt de crash op i.p.v.
+  zwart scherm) + `build.sourcemap: true` (leesbare toekomstige
+  stacktraces) — controleer of de crash zich nog voordoet, en zo ja,
+  gebruik de sourcemap om de echte regel te vinden.
+- **Dashboard-groepsfilter en Groepen Recent/Tijdlijn (2026-07-01)
+  testen met echte groepsdata.** Kon niet visueel geverifieerd worden
+  lokaal (geen Supabase-sessie/groepen beschikbaar in dev). Controleer:
+  dropdown "Filter op groep" op Dashboard, trust-tier-redactie in beide
+  weergaven (Recent/Tijdlijn), en dat clustering (`GroepClusterKaart`)
+  zich normaal gedraagt bij meerdere meldingen op hetzelfde perceel.
 - **Een gebruiker een `coordinator`-rol toekennen om te testen.** Reden:
   migraties 0008-0011 zijn op 2026-06-21 uitgevoerd (bevestigd, geen
   foutmeldingen), maar er is nog geen account met de rol `coordinator`;
@@ -91,3 +106,12 @@ de code, niet tegen het geheugen van een eerdere sessie.
 - **`useToggleableLayer()`-hook voor DashboardKaart.jsx** — de vijf
   laag-toggle-functies zijn structureel bijna identiek; generalisatie is bewust
   nog niet gedaan (594 regels, regressierisico zonder browser-test).
+
+- **Kaartweergave voor het Dashboard-groepsfilter (2026-07-01, bewust
+  weggelaten).** Het groepsfilter toont nu alleen stats + de
+  `GroepMeldingenLijst`-lijst, geen kaart — `DashboardKaart.jsx`/
+  `MeldingDetailModal.jsx` zijn niet zomaar groepsveilig te hergebruiken
+  (tonen hash/RFC3161/device-detail dat een lage-trust-groepslid niet
+  mag zien, zie DECISIONS.md). Een kaartweergave zou een eigen,
+  `toon`-bewuste variant vereisen (vergelijkbaar met hoe
+  `GroepMeldingDetailModal.jsx` zich verhoudt tot `MeldingDetailModal.jsx`).

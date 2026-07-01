@@ -4,7 +4,79 @@ Momentopname. Dit bestand veroudert sneller dan DOMAIN_KNOWLEDGE.md/
 DECISIONS.md — bij twijfel altijd verifiëren tegen de code (`git log`,
 grep), niet blind vertrouwen op een oude snapshot.
 
-Laatst bijgewerkt: 2026-07-01 (post-COVID kwetsbare groep, auto-cleanup uitnodigingen, logout→loginscherm, PWA install-banner, contactadressen AV/Privacy, app-iconen vernieuwd, typografie-audit + font-size-tokensysteem, GitHub-repo hernoemd naar Constatum).
+Laatst bijgewerkt: 2026-07-01 (post-COVID kwetsbare groep, auto-cleanup uitnodigingen, logout→loginscherm, PWA install-banner, contactadressen AV/Privacy, app-iconen vernieuwd, typografie-audit + font-size-tokensysteem, GitHub-repo hernoemd naar Constatum, crash-bij-uitloggen gefixt + ErrorBoundary, Dashboard-groepsfilter, Groepen Recent/Tijdlijn).
+
+## Crash bij uitloggen + ErrorBoundary (2026-07-01)
+
+- **Zwart scherm bij uitloggen in productie**: een `TypeError` (minified,
+  "t is null") tijdens het uitloggen liet de hele React-boom verdwijnen —
+  er was nergens in de app een Error Boundary, dus één onverwachte
+  null-referentie ergens in de paginaboom nam ook `AuthOverlay.jsx` mee
+  (los sibling-element, geen kind van de crashende boom). De exacte regel
+  kon niet met zekerheid herleid worden uit de geminificeerde stacktrace.
+- **`src/components/ui/ErrorBoundary.jsx`** (nieuw): vangt render-fouten
+  in `<main>` op (App.jsx, `key={pagina}` zodat de fout-status niet
+  blijft plakken na navigatie), toont een nette fallback, en stuurt
+  automatisch terug naar Dashboard + het inlogscherm
+  (`auth.setAuthOverlayVisible(true)`).
+- **`vite.config.js`**: `build.sourcemap: true` — een volgende
+  productiefout toont voortaan echte bestandsnamen/regelnummers.
+- **App.jsx**: uitloggen gaat nu via een expliciete `handleUitloggen()`
+  die na `auth.logout()` ook `pagina`/`actieveGroepId` terugzet naar
+  Dashboard — bewust GEEN generiek `useEffect` op `!auth.user` (eerste
+  versie deed dat wél en blokkeerde daarmee per ongeluk de Groepen-tab
+  voor anonieme, nooit-ingelogde gebruikers; meteen weer gecorrigeerd).
+- Twee ongeguarde `user.id`-aanroepen in `KwetsbareGroepen.jsx` (buiten
+  het render-pad, in click-handlers) alsnog met een `if (!user) return;`
+  afgeschermd.
+
+## Header groter, kopij, kaart-popup-sluitknop (2026-07-01)
+
+- Header-logo + "Constatum"/subtitel +25% opgeschaald (`AppHeader.css`).
+- BottomNav Dashboard/Export-iconen +15% (`bottom-nav-icoon-dashboard`/
+  `-export`) — die twee bronbestanden hebben zelf meer lege ruimte rond
+  het lijnwerk dan de andere iconen, ogen daardoor kleiner bij gelijke
+  boxgrootte.
+- "Geografische Waarnemingen(Logboek)" overal vervangen door "Geografisch
+  Logboek" (koppen header/inlogscherm, PWA-manifest, meta-description).
+- Dashboard/Percelen/Natura2000-kaartpopups hebben nu een ×-sluitknop
+  rechtsboven (`DashboardKaart.jsx`, gedelegeerde click-listener op het
+  overlay-element).
+- Instellingen-menu (account-dropdown in de header): "Handleiding" en
+  "Feedback & vragen" verplaatst hierheen vanaf de Instellingen-pagina;
+  nieuwe optie "Terug naar inlogscherm" (zichtbaar wanneer niet
+  ingelogd). Nieuwe gebruikers moeten nu een checkbox aanvinken ("Ik ga
+  akkoord met de Algemene Voorwaarden en heb de Privacyverklaring
+  gelezen") vóór Registreren/Overslaan — Inloggen (bestaande gebruikers)
+  blijft ongated.
+
+## Dashboard-groepsfilter + Groepen Recent/Tijdlijn-clustering (2026-07-01)
+
+- **Dashboard**: nieuw dropdown-filter "Filter op groep" (alleen zichtbaar
+  als je lid bent van minstens één groep, via `haalMijnGroepen()`). Bij
+  een gekozen groep vervangt een groepsmeldingen-weergave (stats + de
+  hergebruikte `GroepMeldingenLijst`) de normale eigen+buurt-kaart/lijst
+  — groepsmeldingen van ANDERE leden staan nooit in de lokale
+  meldingen-store (alleen eigen + opt-in-buurt worden gesynct), dus dit
+  is een aparte fetch, geen filter op de bestaande `meldingen`-array.
+  Bewust GEEN hergebruik van `DashboardKaart`/`MeldingDetailModal` voor
+  groepsdata — die tonen/vereisen SHA-256/RFC3161/device-detail dat
+  `GroepMeldingDetailModal.jsx` juist bewust weglaat voor lage-trust
+  kijkers; zie de eigen, lichtere kaart-/modal-component hieronder.
+- **`GroepMeldingenLijst.jsx`** herschreven: toont nu "Recente
+  meldingen" (laatste 5) én een "Tijdlijn" (alle meldingen, gegroepeerd
+  tot gebeurtenissen via `clusterMeldingen()` — zelfde 8u/perceel-logica
+  als de persoonlijke Tijdlijn), met een tab-toggle zoals Dashboard vs.
+  TijdlijnPage voor persoonlijke meldingen.
+- **Nieuwe componenten** `GroepMeldingKaart.jsx` (geëxtraheerd uit de
+  oude `GroepMeldingenLijst.jsx`) en `GroepClusterKaart.jsx` (groeps-
+  variant van `ClusterCard.jsx`) — beide reddigeren consequent via
+  `toon` (trustZichtbaarheid.js) vóórdat clustering/rendering gebeurt,
+  zodat een lage-trust-kijker nooit exacte locatie/omschrijving/
+  melderinfo binnenkrijgt, ook niet indirect via de perceel-/GPS-
+  gebaseerde clustering-groepering (die velden staan dan op `null`).
+  `haalMeldingenVoorGroep()` haalt nu ook `perceelnummer` op (nodig voor
+  clustering, ontbrak eerder).
 
 ## Typografie-audit en font-size-tokensysteem (2026-07-01)
 
