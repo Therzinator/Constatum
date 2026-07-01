@@ -6,23 +6,18 @@ de code, niet tegen het geheugen van een eerdere sessie.
 
 ## Hoog
 
-- **Gebeurtenissen-clustering (2026-07-01, twee fixes) in de app zelf
-  controleren.** De kernlogica is dubbel geverifieerd: eerst met
-  synthetische data, daarna met de EXACTE echte productiedata van
-  vandaag (rechtstreeks via SQL opgevraagd) — beide keren clusteren de
-  meldingen nu correct. Nog niet gecontroleerd via de daadwerkelijke
-  UI:
-  - Persoonlijke Tijdlijn: de gebruiker se eigen 2 meldingen van
-    vandaag (W-543/W-303, 110m/25min uit elkaar) moeten nu als 1
-    gebeurtenis in "🔗 Gebeurtenissen" verschijnen.
-  - Groepen, met een niet-beheerder-lid (of trust score < 80): meerdere
+- **Gebeurtenissen-clustering (2026-07-01, twee fixes) — Groepen-kant
+  nog in de echte UI controleren.** Persoonlijke Tijdlijn is bevestigd
+  werkend door de gebruiker (echte data van vandaag, W-543/W-303,
+  110m/25min uit elkaar, clustert nu correct). Groepen-kant nog niet
+  bevestigd in de echte UI (wel los getest op kernlogica-niveau):
+  - Met een niet-beheerder-lid (of trust score < 80): meerdere
     meldingen op hetzelfde/aangrenzend perceel binnen 8u moeten als 1
     gebeurtenis verschijnen, zonder dat exacte locatie/perceelnummer
     voor zo'n lager-trust-lid alsnog zichtbaar wordt (alleen de
     koppeling is gefixt, niet de redactie).
-  - Groepen met meldingen van meerdere leden: moeten ook combineren tot
-    1 gebeurtenis (`aantalMelders` > 1) — bevestigd in een losse test,
-    nog niet in de echte UI.
+  - Meldingen van meerdere leden moeten ook combineren tot 1 gebeurtenis
+    (`aantalMelders` > 1).
 - **Deel-app-knop (2026-07-01) op een echt mobiel toestel testen.**
   Lokaal/Playwright heeft geen `navigator.share`, dus alleen het
   klembord-kopieer-pad is getest. Controleer op een telefoon dat de
