@@ -113,11 +113,14 @@ de code, niet tegen het geheugen van een eerdere sessie.
   laag-toggle-functies zijn structureel bijna identiek; generalisatie is bewust
   nog niet gedaan (594 regels, regressierisico zonder browser-test).
 
-- **Kaartweergave voor het Dashboard-groepsfilter (2026-07-01, bewust
-  weggelaten).** Het groepsfilter toont nu alleen stats + de
-  `GroepMeldingenLijst`-lijst, geen kaart — `DashboardKaart.jsx`/
-  `MeldingDetailModal.jsx` zijn niet zomaar groepsveilig te hergebruiken
-  (tonen hash/RFC3161/device-detail dat een lage-trust-groepslid niet
-  mag zien, zie DECISIONS.md). Een kaartweergave zou een eigen,
-  `toon`-bewuste variant vereisen (vergelijkbaar met hoe
-  `GroepMeldingDetailModal.jsx` zich verhoudt tot `MeldingDetailModal.jsx`).
+- **Kaartweergave groepsfilter (2026-07-01) testen met echte
+  groepsdata.** `GroepDashboardKaart.jsx` (nieuw, lazy-loaded) is
+  toegevoegd aan `GroepMeldingenLijst.jsx` — verschijnt dus zowel op het
+  Dashboard-groepsfilter als op de Groepen-detailpagina. Getest met
+  nepdata via een tijdelijk testharnas (markers plotten correct,
+  klikken roept `onMeldingSelecteren` met de juiste melding aan, geen
+  console-fouten, hoofdbundel blijft ~895KB dankzij lazy-loading) —
+  niet getest met een echte, gesynchroniseerde groep. Controleer ook
+  dat een melding zonder zichtbare locatie (lage trust-tier) terecht
+  niet op de kaart verschijnt, en dat bij nul zichtbare locaties de
+  leeg-melding getoond wordt i.p.v. een kale kaart.

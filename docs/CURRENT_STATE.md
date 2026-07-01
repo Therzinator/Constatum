@@ -4,7 +4,34 @@ Momentopname. Dit bestand veroudert sneller dan DOMAIN_KNOWLEDGE.md/
 DECISIONS.md — bij twijfel altijd verifiëren tegen de code (`git log`,
 grep), niet blind vertrouwen op een oude snapshot.
 
-Laatst bijgewerkt: 2026-07-01 (post-COVID kwetsbare groep, auto-cleanup uitnodigingen, logout→loginscherm, PWA install-banner, contactadressen AV/Privacy, app-iconen vernieuwd, typografie-audit + font-size-tokensysteem, GitHub-repo hernoemd naar Constatum, crash-bij-uitloggen gefixt + ErrorBoundary, Dashboard-groepsfilter, Groepen Recent/Tijdlijn, app-iconen opnieuw uit icon_background.png, achteraf melding delen met groep, AV v2.0 + neutrale terminologie in Handleiding, opruiming + BottomNav-smalscherm-fix).
+Laatst bijgewerkt: 2026-07-01 (post-COVID kwetsbare groep, auto-cleanup uitnodigingen, logout→loginscherm, PWA install-banner, contactadressen AV/Privacy, app-iconen vernieuwd, typografie-audit + font-size-tokensysteem, GitHub-repo hernoemd naar Constatum, crash-bij-uitloggen gefixt + ErrorBoundary, Dashboard-groepsfilter, Groepen Recent/Tijdlijn, app-iconen opnieuw uit icon_background.png, achteraf melding delen met groep, AV v2.0 + neutrale terminologie in Handleiding, opruiming + BottomNav-smalscherm-fix, kaartweergave groepsfilter).
+
+## Kaartweergave voor het groepsfilter (2026-07-01)
+
+- **Nieuw, bewust minimaal component `GroepDashboardKaart.jsx`** (+
+  `GroepDashboardKaart.css`), lazy-loaded vanuit `GroepMeldingenLijst.jsx`
+  — verschijnt dus automatisch zowel op het Dashboard-groepsfilter als
+  op de Groepen-detailpagina, boven de bestaande Recent/Tijdlijn-toggle.
+- **Geen hergebruik van `DashboardKaart.jsx`/`MeldingDetailModal.jsx`**
+  (zie eerdere DECISIONS.md-afweging) — krijgt alleen de al door
+  `GroepMeldingenLijst.jsx` geredigeerde meldingen (`toon`-gate uit
+  `trustZichtbaarheid.js` al toegepast); een melding zonder zichtbare
+  `gps` (lage trust-tier) wordt simpelweg niet geplot. Klikken op een
+  marker opent de bestaande, groepsveilige `GroepMeldingDetailModal.jsx`
+  — nooit de zwaardere persoonlijke detailmodal. Geen luchtfoto/
+  driftzone/Natura2000/percelen-lagen of clustering — bewust minimaal.
+  Bij nul zichtbare locaties toont het een leeg-melding i.p.v. een kale
+  kaart.
+- **Lazy-loaded, niet statisch geïmporteerd** — een eerste versie
+  importeerde OpenLayers rechtstreeks in `GroepMeldingenLijst.jsx`
+  (niet lazy), waardoor de hoofdbundel met ~327KB groeide (OpenLayers
+  belandde voor ÉLKE gebruiker in de hoofdbundel, ook wie nooit een
+  groep met kaart bekijkt) — direct gecorrigeerd, hoofdbundel weer op
+  het oude niveau (~895KB).
+- Getest met nepdata via een tijdelijk testharnas (niet gecommit):
+  markers plotten op de juiste positie, klikken geeft de juiste
+  melding terug, geen console-fouten. **Niet getest met een echte
+  gesynchroniseerde groep** — zie NEXT_STEPS.md.
 
 ## Opruiming en BottomNav-smalscherm-fix (2026-07-01)
 

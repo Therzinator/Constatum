@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { haalMeldingenVoorGroep, verwijderMeldingUitGroep } from '../../lib/groepen/groepen.js';
 import { bepaalZichtbaarheidsniveau, velden } from '../../lib/groepen/trustZichtbaarheid.js';
 import { clusterMeldingen } from '../../lib/meldingen/clustering.js';
@@ -8,6 +8,11 @@ import { GroepMeldingDetailModal } from './GroepMeldingDetailModal.jsx';
 import '../meldingen/MeldingCard.css';
 import '../meldingen/TijdlijnPage.css';
 import './GroepMeldingenLijst.css';
+
+// Lazy — trekt OpenLayers (~300-400KB) mee, dat hoort niet in de
+// hoofdbundel voor gebruikers die nooit een groep met kaart bekijken
+// (zelfde reden als DashboardKaart.jsx/LocatieKaart.jsx hierboven).
+const GroepDashboardKaart = lazy(() => import('./GroepDashboardKaart.jsx').then((m) => ({ default: m.GroepDashboardKaart })));
 
 const NIVEAU_LABEL = { laag: 'Laag', gemiddeld: 'Gemiddeld', hoog: 'Hoog' };
 const RECENT_AANTAL = 5;
@@ -99,6 +104,12 @@ export function GroepMeldingenLijst({ groepId, viewerTrustScore, viewerUserId, u
         {isBeheerder
           ? 'Als beheerder heb je volledige inzage in gedeelde meldingen.'
           : <>Jouw zichtbaarheidsniveau in deze groep: <strong>{NIVEAU_LABEL[niveau] || niveau}</strong>, gebaseerd op je eigen trust score.</>}
+      </div>
+
+      <div className="mb-2">
+        <Suspense fallback={<div className="export-card-beschrijving">Kaart laden...</div>}>
+          <GroepDashboardKaart meldingen={veilig} onMeldingSelecteren={setGeopend} />
+        </Suspense>
       </div>
 
       <div className="groepen-meldingen-modus">
